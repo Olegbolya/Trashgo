@@ -222,6 +222,9 @@ export default function ContractorDashboard() {
     { day: 'Вс', date: '16', orders: 0, addresses: 0, earned: 0 },
   ];
 
+  const today = new Date();
+  const todayShort = today.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' });
+
   const history = [
     { id: 1, address: 'ул. Баумана, 58', date: '9 марта', customer: '12 адресов', price: '600₽' },
     { id: 2, address: 'пр. Победы, 120', date: '7 марта', customer: '8 адресов', price: '400₽' },
@@ -229,7 +232,7 @@ export default function ContractorDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-14">
+    <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         {/* Switch Role Banner */}
@@ -285,7 +288,7 @@ export default function ContractorDashboard() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-base font-semibold text-gray-900">Сегодня</h2>
-                <span className="text-xs text-gray-500">Пн, 10 марта</span>
+                <span className="text-xs text-gray-500">{todayShort}</span>
               </div>
 
               {todayOrders.length > 0 ? (

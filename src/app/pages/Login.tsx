@@ -1,17 +1,34 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 import { Trash2, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 
+function formatPhone(raw: string) {
+  const digits = raw.replace(/\D/g, '').replace(/^7/, '').replace(/^8/, '').slice(0, 10);
+  let result = '+7';
+  if (digits.length > 0) result += ' (' + digits.slice(0, 3);
+  if (digits.length >= 4) result += ') ' + digits.slice(3, 6);
+  if (digits.length >= 7) result += '-' + digits.slice(6, 8);
+  if (digits.length >= 9) result += '-' + digits.slice(8, 10);
+  return result;
+}
+
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const role = location.state?.role || 'customer';
   const [phone, setPhone] = useState('');
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '');
+    setPhone(raw);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Здесь бы отправляли код
-    navigate('/verify', { state: { phone } });
+    if (phone.replace(/\D/g, '').length < 10) return;
+    navigate('/verify', { state: { phone: formatPhone(phone), role } });
   };
 
   return (
@@ -47,8 +64,8 @@ export default function Login() {
               type="tel"
               placeholder="+7 (___) ___-__-__"
               className="h-12 border-gray-200 text-lg"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              value={phone ? formatPhone(phone) : ''}
+              onChange={handlePhoneChange}
               required
             />
           </div>

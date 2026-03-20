@@ -36,7 +36,7 @@ export default function Home() {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Customer */}
           <button
-            onClick={() => navigate('/customer')}
+            onClick={() => navigate('/login', { state: { role: 'customer' } })}
             className="bg-white border-2 border-gray-200 hover:border-gray-900 rounded-3xl p-8 text-left transition-all group"
           >
             <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-red-200 transition-colors">
@@ -53,7 +53,7 @@ export default function Home() {
 
           {/* Contractor */}
           <button
-            onClick={() => navigate('/contractor')}
+            onClick={() => navigate('/login', { state: { role: 'contractor' } })}
             className="bg-white border-2 border-gray-200 hover:border-gray-900 rounded-3xl p-8 text-left transition-all group"
           >
             <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-green-200 transition-colors">

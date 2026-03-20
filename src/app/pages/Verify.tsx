@@ -8,13 +8,14 @@ export default function Verify() {
   const navigate = useNavigate();
   const location = useLocation();
   const phone = location.state?.phone || '';
+  const role = location.state?.role || 'customer';
   const [code, setCode] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Здесь бы проверяли код
-    // После успешной проверки переходим на главную (выбор роли)
-    navigate('/');
+    // Здесь бы проверяли код через API
+    const destination = role === 'contractor' ? '/contractor' : '/customer';
+    navigate(destination);
   };
 
   return (

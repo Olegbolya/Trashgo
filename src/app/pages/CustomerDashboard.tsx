@@ -204,7 +204,11 @@ export default function CustomerDashboard() {
   ];
 
   const weekOrders = weekDays;
-  
+
+  const today = new Date();
+  const todayLabel = today.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+  const todayCapitalized = todayLabel.charAt(0).toUpperCase() + todayLabel.slice(1);
+
   // Mock subscriptions
   const subscriptions = [
     {
@@ -231,7 +235,7 @@ export default function CustomerDashboard() {
   };
   
   return (
-    <div className="min-h-screen bg-gray-50 pb-14">
+    <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         {/* Switch Role Banner */}
@@ -285,7 +289,7 @@ export default function CustomerDashboard() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-gray-900">Сегодня</h2>
-                <span className="text-sm text-gray-500">Понедельник, 10 марта</span>
+                <span className="text-sm text-gray-500">{todayCapitalized}</span>
               </div>
 
               <div className="space-y-3">
@@ -350,8 +354,8 @@ export default function CustomerDashboard() {
                 <div className="text-xs text-gray-600">Выполнено</div>
               </div>
               <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-                <div className="text-2xl font-semibold text-green-600 mb-1">-15₽</div>
-                <div className="text-xs text-gray-600">Скидка</div>
+                <div className="text-2xl font-semibold text-green-600 mb-1">15₽</div>
+                <div className="text-xs text-gray-600">Экономия</div>
               </div>
             </div>
 

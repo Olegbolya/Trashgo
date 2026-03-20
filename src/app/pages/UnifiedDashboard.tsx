@@ -197,7 +197,7 @@ export default function UnifiedDashboard() {
                         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                           <div className="flex items-center gap-2 mb-1">
                             <Package className="w-5 h-5" />
-                            <span className="text-sm text-white/80">Закзано</span>
+                            <span className="text-sm text-white/80">Заказано</span>
                           </div>
                           <div className="text-3xl font-bold">{stats.ordersCompleted}</div>
                           <div className="text-xs text-white/70 mt-1">Сэкономлено {stats.totalSaved}₽</div>

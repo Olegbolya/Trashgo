@@ -10,10 +10,10 @@ export default function CreateOrder() {
   const location = useLocation();
   const navigate = useNavigate();
   const initialData = location.state || {
-    address: 'ул. Баумана, 58, подъезд 2',
-    date: 'Завтра',
-    time: '18:00',
-    volume: 2,
+    address: '',
+    date: '',
+    time: '',
+    volume: 1,
     price: 50
   };
 

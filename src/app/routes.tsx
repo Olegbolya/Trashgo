@@ -40,10 +40,6 @@ export const router = createBrowserRouter([
     Component: SelectRole,
   },
   {
-    path: "/role-select",
-    Component: SelectRole,
-  },
-  {
     path: "/register-customer",
     Component: RegisterCustomer,
   },
