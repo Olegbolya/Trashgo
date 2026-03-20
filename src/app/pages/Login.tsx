@@ -1,0 +1,71 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import { Trash2, ArrowLeft } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+
+export default function Login() {
+  const navigate = useNavigate();
+  const [phone, setPhone] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Здесь бы отправляли код
+    navigate('/verify', { state: { phone } });
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Back button */}
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>Назад</span>
+        </button>
+
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Trash2 className="w-10 h-10 text-gray-900" />
+            <div>
+              <div className="text-2xl font-semibold text-gray-900">Вынос Мусора</div>
+              <div className="text-sm text-gray-600">Казань</div>
+            </div>
+          </div>
+          <h1 className="text-2xl text-gray-900 mb-2">Вход или регистрация</h1>
+          <p className="text-gray-600">Введите номер телефона</p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4">
+          <div className="mb-6">
+            <label className="text-sm text-gray-600 mb-2 block">Номер телефона</label>
+            <Input
+              type="tel"
+              placeholder="+7 (___) ___-__-__"
+              className="h-12 border-gray-200 text-lg"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+            />
+          </div>
+
+          <Button type="submit" className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white">
+            Получить код
+          </Button>
+
+          <p className="text-xs text-gray-500 text-center mt-4">
+            Отправим SMS с кодом подтверждения
+          </p>
+        </form>
+
+        <p className="text-xs text-gray-500 text-center">
+          Нажимая "Получить код", вы принимаете условия использования сервиса
+        </p>
+      </div>
+    </div>
+  );
+}

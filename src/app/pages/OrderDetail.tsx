@@ -1,0 +1,163 @@
+import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router';
+import { MapPin, Clock, Package, ArrowLeft, User } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
+
+export default function OrderDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [price, setPrice] = useState('');
+  const [message, setMessage] = useState('');
+
+  // Mock data
+  const order = {
+    id: id,
+    address: 'ул. Баумана, 58',
+    time: '5 мин назад',
+    date: '12 марта в 15:00',
+    volume: '3-5 мешков',
+    customerPrice: '50₽',
+    distance: '1.2 км',
+    description: 'Вынести бытовой мусор, 4 этаж, есть лифт. Код домофона: 123',
+    customer: {
+      name: 'Александр',
+      rating: 4.8,
+      orders: 12,
+    },
+  };
+
+  const handleRespond = () => {
+    // Здесь бы отправляли отклик
+    alert('Отклик отправлен!');
+    navigate('/dashboard');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-3xl mx-auto">
+          {/* Back button */}
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>Назад</span>
+          </button>
+
+          {/* Order info */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <div className="text-sm text-gray-600 mb-1">Заказ #{order.id}</div>
+                <h1 className="text-xl text-gray-900">Вынос мусора</h1>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-semibold text-gray-900">{order.customerPrice}</div>
+                <div className="text-xs text-gray-500 mt-1">{order.time}</div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-sm text-gray-600 mb-1">Адрес</div>
+                  <div className="text-gray-900">{order.address}</div>
+                  <div className="text-sm text-gray-500 mt-1">{order.distance} от вас</div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Clock className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-sm text-gray-600 mb-1">Дата и время</div>
+                  <div className="text-gray-900">{order.date}</div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Package className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-sm text-gray-600 mb-1">Объем</div>
+                  <div className="text-gray-900">{order.volume}</div>
+                </div>
+              </div>
+
+              {order.description && (
+                <div className="pt-4 border-t border-gray-100">
+                  <div className="text-sm text-gray-600 mb-2">Описание</div>
+                  <p className="text-gray-900">{order.description}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Customer info */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                <User className="w-6 h-6 text-gray-600" />
+              </div>
+              <div className="flex-1">
+                <div className="font-medium text-gray-900">{order.customer.name}</div>
+                <div className="text-sm text-gray-600">
+                  ⭐ {order.customer.rating} • {order.customer.orders} заказов
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Response form */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+            <h2 className="text-lg text-gray-900 mb-4">Откликнуться на заказ</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-600 mb-2 block">Ваша цена</label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    type="number"
+                    placeholder="60"
+                    className="h-12 border-gray-200"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                  />
+                  <span className="text-gray-600">₽</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Клиент готов заплатить {order.customerPrice}
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600 mb-2 block">
+                  Сообщение клиенту (необязательно)
+                </label>
+                <Textarea
+                  placeholder="Например: Могу приехать раньше..."
+                  className="min-h-[100px] resize-none border-gray-200"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                />
+              </div>
+
+              <Button 
+                className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white"
+                onClick={handleRespond}
+              >
+                Отправить предложение
+              </Button>
+
+              <p className="text-xs text-gray-500 text-center">
+                Клиент получит уведомление о вашем предложении
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
