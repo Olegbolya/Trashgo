@@ -235,11 +235,75 @@ export default function CustomerDashboard() {
   };
   
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div className="min-h-screen bg-gray-50 lg:flex">
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex flex-col fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-50">
+        {/* Logo */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-red-100 rounded-xl flex items-center justify-center">
+              <Package className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <div className="font-bold text-gray-900">TrashGo</div>
+              <div className="text-xs text-gray-500">Вынос мусора</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 p-4 space-y-1">
+          <button
+            onClick={() => setActiveTab('home')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${
+              activeTab === 'home' ? 'bg-red-50 text-red-600' : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Home className="w-5 h-5" />
+            Главная
+          </button>
+          <button
+            onClick={() => navigate('/create-order')}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Создать заказ
+          </button>
+          <button
+            onClick={() => navigate('/my-subscriptions')}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 hover:bg-gray-100 text-sm font-medium transition-colors"
+          >
+            <RefreshCw className="w-5 h-5" />
+            Подписки
+          </button>
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${
+              activeTab === 'profile' ? 'bg-red-50 text-red-600' : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <User className="w-5 h-5" />
+            Профиль
+          </button>
+        </nav>
+
+        {/* Switch role */}
+        <div className="p-4 border-t border-gray-200">
+          <button
+            onClick={() => navigate('/contractor')}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-green-50 text-green-700 hover:bg-green-100 text-sm font-medium transition-colors"
+          >
+            <ArrowRightLeft className="w-5 h-5" />
+            Хочу заработать
+          </button>
+        </div>
+      </aside>
+
+      {/* Mobile header */}
+      <header className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-50">
         {/* Switch Role Banner */}
-        <div 
+        <div
           onClick={() => navigate('/contractor')}
           className="bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 px-3 py-2.5 cursor-pointer hover:opacity-95 transition-opacity"
         >
@@ -248,13 +312,10 @@ export default function CustomerDashboard() {
               <ArrowRightLeft className="w-4 h-4" />
               <span className="text-sm font-semibold">Хотите заработать?</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs bg-white/20 px-2 py-1 rounded">5000₽/вечер</span>
-              <ChevronRight className="w-4 h-4" />
-            </div>
+            <ChevronRight className="w-4 h-4" />
           </div>
         </div>
-        
+
         <div className="container mx-auto px-3">
           <div className="flex items-center justify-between h-12">
             <div className="flex items-center gap-2">
@@ -279,7 +340,8 @@ export default function CustomerDashboard() {
       </header>
 
       {/* Main content */}
-      <div className="container mx-auto px-3 py-2 pb-16">
+      <div className="flex-1 lg:ml-64">
+      <div className="container mx-auto px-3 py-2 pb-20 lg:px-8 lg:py-6 lg:pb-6">
         {activeTab === 'home' && (
           <div className="max-w-4xl mx-auto space-y-3">
             {/* Level System - компактный вариант */}
@@ -748,7 +810,7 @@ export default function CustomerDashboard() {
             <Button 
               onClick={() => {
                 if (confirm('Вы уверены, что хотите выйти?')) {
-                  navigate('/role-select');
+                  navigate('/');
                 }
               }}
               variant="outline" 
@@ -761,8 +823,8 @@ export default function CustomerDashboard() {
         )}
       </div>
 
-      {/* Bottom navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+      {/* Bottom navigation - mobile only */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-around h-16">
             <button
@@ -795,6 +857,7 @@ export default function CustomerDashboard() {
           </div>
         </div>
       </nav>
+      </div>
     </div>
   );
 }

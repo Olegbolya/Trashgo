@@ -232,11 +232,89 @@ export default function ContractorDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div className="min-h-screen bg-gray-50 lg:flex">
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex flex-col fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-50">
+        {/* Logo */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-green-100 rounded-xl flex items-center justify-center">
+              <Briefcase className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <div className="font-bold text-gray-900">TrashGo</div>
+              <div className="text-xs text-gray-500">Исполнитель</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Status toggle */}
+        <div className="px-4 py-3 border-b border-gray-100">
+          <button
+            onClick={() => setIsOnShift(!isOnShift)}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+              isOnShift ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            <span>{isOnShift ? '🟢 Открыт для заказов' : '⚫ Не принимаю заказы'}</span>
+          </button>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 p-4 space-y-1">
+          <button
+            onClick={() => setActiveTab('home')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${
+              activeTab === 'home' ? 'bg-green-50 text-green-700' : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Home className="w-5 h-5" />
+            Главная
+          </button>
+          <button
+            onClick={() => navigate('/find-orders')}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors"
+          >
+            <Search className="w-5 h-5" />
+            Найти заказы
+          </button>
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${
+              activeTab === 'orders' ? 'bg-green-50 text-green-700' : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <MapPin className="w-5 h-5" />
+            Мои адреса
+          </button>
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${
+              activeTab === 'profile' ? 'bg-green-50 text-green-700' : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <User className="w-5 h-5" />
+            Профиль
+          </button>
+        </nav>
+
+        {/* Switch role */}
+        <div className="p-4 border-t border-gray-200">
+          <button
+            onClick={() => navigate('/customer')}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-red-50 text-red-700 hover:bg-red-100 text-sm font-medium transition-colors"
+          >
+            <ArrowRightLeft className="w-5 h-5" />
+            Нужен вывоз мусора
+          </button>
+        </div>
+      </aside>
+
+      {/* Mobile header */}
+      <header className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-50">
         {/* Switch Role Banner */}
-        <div 
+        <div
           onClick={() => navigate('/customer')}
           className="bg-gradient-to-r from-red-500 via-rose-500 to-pink-600 px-3 py-2.5 cursor-pointer hover:opacity-95 transition-opacity"
         >
@@ -245,13 +323,10 @@ export default function ContractorDashboard() {
               <ArrowRightLeft className="w-4 h-4" />
               <span className="text-sm font-semibold">Нужен вывоз мусора?</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs bg-white/20 px-2 py-1 rounded">50₽ • -20%</span>
-              <ChevronRight className="w-4 h-4" />
-            </div>
+            <ChevronRight className="w-4 h-4" />
           </div>
         </div>
-        
+
         <div className="container mx-auto px-3">
           <div className="flex items-center justify-between h-12">
             <div className="flex items-center gap-2">
@@ -266,9 +341,7 @@ export default function ContractorDashboard() {
             <button
               onClick={() => setIsOnShift(!isOnShift)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                isOnShift
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-gray-100 text-gray-600'
+                isOnShift ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
               }`}
             >
               {isOnShift ? 'Открыт' : 'Закрыт'}
@@ -278,7 +351,8 @@ export default function ContractorDashboard() {
       </header>
 
       {/* Main content */}
-      <div className="container mx-auto px-3 py-2 pb-16">
+      <div className="flex-1 lg:ml-64">
+      <div className="container mx-auto px-3 py-2 pb-20 lg:px-8 lg:py-6 lg:pb-6">
         {activeTab === 'home' && (
           <div className="max-w-4xl mx-auto space-y-3">
             {/* Level System - компактный вариант */}
@@ -666,7 +740,7 @@ export default function ContractorDashboard() {
             <Button 
               onClick={() => {
                 if (confirm('Вы уверены, что хотите выйти?')) {
-                  navigate('/role-select');
+                  navigate('/');
                 }
               }}
               variant="outline" 
@@ -679,8 +753,8 @@ export default function ContractorDashboard() {
         )}
       </div>
 
-      {/* Bottom navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+      {/* Bottom navigation - mobile only */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
         <div className="container mx-auto px-3">
           <div className="flex items-center justify-around h-14">
             <button
@@ -702,8 +776,17 @@ export default function ContractorDashboard() {
               <span className="text-xs">Главная</span>
             </button>
             <button
+              onClick={() => setActiveTab('orders')}
+              className={`flex flex-col items-center gap-0.5 ${
+                activeTab === 'orders' ? 'text-gray-900' : 'text-gray-400'
+              }`}
+            >
+              <MapPin className="w-5 h-5" />
+              <span className="text-xs">Адреса</span>
+            </button>
+            <button
               onClick={() => navigate('/find-orders')}
-              className="flex flex-col items-center gap-0.5 text-gray-900"
+              className="flex flex-col items-center gap-0.5 text-green-600"
             >
               <div className="w-11 h-11 bg-green-600 rounded-full flex items-center justify-center -mt-1">
                 <Search className="w-5 h-5 text-white" />
@@ -713,6 +796,7 @@ export default function ContractorDashboard() {
           </div>
         </div>
       </nav>
+      </div>
     </div>
   );
 }
