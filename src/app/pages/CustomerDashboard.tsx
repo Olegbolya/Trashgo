@@ -616,54 +616,41 @@ export default function CustomerDashboard() {
 
         {activeTab === 'profile' && (
           <div className="max-w-4xl mx-auto space-y-3">
-            {/* Profile Header - Hero Section */}
-            <div className="bg-gradient-to-br from-red-500 via-rose-500 to-pink-600 rounded-2xl p-6 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20"></div>
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-16 -mb-16"></div>
-              
-              <div className="relative">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border-2 border-white/30">
-                      <User className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                      <h1 className="text-2xl font-bold mb-1">Александр</h1>
-                      <div className="text-sm text-white/80">+7 (903) 123-45-67</div>
-                    </div>
+            {/* Profile Header */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center">
+                    <User className="w-7 h-7 text-gray-400" />
                   </div>
-                  <Button 
-                    onClick={() => alert('Редактироваие профиля')}
-                    size="sm" 
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm h-8"
-                  >
-                    <Edit className="w-3.5 h-3.5 mr-1" />
-                    Редактировать
-                  </Button>
+                  <div>
+                    <h1 className="text-lg font-semibold text-gray-900">Александр</h1>
+                    <div className="text-sm text-gray-500">+7 (903) 123-45-67</div>
+                  </div>
                 </div>
+                <Button
+                  onClick={() => alert('Редактирование профиля')}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                >
+                  <Edit className="w-3.5 h-3.5 mr-1" />
+                  Изменить
+                </Button>
+              </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                    <div className="flex items-center gap-2 mb-1">
-                      <CheckCircle className="w-4 h-4" />
-                      <span className="text-2xl font-bold">{stats.completedOrders}</span>
-                    </div>
-                    <div className="text-xs text-white/80">выполнено</div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Package className="w-4 h-4" />
-                      <span className="text-2xl font-bold">{stats.activeOrders}</span>
-                    </div>
-                    <div className="text-xs text-white/80">активных</div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                    <div className="flex items-center gap-2 mb-1">
-                      <UserPlus className="w-4 h-4" />
-                      <span className="text-2xl font-bold">{stats.referrals}</span>
-                    </div>
-                    <div className="text-xs text-white/80">рефералов</div>
-                  </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <div className="text-xl font-semibold text-gray-900">{stats.completedOrders}</div>
+                  <div className="text-xs text-gray-500">выполнено</div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <div className="text-xl font-semibold text-gray-900">{stats.activeOrders}</div>
+                  <div className="text-xs text-gray-500">активных</div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <div className="text-xl font-semibold text-gray-900">{stats.referrals}</div>
+                  <div className="text-xs text-gray-500">рефералов</div>
                 </div>
               </div>
             </div>
@@ -699,110 +686,86 @@ export default function CustomerDashboard() {
             </div>
 
             {/* Switch to Contractor Mode */}
-            <div 
+            <button
               onClick={() => navigate('/contractor')}
-              className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 rounded-2xl p-5 text-white relative overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+              className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 transition-colors text-left"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
-              
-              <div className="relative">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border-2 border-white/30">
-                      <ArrowRightLeft className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold">Хотите заработать?</div>
-                      <div className="text-sm text-white/80">Переключитесь в режим исполнителя</div>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                  <ArrowRightLeft className="w-5 h-5 text-green-600" />
                 </div>
-
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div>
-                      <div className="text-2xl font-bold">5000₽</div>
-                      <div className="text-xs text-white/80">за вечер</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold">100+</div>
-                      <div className="text-xs text-white/80">адресов</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold">3-4ч</div>
-                      <div className="text-xs text-white/80">работы</div>
-                    </div>
-                  </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-900">Хотите заработать?</div>
+                  <div className="text-xs text-gray-500">Переключиться в режим исполнителя</div>
                 </div>
               </div>
-            </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
 
             {/* Menu Items */}
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <button 
+              <button
                 onClick={() => alert('Настройки уведомлений')}
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <Bell className="w-5 h-5 text-blue-600" />
+                  <div className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center">
+                    <Bell className="w-4 h-4 text-gray-600" />
                   </div>
                   <div className="text-left">
                     <div className="text-sm font-medium text-gray-900">Уведомления</div>
                     <div className="text-xs text-gray-500">Настройка push и email</div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+                <ChevronRight className="w-4 h-4 text-gray-400" />
               </button>
 
-              <button 
+              <button
                 onClick={() => alert('Способы оплаты')}
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                    <CreditCard className="w-5 h-5 text-green-600" />
+                  <div className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center">
+                    <CreditCard className="w-4 h-4 text-gray-600" />
                   </div>
                   <div className="text-left">
-                    <div className="text-sm font-medium text-gray-900">Спооб оплаты</div>
+                    <div className="text-sm font-medium text-gray-900">Способ оплаты</div>
                     <div className="text-xs text-gray-500">Карты и банковские счета</div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+                <ChevronRight className="w-4 h-4 text-gray-400" />
               </button>
 
-              <button 
+              <button
                 onClick={() => navigate('/invite-neighbor')}
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <UserPlus className="w-5 h-5 text-purple-600" />
+                  <div className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center">
+                    <UserPlus className="w-4 h-4 text-gray-600" />
                   </div>
                   <div className="text-left">
                     <div className="text-sm font-medium text-gray-900">Пригласить соседей</div>
-                    <div className="text-xs text-gray-500">Чем больше вас - тем дешевле каждому</div>
+                    <div className="text-xs text-gray-500">Чем больше вас — тем дешевле каждому</div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+                <ChevronRight className="w-4 h-4 text-gray-400" />
               </button>
 
-              <button 
+              <button
                 onClick={() => alert('Помощь и поддержка')}
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
-                    <HelpCircle className="w-5 h-5 text-orange-600" />
+                  <div className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center">
+                    <HelpCircle className="w-4 h-4 text-gray-600" />
                   </div>
                   <div className="text-left">
                     <div className="text-sm font-medium text-gray-900">Помощь и поддержка</div>
                     <div className="text-xs text-gray-500">FAQ и связь с поддержкой</div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+                <ChevronRight className="w-4 h-4 text-gray-400" />
               </button>
             </div>
 

@@ -42,68 +42,23 @@ export default function CreateOrder() {
   const potentialDiscount = 10;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 pb-8">
-      <header className="bg-gradient-to-r from-red-500 via-rose-500 to-pink-600 text-white sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
+    <div className="min-h-screen bg-gray-50 pb-8">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => navigate('/customer')}
-              className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-white/30 transition-colors"
+              className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-colors"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4 text-gray-700" />
             </button>
-            <div>
-              <h1 className="text-xl font-bold">Создание заказа</h1>
-              <div className="text-sm text-white/80 flex items-center gap-2">
-                <Zap className="w-3.5 h-3.5" />
-                <span>+{xpReward} XP за размещение</span>
-              </div>
-            </div>
+            <h1 className="text-base font-semibold text-gray-900">Создание заказа</h1>
           </div>
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-6">
         <div className="max-w-2xl mx-auto space-y-4">
-          {/* Rewards */}
-          <div className="bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 border-2 border-yellow-300 rounded-2xl p-5 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400/20 rounded-full -mr-16 -mt-16"></div>
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center">
-                  <Gift className="w-5 h-5 text-yellow-900" />
-                </div>
-                <div>
-                  <div className="font-bold text-yellow-900">Бонусы за заказ</div>
-                  <div className="text-sm text-yellow-700">Получите награды прямо сейчас!</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 text-center border border-yellow-300/50">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Zap className="w-4 h-4 text-yellow-600" />
-                    <span className="text-2xl font-bold text-yellow-900">{xpReward}</span>
-                  </div>
-                  <div className="text-xs text-yellow-700">Опыта</div>
-                </div>
-                <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 text-center border border-yellow-300/50">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Star className="w-4 h-4 text-yellow-600" />
-                    <span className="text-2xl font-bold text-yellow-900">{potentialDiscount}₽</span>
-                  </div>
-                  <div className="text-xs text-yellow-700">Скидка</div>
-                </div>
-                <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 text-center border border-yellow-300/50">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Trophy className="w-4 h-4 text-yellow-600" />
-                    <span className="text-2xl font-bold text-yellow-900">+1</span>
-                  </div>
-                  <div className="text-xs text-yellow-700">К рейтингу</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Order details card */}
           <div className="bg-white border-2 border-gray-200 rounded-2xl overflow-hidden">
             <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-5 py-4 border-b-2 border-gray-200 flex items-center justify-between">
@@ -248,62 +203,20 @@ export default function CreateOrder() {
             </div>
           </div>
 
-          {/* Info block */}
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-2xl p-5">
-            <div className="flex gap-3">
-              <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <CheckCircle className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <div className="font-bold text-blue-900 mb-2">🎮 Квест "Быстрый заказ"</div>
-                <div className="text-sm text-blue-800 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-blue-200 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-bold text-blue-700">1</span>
-                    </div>
-                    <span>Исполнители увидят ваш заказ</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-blue-200 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-bold text-blue-700">2</span>
-                    </div>
-                    <span>Вы получите предложения с ценами</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-blue-200 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-bold text-blue-700">3</span>
-                    </div>
-                    <span>Выберите подходящего исполнителя</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                      <CheckCircle className="w-3 h-3 text-white" />
-                    </div>
-                    <span className="font-medium">Оплатите после выполнения +{xpReward} XP</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Actions */}
-          <div className="flex gap-3 sticky bottom-4">
+          <div className="flex gap-3">
             <Button
               variant="outline"
-              className="flex-1 h-14 text-base border-2 bg-white hover:bg-gray-50"
+              className="flex-1 h-12"
               onClick={() => navigate('/customer')}
             >
               Отменить
             </Button>
             <Button
-              className="flex-1 h-14 text-base bg-gradient-to-r from-red-500 via-rose-500 to-pink-600 hover:opacity-90 text-white shadow-lg shadow-red-500/30 relative overflow-hidden group"
+              className="flex-1 h-12 bg-gray-900 hover:bg-gray-800 text-white font-medium"
               onClick={handleConfirm}
             >
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-              <div className="relative flex items-center gap-2">
-                <Sparkles className="w-5 h-5" />
-                <span className="font-bold">Опубликовать заказ</span>
-              </div>
+              Опубликовать заказ
             </Button>
           </div>
         </div>
