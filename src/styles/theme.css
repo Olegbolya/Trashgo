@@ -179,3 +179,43 @@
     line-height: 1.5;
   }
 }
+
+/* ─── Dark mode: override hardcoded Tailwind gray classes ─── */
+
+/* Backgrounds */
+.dark .bg-white        { background-color: #1e2433; }
+.dark .bg-gray-50      { background-color: #111827; }
+.dark .bg-gray-100     { background-color: #1f2937; }
+.dark .bg-gray-200     { background-color: #374151; }
+
+/* Borders */
+.dark .border-gray-100 { border-color: #374151; }
+.dark .border-gray-200 { border-color: #374151; }
+.dark .border-gray-300 { border-color: #4b5563; }
+.dark .border-dashed.border-gray-300 { border-color: #4b5563; }
+
+/* Text */
+.dark .text-gray-900   { color: #f9fafb; }
+.dark .text-gray-800   { color: #f3f4f6; }
+.dark .text-gray-700   { color: #d1d5db; }
+.dark .text-gray-600   { color: #9ca3af; }
+.dark .text-gray-500   { color: #6b7280; }
+.dark .text-gray-400   { color: #4b5563; }
+
+/* Hovers */
+.dark .hover\:bg-gray-50:hover  { background-color: #1f2937; }
+.dark .hover\:bg-gray-100:hover { background-color: #374151; }
+
+/* Inputs */
+.dark input, .dark textarea {
+  background-color: #1f2937;
+  border-color: #374151;
+  color: #f9fafb;
+}
+.dark input::placeholder, .dark textarea::placeholder {
+  color: #6b7280;
+}
+
+/* Scrollbar */
+.dark ::-webkit-scrollbar-track { background: #111827; }
+.dark ::-webkit-scrollbar-thumb { background: #374151; }

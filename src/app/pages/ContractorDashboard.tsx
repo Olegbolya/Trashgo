@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Home, MapPin, User, Star, Briefcase, TrendingUp, Gift, Package, Clock, ChevronLeft, ChevronRight, CheckCircle, Calendar, Search, Navigation, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Award, Wallet, ArrowRightLeft } from 'lucide-react';
+import { Home, MapPin, User, Star, Briefcase, TrendingUp, Gift, Package, Clock, ChevronLeft, ChevronRight, CheckCircle, Calendar, Search, Navigation, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Award, Wallet, ArrowRightLeft, Moon, Sun } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import { Button } from '../components/ui/button';
 import { LevelSystem, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
@@ -8,6 +9,7 @@ import { toast } from 'sonner';
 
 export default function ContractorDashboard() {
   const navigate = useNavigate();
+  const { isDark, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'home' | 'orders' | 'profile' | 'find'>('home');
   const [isOnShift, setIsOnShift] = useState(true);
 
@@ -701,14 +703,33 @@ export default function ContractorDashboard() {
               </button>
             </div>
 
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+                  {isDark ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5 text-gray-600" />}
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-900">{isDark ? 'Светлая тема' : 'Тёмная тема'}</div>
+                  <div className="text-xs text-gray-500">{isDark ? 'Переключиться на светлую' : 'Переключиться на тёмную'}</div>
+                </div>
+              </div>
+              <div className={`w-10 h-6 rounded-full relative transition-colors ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}>
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${isDark ? 'left-5' : 'left-1'}`} />
+              </div>
+            </button>
+
             {/* Logout */}
-            <Button 
+            <Button
               onClick={() => {
                 if (confirm('Вы уверены, что хотите выйти?')) {
                   navigate('/');
                 }
               }}
-              variant="outline" 
+              variant="outline"
               className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 h-11"
             >
               <LogOut className="w-4 h-4 mr-2" />
