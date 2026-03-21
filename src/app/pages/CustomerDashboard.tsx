@@ -8,8 +8,9 @@ import { toast } from 'sonner';
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'home' | 'calendar' | 'profile'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'calendar' | 'profile' | 'create'>('home');
   const [currentWeek, setCurrentWeek] = useState(0);
+  const [createForm, setCreateForm] = useState({ address: '', date: '', time: '', volume: 1, price: 50, description: '' });
 
   // Level system data - геймификация!
   const levelData: LevelData = {
@@ -264,8 +265,10 @@ export default function CustomerDashboard() {
             Главная
           </button>
           <button
-            onClick={() => navigate('/create-order')}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium transition-colors"
+            onClick={() => setActiveTab('create')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${
+              activeTab === 'create' ? 'bg-red-50 text-red-600' : 'text-gray-700 hover:bg-gray-100'
+            }`}
           >
             <Plus className="w-5 h-5" />
             Создать заказ
@@ -288,34 +291,10 @@ export default function CustomerDashboard() {
           </button>
         </nav>
 
-        {/* Switch role */}
-        <div className="p-4 border-t border-gray-200">
-          <button
-            onClick={() => navigate('/contractor')}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-green-50 text-green-700 hover:bg-green-100 text-sm font-medium transition-colors"
-          >
-            <ArrowRightLeft className="w-5 h-5" />
-            Хочу заработать
-          </button>
-        </div>
       </aside>
 
       {/* Mobile header */}
       <header className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-50">
-        {/* Switch Role Banner */}
-        <div
-          onClick={() => navigate('/contractor')}
-          className="bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 px-3 py-2.5 cursor-pointer hover:opacity-95 transition-opacity"
-        >
-          <div className="container mx-auto flex items-center justify-between text-white">
-            <div className="flex items-center gap-2">
-              <ArrowRightLeft className="w-4 h-4" />
-              <span className="text-sm font-semibold">Хотите заработать?</span>
-            </div>
-            <ChevronRight className="w-4 h-4" />
-          </div>
-        </div>
-
         <div className="container mx-auto px-3">
           <div className="flex items-center justify-between h-12">
             <div className="flex items-center gap-2">
@@ -784,6 +763,115 @@ export default function CustomerDashboard() {
             </Button>
           </div>
         )}
+
+        {/* Create order tab */}
+        {activeTab === 'create' && (
+          <div className="max-w-2xl mx-auto space-y-4">
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-xl font-semibold text-gray-900">Новый заказ</h1>
+            </div>
+
+            {/* Form */}
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h2 className="font-semibold text-gray-900 text-sm">Детали заказа</h2>
+              </div>
+              <div className="p-5 space-y-4">
+                <div>
+                  <label className="text-sm text-gray-500 mb-1.5 block">Адрес вывоза</label>
+                  <input
+                    value={createForm.address}
+                    onChange={(e) => setCreateForm({ ...createForm, address: e.target.value })}
+                    placeholder="ул. Баумана, 58, кв. 42"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm text-gray-500 mb-1.5 block">Дата</label>
+                    <input
+                      type="date"
+                      value={createForm.date}
+                      onChange={(e) => setCreateForm({ ...createForm, date: e.target.value })}
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-500 mb-1.5 block">Время</label>
+                    <input
+                      type="time"
+                      value={createForm.time}
+                      onChange={(e) => setCreateForm({ ...createForm, time: e.target.value })}
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm text-gray-500 mb-1.5 block">Мешков</label>
+                    <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+                      <button
+                        onClick={() => setCreateForm({ ...createForm, volume: Math.max(1, createForm.volume - 1) })}
+                        className="px-3 py-2.5 text-gray-500 hover:bg-gray-50 text-lg leading-none"
+                      >−</button>
+                      <div className="flex-1 text-center text-sm font-medium text-gray-900">{createForm.volume}</div>
+                      <button
+                        onClick={() => setCreateForm({ ...createForm, volume: createForm.volume + 1 })}
+                        className="px-3 py-2.5 text-gray-500 hover:bg-gray-50 text-lg leading-none"
+                      >+</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-500 mb-1.5 block">Цена, ₽</label>
+                    <input
+                      type="number"
+                      value={createForm.price}
+                      onChange={(e) => setCreateForm({ ...createForm, price: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500 mb-1.5 block">Комментарий (необязательно)</label>
+                  <textarea
+                    value={createForm.description}
+                    onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                    placeholder="Этаж, подъезд, особые пожелания..."
+                    rows={3}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400 resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex items-center justify-between">
+              <div className="text-sm text-gray-600">Итого к оплате</div>
+              <div className="text-2xl font-bold text-gray-900">{createForm.price}₽</div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 h-12"
+                onClick={() => setActiveTab('home')}
+              >
+                Отменить
+              </Button>
+              <Button
+                className="flex-1 h-12 bg-gray-900 hover:bg-gray-800 text-white font-medium"
+                onClick={() => {
+                  toast.success('Заказ создан!', { description: 'Исполнители уже видят ваш заказ', duration: 3000 });
+                  setCreateForm({ address: '', date: '', time: '', volume: 1, price: 50, description: '' });
+                  setActiveTab('home');
+                }}
+              >
+                Опубликовать заказ
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom navigation - mobile only */}
@@ -809,13 +897,13 @@ export default function CustomerDashboard() {
               <span className="text-xs">Главная</span>
             </button>
             <button
-              onClick={() => navigate('/create-order')}
-              className="flex flex-col items-center gap-1 text-gray-900"
+              onClick={() => setActiveTab('create')}
+              className="flex flex-col items-center gap-1"
             >
-              <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center -mt-2">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center -mt-2 ${activeTab === 'create' ? 'bg-red-600' : 'bg-gray-900'}`}>
                 <Plus className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xs">Создать</span>
+              <span className={`text-xs ${activeTab === 'create' ? 'text-red-600' : 'text-gray-900'}`}>Создать</span>
             </button>
           </div>
         </div>
