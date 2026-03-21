@@ -383,7 +383,7 @@ export default function ContractorDashboard() {
                           >
                             Начать
                           </Button>
-                          <Button variant="outline" size="sm" className="px-3 h-8">
+                          <Button variant="outline" size="sm" className="px-3 h-8" onClick={() => toast.info(`Клиент: ${order.customer}`, { description: 'Контакт доступен после начала выноса', duration: 2500 })}>
                             <Phone className="w-3.5 h-3.5" />
                           </Button>
                         </div>
@@ -456,11 +456,11 @@ export default function ContractorDashboard() {
                     </div>
                     
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1 h-7 text-xs">
+                      <Button variant="outline" size="sm" className="flex-1 h-7 text-xs" onClick={() => toast.info('Чат в разработке', { description: 'Скоро появится встроенный мессенджер', duration: 2000 })}>
                         <MessageCircle className="w-3 h-3 mr-1" />
                         Чат
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1 h-7 text-xs">
+                      <Button variant="outline" size="sm" className="flex-1 h-7 text-xs" onClick={() => toast.info(`Клиент: ${address.customer}`, { description: 'Контакт виден в день вывоза', duration: 2500 })}>
                         <Phone className="w-3 h-3 mr-1" />
                         Звонок
                       </Button>

@@ -274,8 +274,10 @@ export default function CustomerDashboard() {
             Создать заказ
           </button>
           <button
-            onClick={() => navigate('/my-subscriptions')}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 hover:bg-gray-100 text-sm font-medium transition-colors"
+            onClick={() => setActiveTab('home')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${
+              activeTab === 'home' ? 'bg-red-50 text-red-600' : 'text-gray-700 hover:bg-gray-100'
+            }`}
           >
             <RefreshCw className="w-5 h-5" />
             Подписки
@@ -307,7 +309,7 @@ export default function CustomerDashboard() {
               </div>
             </div>
             <Button
-              onClick={() => navigate('/create-order')}
+              onClick={() => setActiveTab('create')}
               size="sm"
               className="bg-gray-900 hover:bg-gray-800 text-white h-8 text-xs"
             >
@@ -365,16 +367,16 @@ export default function CustomerDashboard() {
                       
                       {order.status === 'active' && (
                         <div className="flex gap-2">
-                          <Button variant="outline" className="flex-1">
+                          <Button variant="outline" className="flex-1" onClick={() => toast.info('Позвоните исполнителю', { description: `+7 (903) 123-45-67 — ${order.contractor}`, duration: 3000 })}>
                             Позвонить
                           </Button>
-                          <Button variant="outline" className="flex-1">
+                          <Button variant="outline" className="flex-1" onClick={() => toast.info('Чат в разработке', { description: 'Скоро появится встроенный мессенджер', duration: 2500 })}>
                             Написать
                           </Button>
                         </div>
                       )}
                       {order.status === 'waiting' && (
-                        <Button variant="outline" className="w-full">
+                        <Button variant="outline" className="w-full" onClick={() => toast.info(`${order.responses} откликов на ваш заказ`, { description: 'Выберите подходящего исполнителя', duration: 2500 })}>
                           Посмотреть отклики
                         </Button>
                       )}
@@ -449,10 +451,10 @@ export default function CustomerDashboard() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1 bg-white">
+                        <Button variant="outline" size="sm" className="flex-1 bg-white" onClick={() => toast.info('Редактирование подписки', { description: `${sub.address} — ${sub.time}`, duration: 2500 })}>
                           Редактировать
                         </Button>
-                        <Button variant="outline" size="sm" className="flex-1 bg-white">
+                        <Button variant="outline" size="sm" className="flex-1 bg-white" onClick={() => toast.success('Подписка приостановлена', { description: `${sub.address}`, duration: 2500 })}>
                           Пауза
                         </Button>
                       </div>
@@ -567,7 +569,7 @@ export default function CustomerDashboard() {
                 <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center">
                   <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                   <div className="text-gray-600 mb-4">У вас пока нет активных заказов</div>
-                  <Button onClick={() => navigate('/create-order')} className="bg-gray-900 hover:bg-gray-800 text-white">
+                  <Button onClick={() => setActiveTab('create')} className="bg-gray-900 hover:bg-gray-800 text-white">
                     <Plus className="w-5 h-5 mr-2" />
                     Создать заказ
                   </Button>
@@ -657,7 +659,7 @@ export default function CustomerDashboard() {
                     </div>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" className="w-full">
+                <Button variant="outline" size="sm" className="w-full" onClick={() => toast.info('Добавление адреса', { description: 'Функция в разработке', duration: 2000 })}>
                   <Plus className="w-3.5 h-3.5 mr-1" />
                   Добавить адрес
                 </Button>
