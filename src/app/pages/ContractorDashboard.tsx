@@ -348,7 +348,7 @@ export default function ContractorDashboard() {
               {todayOrders.length > 0 ? (
                 <div className="space-y-2">
                   {todayOrders.map((order) => (
-                    <div key={order.id} className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl overflow-hidden">
+                    <div key={order.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                       <div className="p-3">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">

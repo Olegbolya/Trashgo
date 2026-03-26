@@ -19,7 +19,7 @@ export default function Home() {
         </Button>
       </div>
 
-      <div className="max-w-4xl w-full">
+      <div className="max-w-5xl w-full">
         {/* Logo */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
