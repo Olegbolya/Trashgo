@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router';
-import { Home, User, Package, Trash2, ChevronLeft, HelpCircle, UserPlus, ArrowRightLeft } from 'lucide-react';
+import { Home, Package, Trash2, ChevronLeft, HelpCircle, UserPlus } from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;

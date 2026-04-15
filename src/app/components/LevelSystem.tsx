@@ -1,4 +1,3 @@
-import { Award, Star, Trophy, Zap, Target, Crown, Shield, Sparkles } from 'lucide-react';
 import { Progress } from './ui/progress';
 
 export interface LevelData {

@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { LevelSystem, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
 import { toast } from 'sonner';
+import { getDayLabel } from '../lib/utils';
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
@@ -232,11 +233,6 @@ export default function CustomerDashboard() {
     },
   ];
 
-  const getDayLabel = (dayId: number) => {
-    const labels = ['', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
-    return labels[dayId];
-  };
-  
   return (
     <div className="min-h-screen bg-gray-50 lg:flex">
 
@@ -610,7 +606,7 @@ export default function CustomerDashboard() {
                   </div>
                 </div>
                 <Button
-                  onClick={() => alert('Редактирование профиля')}
+                  onClick={() => toast.info('Редактирование профиля', { description: 'Функция в разработке' })}
                   variant="outline"
                   size="sm"
                   className="h-8 text-xs"
@@ -686,7 +682,7 @@ export default function CustomerDashboard() {
             {/* Menu Items */}
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
               <button
-                onClick={() => alert('Настройки уведомлений')}
+                onClick={() => toast.info('Настройки уведомлений', { description: 'Функция в разработке' })}
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
               >
                 <div className="flex items-center gap-3">
@@ -702,7 +698,7 @@ export default function CustomerDashboard() {
               </button>
 
               <button
-                onClick={() => alert('Способы оплаты')}
+                onClick={() => toast.info('Способы оплаты', { description: 'Функция в разработке' })}
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
               >
                 <div className="flex items-center gap-3">
@@ -734,7 +730,7 @@ export default function CustomerDashboard() {
               </button>
 
               <button
-                onClick={() => alert('Помощь и поддержка')}
+                onClick={() => toast.info('Помощь и поддержка', { description: 'Функция в разработке' })}
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center gap-3">

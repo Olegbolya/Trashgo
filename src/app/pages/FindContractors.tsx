@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Star, MapPin, TrendingUp, CheckCircle, RefreshCw, Zap, Calendar, DollarSign, Award } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { getDayLabel } from '../lib/utils';
 
 export default function FindContractors() {
   const navigate = useNavigate();
@@ -78,11 +79,6 @@ export default function FindContractors() {
       verified: true,
     },
   ];
-
-  const getDayLabel = (dayId: number) => {
-    const labels = ['', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
-    return labels[dayId];
-  };
 
   const filteredContractors = () => {
     if (filterType === 'top-rated') return contractors.filter(c => c.rating >= 4.8);

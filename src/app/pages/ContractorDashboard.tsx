@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { LevelSystem, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
 import { toast } from 'sonner';
+import { getDayLabel } from '../lib/utils';
 
 export default function ContractorDashboard() {
   const navigate = useNavigate();
@@ -202,11 +203,6 @@ export default function ContractorDashboard() {
       status: 'upcoming',
     },
   ];
-
-  const getDayLabel = (dayId: number) => {
-    const labels = ['', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
-    return labels[dayId];
-  };
 
   const totalAddresses = myAddresses.reduce((sum, addr) => sum + addr.addressCount, 0);
   const todayTotalAddresses = todayOrders.reduce((sum, order) => sum + order.addressCount, 0);
@@ -548,7 +544,7 @@ export default function ContractorDashboard() {
                   </div>
                 </div>
                 <Button
-                  onClick={() => alert('Редактирование профиля')}
+                  onClick={() => toast.info('Редактирование профиля', { description: 'Функция в разработке' })}
                   variant="outline"
                   size="sm"
                   className="h-8 text-xs"
@@ -585,7 +581,7 @@ export default function ContractorDashboard() {
                   <h2 className="text-sm font-semibold text-gray-900">Заработок</h2>
                 </div>
                 <button
-                  onClick={() => alert('История выплат')}
+                  onClick={() => toast.info('История выплат', { description: 'Функция в разработке' })}
                   className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
                 >
                   История
@@ -639,7 +635,7 @@ export default function ContractorDashboard() {
             {/* Menu Items */}
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
               <button
-                onClick={() => alert('Настройки уведомлений')}
+                onClick={() => toast.info('Настройки уведомлений', { description: 'Функция в разработке' })}
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
               >
                 <div className="flex items-center gap-3">
@@ -655,7 +651,7 @@ export default function ContractorDashboard() {
               </button>
 
               <button
-                onClick={() => alert('Способы оплаты')}
+                onClick={() => toast.info('Способы оплаты', { description: 'Функция в разработке' })}
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
               >
                 <div className="flex items-center gap-3">
@@ -671,7 +667,7 @@ export default function ContractorDashboard() {
               </button>
 
               <button
-                onClick={() => alert('Реферальная программа')}
+                onClick={() => toast.info('Реферальная программа', { description: 'Функция в разработке' })}
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
               >
                 <div className="flex items-center gap-3">
@@ -687,7 +683,7 @@ export default function ContractorDashboard() {
               </button>
 
               <button
-                onClick={() => alert('Помощь и поддержка')}
+                onClick={() => toast.info('Помощь и поддержка', { description: 'Функция в разработке' })}
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center gap-3">

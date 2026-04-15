@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, MapPin, Clock, DollarSign, RefreshCw, Calendar, TrendingUp, Pause, Play } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { getDayLabel, getDayFull } from '../lib/utils';
 
 export default function MySubscriptions() {
   const navigate = useNavigate();
@@ -53,16 +54,6 @@ export default function MySubscriptions() {
       description: 'Небольшие объемы, на паузе',
     },
   ]);
-
-  const getDayLabel = (dayId: number) => {
-    const labels = ['', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
-    return labels[dayId];
-  };
-
-  const getDayFull = (dayId: number) => {
-    const labels = ['', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
-    return labels[dayId];
-  };
 
   const toggleSubscription = (id: number) => {
     setSubscriptions(subscriptions.map(sub => 

@@ -163,7 +163,7 @@ export default function FindOrders() {
                 <div
                   key={order.id}
                   className={`bg-gradient-to-br ${color} rounded-xl text-white relative overflow-hidden cursor-pointer hover:opacity-95 transition-opacity`}
-                  onClick={() => alert(`Заказ #${order.id} - ${order.address}`)}
+                  onClick={() => navigate(`/order/${order.id}`)}
                 >
                   <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
                   

@@ -44,8 +44,8 @@ export function AchievementsPanel({ achievements, variant = 'customer' }: Achiev
             key={achievement.id}
             className={`rounded-xl p-3.5 border transition-all ${
               achievement.unlocked
-                ? `bg-white ${accentBorder} border`
-                : 'bg-gray-50 border-gray-200 border'
+                ? `bg-white ${accentBorder}`
+                : 'bg-gray-50 border-gray-200'
             }`}
           >
             <div className="text-2xl mb-2">{achievement.icon}</div>

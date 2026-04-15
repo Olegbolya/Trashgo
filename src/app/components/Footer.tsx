@@ -30,10 +30,10 @@ export function Footer() {
           <div>
             <h4 className="font-semibold mb-4">Сервис</h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-white/70 hover:text-white transition-colors">Как это работает</a></li>
+              <li><a href="/how-it-works" className="text-white/70 hover:text-white transition-colors">Как это работает</a></li>
               <li><a href="#" className="text-white/70 hover:text-white transition-colors">Районы обслуживания</a></li>
               <li><a href="#" className="text-white/70 hover:text-white transition-colors">Тарифы</a></li>
-              <li><a href="#" className="text-white/70 hover:text-white transition-colors">Стать исполнителем</a></li>
+              <li><a href="/login" className="text-white/70 hover:text-white transition-colors">Стать исполнителем</a></li>
             </ul>
           </div>
 
@@ -61,7 +61,7 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-3 text-white/70">
                 <Mail className="w-5 h-5 flex-shrink-0" />
-                <a href="mailto:info@vynosmусора.ru" className="hover:text-white transition-colors">
+                <a href="mailto:info@vynosmusora.ru" className="hover:text-white transition-colors">
                   info@vynosmusora.ru
                 </a>
               </li>

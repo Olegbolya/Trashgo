@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router';
 import { ArrowLeft, Users, TrendingDown, Copy, Share2, CheckCircle, MapPin, Gift, Sparkles, Phone, MessageCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 export default function InviteNeighbor() {
   const navigate = useNavigate();
@@ -349,14 +350,14 @@ export default function InviteNeighbor() {
               
               <div className="grid grid-cols-2 gap-2">
                 <Button 
-                  onClick={() => alert('Открыть WhatsApp')}
+                  onClick={() => toast.info('WhatsApp', { description: 'Интеграция с мессенджерами в разработке' })}
                   className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
                 >
                   <MessageCircle className="w-4 h-4 mr-1.5" />
                   WhatsApp
                 </Button>
                 <Button 
-                  onClick={() => alert('Позвонить соседу')}
+                  onClick={() => toast.info('Звонок', { description: 'Функция звонков в разработке' })}
                   className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
                 >
                   <Phone className="w-4 h-4 mr-1.5" />

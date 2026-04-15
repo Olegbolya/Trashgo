@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, MapPin, Clock, Package, Filter, RefreshCw, DollarSign, Navigation, Zap, Star, TrendingUp, Briefcase, Award } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { getDayLabel } from '../lib/utils';
 
 export default function FindOrdersNew() {
   const navigate = useNavigate();
@@ -79,11 +80,6 @@ export default function FindOrdersNew() {
       description: 'Небольшие объемы',
     },
   ];
-
-  const getDayLabel = (dayId: number) => {
-    const labels = ['', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
-    return labels[dayId];
-  };
 
   const filteredOrders = () => {
     if (filterType === 'one-time') return oneTimeOrders;

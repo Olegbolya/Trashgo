@@ -42,6 +42,15 @@ Thumbs.db
 # Vercel
 .vercel
 
+# Claude Code
+.claude/
+
+# Playwright MCP screenshots
+.playwright-mcp/
+
+# Screenshots
+screenshot-*.png
+
 # Local development
 *.local
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Star, MapPin, Calendar, Clock, DollarSign, RefreshCw, Pause, Play, MessageCircle, Phone, TrendingDown, Award } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { getDayLabel } from '../lib/utils';
 
 export default function MyContractors() {
   const navigate = useNavigate();
@@ -59,11 +60,6 @@ export default function MyContractors() {
       address: 'ул. Баумана, 58',
     },
   ]);
-
-  const getDayLabel = (dayId: number) => {
-    const labels = ['', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
-    return labels[dayId];
-  };
 
   const toggleContractor = (id: number) => {
     setContractors(contractors.map(c => 

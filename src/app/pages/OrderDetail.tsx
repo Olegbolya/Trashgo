@@ -4,6 +4,7 @@ import { MapPin, Clock, Package, ArrowLeft, User } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
+import { toast } from 'sonner';
 
 export default function OrderDetail() {
   const { id } = useParams();
@@ -30,8 +31,8 @@ export default function OrderDetail() {
 
   const handleRespond = () => {
     // Здесь бы отправляли отклик
-    alert('Отклик отправлен!');
-    navigate('/dashboard');
+    toast.success('Отклик отправлен!', { description: 'Ожидайте ответа заказчика' });
+    navigate('/contractor');
   };
 
   return (
