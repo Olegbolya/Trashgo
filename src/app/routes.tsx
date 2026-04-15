@@ -1,6 +1,7 @@
-import { createBrowserRouter, type RouteObject } from "react-router";
+import { createBrowserRouter } from "react-router";
 import { lazy, Suspense, type ComponentType } from "react";
 import Layout from "./components/Layout";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 // Lazy-load all pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
@@ -25,7 +26,6 @@ const InviteNeighbor = lazy(() => import("./pages/InviteNeighbor"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Loading fallback
 function PageLoader() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -37,7 +37,6 @@ function PageLoader() {
   );
 }
 
-// Helper to wrap lazy component with Suspense
 function page(Component: ComponentType) {
   return (
     <Suspense fallback={<PageLoader />}>
@@ -46,41 +45,55 @@ function page(Component: ComponentType) {
   );
 }
 
-function withLayout(Component: ComponentType) {
+function guarded(Component: ComponentType, role?: 'customer' | 'contractor') {
   return (
     <Suspense fallback={<PageLoader />}>
-      <Layout><Component /></Layout>
+      <ProtectedRoute requiredRole={role}>
+        <Component />
+      </ProtectedRoute>
+    </Suspense>
+  );
+}
+
+function guardedLayout(Component: ComponentType, role?: 'customer' | 'contractor') {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <ProtectedRoute requiredRole={role}>
+        <Layout><Component /></Layout>
+      </ProtectedRoute>
     </Suspense>
   );
 }
 
 export const router = createBrowserRouter([
-  // Public pages (no layout)
+  // Public — no auth required
   { path: "/", element: page(Home) },
   { path: "/login", element: page(Login) },
   { path: "/verify", element: page(Verify) },
   { path: "/select-role", element: page(SelectRole) },
   { path: "/register-customer", element: page(RegisterCustomer) },
   { path: "/register-contractor", element: page(RegisterContractor) },
+  { path: "/how-it-works", element: page(HowItWorks) },
 
-  // Dashboards (self-contained layout)
-  { path: "/dashboard", element: page(UnifiedDashboard) },
-  { path: "/customer", element: page(CustomerDashboard) },
-  { path: "/contractor", element: page(ContractorDashboard) },
+  // Protected — auth required, role-specific
+  { path: "/dashboard", element: guarded(UnifiedDashboard) },
+  { path: "/customer", element: guarded(CustomerDashboard, 'customer') },
+  { path: "/contractor", element: guarded(ContractorDashboard, 'contractor') },
 
-  // Feature pages (with sidebar Layout)
-  { path: "/create-order", element: withLayout(CreateOrder) },
-  { path: "/find-orders", element: withLayout(FindOrders) },
-  { path: "/find-orders-new", element: withLayout(FindOrdersNew) },
-  { path: "/my-subscriptions", element: withLayout(MySubscriptions) },
-  { path: "/find-contractors", element: withLayout(FindContractors) },
-  { path: "/my-contractors", element: withLayout(MyContractors) },
-  { path: "/create-subscription", element: withLayout(CreateSubscription) },
-  { path: "/invite-neighbor", element: withLayout(InviteNeighbor) },
-  { path: "/order-confirmed", element: withLayout(OrderConfirmed) },
-  { path: "/order/:id", element: withLayout(OrderDetail) },
-  { path: "/how-it-works", element: withLayout(HowItWorks) },
+  // Protected + Layout — customer pages
+  { path: "/create-order", element: guardedLayout(CreateOrder, 'customer') },
+  { path: "/my-subscriptions", element: guardedLayout(MySubscriptions, 'customer') },
+  { path: "/find-contractors", element: guardedLayout(FindContractors, 'customer') },
+  { path: "/my-contractors", element: guardedLayout(MyContractors, 'customer') },
+  { path: "/create-subscription", element: guardedLayout(CreateSubscription, 'customer') },
+  { path: "/invite-neighbor", element: guardedLayout(InviteNeighbor) },
+  { path: "/order-confirmed", element: guardedLayout(OrderConfirmed) },
 
-  // 404 catch-all
+  // Protected + Layout — contractor pages
+  { path: "/find-orders", element: guardedLayout(FindOrders, 'contractor') },
+  { path: "/find-orders-new", element: guardedLayout(FindOrdersNew, 'contractor') },
+  { path: "/order/:id", element: guardedLayout(OrderDetail) },
+
+  // 404
   { path: "*", element: page(NotFound) },
 ]);
