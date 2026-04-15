@@ -15,41 +15,41 @@
 - **Deploy**: Vercel
 - **Tech Stack**: React 18 + Vite 6 + TailwindCSS 4
 
-### 2. Backend Repository (To Create)
-- **Repo**: `github.com/ilnyr27/Trashgo-API`
-- **Deploy**: Railway
-- **Tech Stack**: Bun + Hono + PostgreSQL + Redis
+### 2. Backend Repository
+- **Repo**: [github.com/ilnyr27/Trashgo-API](https://github.com/ilnyr27/Trashgo-API)
+- **Deploy**: [Railway](https://web-production-8d2c4.up.railway.app)
+- **Tech Stack**: Node.js 22 + Hono + Drizzle ORM + PostgreSQL
 
 ---
 
 ## 🎯 Tech Stack
 
-### Frontend (Current Repo)
+### Frontend (Deployed)
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| React | 18.3.1 | UI Framework |
-| Vite | 6.3.5 | Build Tool |
-| TailwindCSS | 4.1.12 | Styling |
-| React Router | 7.13.0 | Routing |
-| Material UI | 7.3.5 | UI Components |
-| Radix UI | Latest | Headless Components |
-| Motion | 12.23.24 | Animations |
-| React Hook Form | 7.55.0 | Forms |
-| Recharts | 2.15.2 | Charts/Analytics |
+| React | 18.3.1 | UI-фреймворк |
+| Vite | 6.3.5 | Сборка |
+| TailwindCSS | 4.1.12 | Стили |
+| React Router | 7.13.0 | Маршрутизация |
+| Zustand | Latest | Стейт-менеджмент |
+| TanStack Query | Latest | Серверный стейт |
+| Radix UI + shadcn/ui | Latest | UI-компоненты |
+| Motion | 12.23.24 | Анимации |
+| React Hook Form | 7.55.0 | Формы |
+| Recharts | 2.15.2 | Графики |
 
-### Backend (Planned)
+### Backend (Deployed)
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| **Runtime** | Bun 1.x | High-performance JS runtime |
-| **Framework** | Hono | Edge-first web framework |
-| **Database** | PostgreSQL 16 | Primary database |
-| **ORM** | Drizzle ORM | Type-safe database queries |
-| **Cache** | Redis/Upstash | Caching & sessions |
-| **Queue** | BullMQ | Background jobs |
-| **WebSockets** | Socket.io | Real-time updates |
-| **Auth** | JWT + OAuth | Authentication |
+| **Runtime** | Node.js 22 | JavaScript runtime |
+| **Framework** | Hono 4.x | HTTP-фреймворк |
+| **Database** | PostgreSQL 16 | Основная БД (Railway) |
+| **ORM** | Drizzle ORM | Типизированные SQL-запросы |
+| **Auth** | JWT (jsonwebtoken) | Access + Refresh токены |
+| **Validation** | Zod 4.x | Валидация запросов |
+| **Deploy** | Railway (Nixpacks) | Авто-деплой из GitHub |
 
 ---
 
@@ -68,8 +68,8 @@
 │  • Subscriptions & Gamification                 │
 └────────────────┬────────────────────────────────┘
                  │
-                 │ REST/GraphQL API
-                 │ WebSocket Connection
+                 │ REST API (JSON)
+                 │ JWT Authorization
                  ▼
 ┌─────────────────────────────────────────────────┐
 │            API Gateway (Railway)                │
@@ -144,103 +144,86 @@ Level System:
 
 ---
 
-## 🗄️ Database Schema (Planned)
+## 🗄️ Database Schema (Deployed)
 
-### Core Tables
+### Текущие таблицы (PostgreSQL на Railway)
 
 ```sql
--- Users & Authentication
-users (id, email, phone, role, level, xp, created_at)
-user_profiles (user_id, name, avatar, district_id, bio)
-user_achievements (user_id, achievement_id, unlocked_at)
+-- Пользователи
+users (id UUID, phone, name, role [customer|contractor], district, xp, level, password_hash, created_at)
 
--- Orders
-orders (id, customer_id, contractor_id, status, address, district_id)
-order_items (order_id, item_type, quantity, weight)
-order_history (order_id, status, timestamp, notes)
+-- OTP-коды для авторизации
+otp_codes (id UUID, phone, code, expires_at, used, created_at)
 
--- Subscriptions
+-- Заказы
+orders (id UUID, customer_id FK, contractor_id FK, address, district, status [new|accepted|in_progress|completed|cancelled], volume, price, description, scheduled_at, created_at, updated_at)
+
+-- Аудит-лог статусов
+order_history (id UUID, order_id FK, status, note, created_at)
+
+-- Refresh-токены (ротация)
+refresh_tokens (id UUID, user_id FK, token UNIQUE, expires_at, created_at)
+
+Индексы:
+- idx_orders_district_status (district, status)
+- idx_orders_customer (customer_id, created_at)
+- idx_orders_contractor (contractor_id, status)
+```
+
+### Таблицы для будущих фаз
+
+```sql
+-- Подписки
 subscriptions (id, customer_id, contractor_id, frequency, next_date)
-subscription_schedules (subscription_id, day_of_week, time_slot)
 
--- Gamification
+-- Геймификация
 achievements (id, name, description, category, xp_reward, icon)
-user_stats (user_id, total_orders, total_weight, streak_days)
+user_achievements (user_id, achievement_id, unlocked_at)
 leaderboards (district_id, user_id, rank, points, period)
 
--- Contractors
-contractors (user_id, company_name, rating, verified, service_areas)
+-- Подрядчики (расширение)
 contractor_services (contractor_id, service_type, price, min_order)
 contractor_availability (contractor_id, day, start_time, end_time)
-
--- Districts & Geolocation
-districts (id, name, city, polygon_geojson)
-service_areas (contractor_id, district_id, base_price)
 ```
 
 ---
 
-## 🔌 API Endpoints (Planned)
+## 🔌 API Endpoints
 
-### Authentication
-```
-POST   /api/auth/register
-POST   /api/auth/login
-POST   /api/auth/verify-otp
-POST   /api/auth/logout
-GET    /api/auth/me
-```
+**Base URL**: `https://web-production-8d2c4.up.railway.app/api/v1`
 
-### Users
+### Реализовано (v1)
+
+#### Auth `/api/v1/auth`
 ```
-GET    /api/users/:id
-PATCH  /api/users/:id
-GET    /api/users/:id/achievements
-GET    /api/users/:id/stats
+POST /login       — Отправка OTP на телефон
+POST /verify      — Проверка OTP → JWT (или isNewUser)
+POST /register    — Регистрация нового юзера (после verify)
+POST /refresh     — Ротация JWT-пары
 ```
 
-### Orders
+#### Users `/api/v1/users` (JWT required)
 ```
-GET    /api/orders
-POST   /api/orders
-GET    /api/orders/:id
-PATCH  /api/orders/:id
-DELETE /api/orders/:id
-GET    /api/orders/nearby (для подрядчиков)
+GET  /me          — Профиль текущего пользователя
+PATCH /me         — Обновить имя/район
 ```
 
-### Subscriptions
+#### Orders `/api/v1/orders` (JWT required)
 ```
-GET    /api/subscriptions
-POST   /api/subscriptions
-GET    /api/subscriptions/:id
-PATCH  /api/subscriptions/:id
-DELETE /api/subscriptions/:id
-```
-
-### Contractors
-```
-GET    /api/contractors
-GET    /api/contractors/:id
-GET    /api/contractors/search?district=X&service=Y
-POST   /api/contractors/:id/reviews
+GET  /            — Мои заказы
+GET  /available   — Маркетплейс (только contractor)
+POST /            — Создать заказ (только customer)
+PATCH /:id/status — Сменить статус (state machine)
 ```
 
-### Gamification
-```
-GET    /api/achievements
-GET    /api/leaderboards?district=X&period=week
-POST   /api/achievements/unlock
-GET    /api/users/:id/level-progress
-```
+### Планируется (v2+)
 
-### WebSocket Events
 ```
-WS     /ws/notifications
-       - order.status_updated
-       - achievement.unlocked
-       - level.up
-       - contractor.nearby
+GET    /api/v1/subscriptions          — Подписки
+GET    /api/v1/contractors/search     — Поиск подрядчиков
+GET    /api/v1/achievements           — Список достижений
+GET    /api/v1/leaderboards           — Рейтинги
+WS     /ws/notifications              — Реалтайм события
 ```
 
 ---
@@ -265,14 +248,16 @@ WS     /ws/notifications
 
 ### Phase 2 (Backend + Integration)
 
-- [ ] Backend API с Bun + Hono
-- [ ] PostgreSQL database setup
-- [ ] Authentication (JWT + OTP)
-- [ ] Orders CRUD API
+- [x] Backend API на Node.js 22 + Hono
+- [x] PostgreSQL на Railway
+- [x] Authentication (OTP → JWT с ротацией)
+- [x] Orders CRUD API со статусной машиной
+- [x] Деплой на Railway с авто-миграциями
+- [ ] Подключение фронта к реальному API
+- [ ] SMS-провайдер (SMS.ru / SMS Aero)
 - [ ] Contractor matching algorithm
+- [ ] Payment integration (ЮKassa)
 - [ ] Real-time notifications (WebSocket)
-- [ ] Payment integration (Stripe/Yookassa)
-- [ ] Email/SMS notifications
 
 ### Phase 3 (Gamification)
 
@@ -310,9 +295,7 @@ Install Command: npm install
 
 **Environment Variables**:
 ```env
-VITE_API_URL=https://trashgo-api.up.railway.app
-VITE_WS_URL=wss://trashgo-api.up.railway.app
-VITE_GOOGLE_MAPS_API_KEY=your_key
+VITE_API_URL=https://web-production-8d2c4.up.railway.app/api/v1
 ```
 
 **Auto-Deploy**:
@@ -322,20 +305,19 @@ VITE_GOOGLE_MAPS_API_KEY=your_key
 
 ### Backend (Railway)
 
-**Repository**: `ilnyr27/Trashgo-API` (to create)
+**Repository**: [ilnyr27/Trashgo-API](https://github.com/ilnyr27/Trashgo-API)
 
 **Services**:
-1. API Server (Hono app)
-2. PostgreSQL Database
-3. Redis Cache
-4. Worker (Background jobs)
+1. API Server (Hono) — `web-production-8d2c4.up.railway.app`
+2. PostgreSQL Database — Railway add-on
 
 **Environment Variables**:
 ```env
-DATABASE_URL=postgresql://...
-REDIS_URL=redis://...
-JWT_SECRET=...
-FRONTEND_URL=https://trashgo.vercel.app
+DATABASE_URL=postgresql://... (от Railway PostgreSQL)
+JWT_SECRET=<random>
+JWT_REFRESH_SECRET=<random>
+FRONTEND_URL=https://trashgo-coral.vercel.app
+NODE_ENV=production
 ```
 
 **Auto-Deploy**:
@@ -350,13 +332,13 @@ FRONTEND_URL=https://trashgo.vercel.app
 ### Local Development
 
 ```bash
-# Frontend
+# Frontend (c:\Users\ilray\Claude\TrashGo)
 npm install
 npm run dev      # http://localhost:5173
 
-# Backend (future)
-bun install
-bun run dev      # http://localhost:3000
+# Backend (c:\Users\ilray\Claude\Trashgo-API)
+npm install
+npm run dev      # http://localhost:3000
 ```
 
 ### Git Workflow
@@ -503,9 +485,12 @@ Weights:     400 (regular), 500 (medium), 600 (semibold), 700 (bold)
 
 ## 📞 Contact & Resources
 
-**Repository**: https://github.com/ilnyr27/Trashgo
+**Frontend**: https://github.com/ilnyr27/Trashgo
+**Backend**: https://github.com/ilnyr27/Trashgo-API
 **Figma**: https://www.figma.com/design/F4gDWeoxxZvFq5Wuuj5XBT/Review-file
+**Live**: https://trashgo-coral.vercel.app
+**API**: https://web-production-8d2c4.up.railway.app
 
 ---
 
-*Last Updated: 2026-03-20*
+*Last Updated: 2026-04-15*
