@@ -1,15 +1,18 @@
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 import { PackagePlus, Coins } from 'lucide-react';
 
 export default function SelectRole() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const phone = location.state?.phone || '';
+  const verifiedCode = location.state?.verifiedCode || '';
 
   const selectRole = (role: 'customer' | 'contractor') => {
-    // Здесь бы сохраняли роль в профиле пользователя
+    const state = { phone, verifiedCode, role };
     if (role === 'customer') {
-      navigate('/register-customer');
+      navigate('/register-customer', { state });
     } else {
-      navigate('/register-contractor');
+      navigate('/register-contractor', { state });
     }
   };
 

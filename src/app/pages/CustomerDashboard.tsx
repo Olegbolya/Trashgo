@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useAuthStore } from '../../stores/auth.store';
 import { Home, MapPin, User, Plus, Package, CheckCircle, Clock, Gift, ChevronLeft, ChevronRight, Calendar, Repeat, RefreshCw, Star, Edit, LogOut, Bell, CreditCard, UserPlus, HelpCircle, Award, Wallet, TrendingDown, ArrowRightLeft, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { Button } from '../components/ui/button';
@@ -11,6 +12,7 @@ import { getDayLabel } from '../lib/utils';
 export default function CustomerDashboard() {
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
+  const { user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'home' | 'calendar' | 'profile' | 'create'>('home');
   const [currentWeek, setCurrentWeek] = useState(0);
   const [createForm, setCreateForm] = useState({ address: '', date: '', time: '', volume: 1, price: 50, description: '' });
@@ -769,6 +771,7 @@ export default function CustomerDashboard() {
             <Button
               onClick={() => {
                 if (confirm('Вы уверены, что хотите выйти?')) {
+                  logout();
                   navigate('/');
                 }
               }}

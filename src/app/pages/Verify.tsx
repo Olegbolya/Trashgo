@@ -3,7 +3,9 @@ import { useNavigate, useLocation } from 'react-router';
 import { Trash2, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { authApi } from '../../api/auth';
 import { useAuthStore } from '../../stores/auth.store';
+import { toast } from 'sonner';
 
 export default function Verify() {
   const navigate = useNavigate();
@@ -11,23 +13,47 @@ export default function Verify() {
   const phone = location.state?.phone || '';
   const role = location.state?.role || 'customer';
   const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAuth(
-      { id: crypto.randomUUID(), phone, name: '', role, district: '', xp: 0, level: 1, createdAt: new Date().toISOString() },
-      'mock-token',
-      'mock-refresh-token',
-    );
-    const destination = role === 'contractor' ? '/contractor' : '/customer';
-    navigate(destination);
+    setLoading(true);
+
+    try {
+      const res = await authApi.verify(phone, code);
+
+      if (res.isNewUser) {
+        navigate('/select-role', { state: { phone, verifiedCode: code } });
+        return;
+      }
+
+      setAuth(res.user, res.token, res.refreshToken);
+      navigate(res.user.role === 'contractor' ? '/contractor' : '/customer');
+    } catch (err: any) {
+      const msg = err?.message || 'Неверный или истёкший код';
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    try {
+      const res = await authApi.login(phone);
+      if (res.devCode) {
+        toast.info(`Новый код: ${res.devCode}`, { duration: 30000 });
+      } else {
+        toast.success('Код отправлен повторно');
+      }
+    } catch {
+      toast.error('Ошибка. Попробуйте позже.');
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Back button */}
         <button
           onClick={() => navigate('/login')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8"
@@ -36,7 +62,6 @@ export default function Verify() {
           <span>Назад</span>
         </button>
 
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <Trash2 className="w-10 h-10 text-gray-900" />
@@ -51,7 +76,6 @@ export default function Verify() {
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4">
           <div className="mb-6">
             <label className="text-sm text-gray-600 mb-2 block">Код из SMS</label>
@@ -66,12 +90,13 @@ export default function Verify() {
             />
           </div>
 
-          <Button type="submit" className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white">
-            Подтвердить
+          <Button type="submit" disabled={loading || code.length < 4} className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white">
+            {loading ? 'Проверяем...' : 'Подтвердить'}
           </Button>
 
           <button
             type="button"
+            onClick={handleResend}
             className="w-full text-sm text-gray-600 hover:text-gray-900 mt-4"
           >
             Отправить код повторно

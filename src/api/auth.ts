@@ -4,9 +4,12 @@ import type { User, UserRole } from '../types/user';
 interface LoginResponse {
   otpSent: boolean;
   isNewUser: boolean;
+  devCode?: string;
 }
 
 interface VerifyResponse {
+  verified?: boolean;
+  isNewUser?: boolean;
   user: User;
   token: string;
   refreshToken: string;
@@ -14,29 +17,41 @@ interface VerifyResponse {
 
 interface RegisterInput {
   phone: string;
+  code: string;
   name: string;
   role: UserRole;
   district: string;
 }
 
+interface RegisterResponse {
+  user: User;
+  token: string;
+  refreshToken: string;
+}
+
 export const authApi = {
-  login(phone: string) {
-    return api.post<LoginResponse>('/auth/login', { phone });
+  async login(phone: string): Promise<LoginResponse> {
+    const res = await api.post<{ data: LoginResponse }>('/auth/login', { phone });
+    return res.data;
   },
 
-  verify(phone: string, code: string) {
-    return api.post<VerifyResponse>('/auth/verify', { phone, code });
+  async verify(phone: string, code: string): Promise<VerifyResponse> {
+    const res = await api.post<{ data: VerifyResponse }>('/auth/verify', { phone, code });
+    return res.data;
   },
 
-  register(data: RegisterInput) {
-    return api.post<VerifyResponse>('/auth/register', data);
+  async register(data: RegisterInput): Promise<RegisterResponse> {
+    const res = await api.post<{ data: RegisterResponse }>('/auth/register', data);
+    return res.data;
   },
 
-  me() {
-    return api.get<User>('/users/me');
+  async me(): Promise<User> {
+    const res = await api.get<{ data: User }>('/users/me');
+    return res.data;
   },
 
-  refresh(refreshToken: string) {
-    return api.post<{ token: string; refreshToken: string }>('/auth/refresh', { refreshToken });
+  async refresh(refreshToken: string): Promise<{ token: string; refreshToken: string }> {
+    const res = await api.post<{ data: { token: string; refreshToken: string } }>('/auth/refresh', { refreshToken });
+    return res.data;
   },
 };

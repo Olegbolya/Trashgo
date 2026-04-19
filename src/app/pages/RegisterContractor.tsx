@@ -1,21 +1,38 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 import { Trash2, ArrowLeft, MapPin } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { authApi } from '../../api/auth';
+import { useAuthStore } from '../../stores/auth.store';
+import { toast } from 'sonner';
 
 export default function RegisterContractor() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const phone = location.state?.phone || '';
+  const verifiedCode = location.state?.verifiedCode || '';
+  const setAuth = useAuthStore((s) => s.setAuth);
+
   const [formData, setFormData] = useState({
     name: '',
     district: 'Вахитовский',
     transport: 'foot',
   });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Здесь бы сохраняли данные профиля
-    navigate('/contractor');
+    setLoading(true);
+    try {
+      const res = await authApi.register({ phone, code: verifiedCode, name: formData.name, role: 'contractor', district: formData.district });
+      setAuth(res.user, res.token, res.refreshToken);
+      navigate('/contractor');
+    } catch (err: any) {
+      toast.error(err?.message || 'Ошибка регистрации. Попробуйте ещё раз.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -122,8 +139,8 @@ export default function RegisterContractor() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white mt-8">
-            Начать зарабатывать
+          <Button type="submit" disabled={loading} className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white mt-8">
+            {loading ? 'Регистрируем...' : 'Начать зарабатывать'}
           </Button>
         </form>
       </div>

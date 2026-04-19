@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router';
 import { Trash2, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { authApi } from '../../api/auth';
+import { toast } from 'sonner';
 
 function formatPhone(raw: string) {
   const digits = raw.replace(/\D/g, '').replace(/^7/, '').replace(/^8/, '').slice(0, 10);
@@ -19,22 +21,36 @@ export default function Login() {
   const location = useLocation();
   const role = location.state?.role || 'customer';
   const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '');
     setPhone(raw);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (phone.replace(/\D/g, '').length < 10) return;
-    navigate('/verify', { state: { phone: formatPhone(phone), role } });
+
+    const formattedPhone = formatPhone(phone);
+    setLoading(true);
+
+    try {
+      const res = await authApi.login(formattedPhone);
+      if (res.devCode) {
+        toast.info(`Код для входа: ${res.devCode}`, { duration: 30000 });
+      }
+      navigate('/verify', { state: { phone: formattedPhone, role, isNewUser: res.isNewUser } });
+    } catch {
+      toast.error('Ошибка отправки кода. Попробуйте ещё раз.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Back button */}
         <button
           onClick={() => navigate('/')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8"
@@ -43,7 +59,6 @@ export default function Login() {
           <span>Назад</span>
         </button>
 
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <Trash2 className="w-10 h-10 text-gray-900" />
@@ -56,7 +71,6 @@ export default function Login() {
           <p className="text-gray-600">Введите номер телефона</p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4">
           <div className="mb-6">
             <label className="text-sm text-gray-600 mb-2 block">Номер телефона</label>
@@ -70,8 +84,8 @@ export default function Login() {
             />
           </div>
 
-          <Button type="submit" className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white">
-            Получить код
+          <Button type="submit" disabled={loading} className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white">
+            {loading ? 'Отправляем...' : 'Получить код'}
           </Button>
 
           <p className="text-xs text-gray-500 text-center mt-4">
