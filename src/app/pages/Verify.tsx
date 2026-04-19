@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router';
 import { Trash2, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { useAuthStore } from '../../stores/auth.store';
 
 export default function Verify() {
   const navigate = useNavigate();
@@ -10,10 +11,15 @@ export default function Verify() {
   const phone = location.state?.phone || '';
   const role = location.state?.role || 'customer';
   const [code, setCode] = useState('');
+  const setAuth = useAuthStore((s) => s.setAuth);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Здесь бы проверяли код через API
+    setAuth(
+      { id: crypto.randomUUID(), phone, name: '', role, district: '', xp: 0, level: 1, createdAt: new Date().toISOString() },
+      'mock-token',
+      'mock-refresh-token',
+    );
     const destination = role === 'contractor' ? '/contractor' : '/customer';
     navigate(destination);
   };
