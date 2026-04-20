@@ -4,6 +4,7 @@ import { Trash2, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { authApi } from '../../api/auth';
+import { useRoleStore } from '../../stores/role.store';
 import { toast } from 'sonner';
 
 function formatPhone(raw: string) {
@@ -20,8 +21,15 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const role = location.state?.role || 'customer';
+  const { accentColor, setRole } = useRoleStore();
+  const accent = accentColor;
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // sync role from navigation state
+  if (location.state?.role && location.state.role !== role) {
+    setRole(location.state.role);
+  }
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '');
@@ -84,7 +92,12 @@ export default function Login() {
             />
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white">
+          <Button
+            type="submit"
+            disabled={loading}
+            style={{ background: accent, border: 'none' }}
+            className="w-full h-12 text-white hover:opacity-90"
+          >
             {loading ? 'Отправляем...' : 'Получить код'}
           </Button>
 

@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { authApi } from '../../api/auth';
 import { useAuthStore } from '../../stores/auth.store';
+import { useRoleStore } from '../../stores/role.store';
 import { toast } from 'sonner';
 
 export default function Verify() {
@@ -15,6 +16,7 @@ export default function Verify() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const setAuth = useAuthStore((s) => s.setAuth);
+  const accent = useRoleStore((s) => s.accentColor);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +92,12 @@ export default function Verify() {
             />
           </div>
 
-          <Button type="submit" disabled={loading || code.length < 4} className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white">
+          <Button
+            type="submit"
+            disabled={loading || code.length < 4}
+            style={{ background: accent, border: 'none' }}
+            className="w-full h-12 text-white hover:opacity-90"
+          >
             {loading ? 'Проверяем...' : 'Подтвердить'}
           </Button>
 
