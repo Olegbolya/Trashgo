@@ -31,17 +31,18 @@ export default function CustomerDashboard() {
     description: string; photoUrls: string[]; status: 'waiting' | 'active' | 'cancelled';
     responses: number; createdAt: string;
   };
+  const storageKey = `trashgo_my_orders_${user?.id || 'guest'}`;
   const [myOrders, setMyOrders] = useState<MyOrder[]>(() => {
     try {
-      const stored = localStorage.getItem('trashgo_my_orders');
+      const stored = localStorage.getItem(`trashgo_my_orders_${user?.id || 'guest'}`);
       return stored ? JSON.parse(stored) : [];
     } catch { return []; }
   });
   const [selectedOrder, setSelectedOrder] = useState<MyOrder | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('trashgo_my_orders', JSON.stringify(myOrders));
-  }, [myOrders]);
+    localStorage.setItem(storageKey, JSON.stringify(myOrders));
+  }, [myOrders, storageKey]);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -55,62 +56,29 @@ export default function CustomerDashboard() {
   };
 
   const levelData: LevelData = {
-    level: 12, xp: 2400, nextLevelXp: 3000,
-    title: 'Постоянный клиент', rank: '⚡ Опытный',
-    achievements: 8, totalOrders: 24,
+    level: user?.level ?? 1,
+    xp: user?.xp ?? 0,
+    nextLevelXp: 100,
+    title: 'Новый клиент',
+    rank: '🌱 Новичок',
+    achievements: 0,
+    totalOrders: myOrders.length,
   };
 
   const achievements: Achievement[] = [
-    { id: 'first_order', icon: '🎯', title: 'Первый заказ', description: 'Создайте свой первый заказ', unlocked: true, reward: '+10 XP' },
-    { id: 'regular_customer', icon: '⭐', title: 'Постоянный клиент', description: 'Совершите 10 заказов', unlocked: true, progress: 24, maxProgress: 10, reward: '-5% скидка' },
-    { id: 'subscription_master', icon: '🔄', title: 'Мастер подписок', description: 'Создайте 2 подписки', unlocked: true, progress: 2, maxProgress: 2, reward: '-10₽' },
+    { id: 'first_order', icon: '🎯', title: 'Первый заказ', description: 'Создайте свой первый заказ', unlocked: myOrders.length >= 1, reward: '+10 XP' },
+    { id: 'regular_customer', icon: '⭐', title: 'Постоянный клиент', description: 'Совершите 10 заказов', unlocked: myOrders.length >= 10, progress: myOrders.length, maxProgress: 10, reward: '-5% скидка' },
     { id: 'early_bird', icon: '🌅', title: 'Ранняя пташка', description: 'Заказ до 8:00 утра', unlocked: false, progress: 0, maxProgress: 1 },
-    { id: 'eco_warrior', icon: '🌱', title: 'Эко-воин', description: 'Сдайте 50 мешков на переработку', unlocked: true, progress: 73, maxProgress: 50, reward: 'Эко-значок' },
-    { id: 'referral_king', icon: '👥', title: 'Король рефералов', description: 'Пригласите 5 соседей', unlocked: false, progress: 3, maxProgress: 5 },
-    { id: 'speed_demon', icon: '⚡', title: 'Скоростной заказ', description: 'Создайте заказ за 60 сек', unlocked: true, reward: '+25 XP' },
-    { id: 'loyal_customer', icon: '💎', title: 'VIP клиент', description: 'Используйте платформу 30 дней подряд', unlocked: false, progress: 12, maxProgress: 30 },
+    { id: 'referral_king', icon: '👥', title: 'Король рефералов', description: 'Пригласите 5 соседей', unlocked: false, progress: 0, maxProgress: 5 },
+    { id: 'loyal_customer', icon: '💎', title: 'VIP клиент', description: 'Используйте платформу 30 дней подряд', unlocked: false, progress: 0, maxProgress: 30 },
   ];
 
-  const myContractors = [
-    { id: 1, name: 'Иван Петров', rating: 4.9, days: [1, 4], time: '18:00', price: 40, nextOrder: 'Завтра в 18:00' },
-    { id: 2, name: 'Алексей Смирнов', rating: 4.8, days: [2, 5], time: '16:00', price: 35, nextOrder: 'Пт в 16:00' },
-  ];
-
-  const stats = { totalOrders: 24, activeOrders: 2, completedOrders: 22, referrals: 3 };
-
-  const weekOrders = [
-    { day: 'Пн', date: '3', orders: [
-      { id: 1, time: '08:00 - 16:00', address: 'Склад A', status: 'active', contractor: 'Дмитрий', responses: 0, price: '50₽' },
-      { id: 2, time: '14:00 - 22:00', address: 'Распред. центр', status: 'waiting', responses: 5, contractor: '', price: '45₽' },
-    ]},
-    { day: 'Вт', date: '4', orders: [
-      { id: 3, time: '09:00 - 17:00', address: 'Главный офис', status: 'waiting', responses: 2, contractor: '', price: '40₽' },
-    ]},
-    { day: 'Ср', date: '5', orders: [
-      { id: 4, time: '08:00 - 16:00', address: 'Склад Б', status: 'active', contractor: 'Александр', responses: 0, price: '60₽' },
-    ]},
-    { day: 'Чт', date: '6', orders: [
-      { id: 6, time: '08:00 - 16:00', address: 'Распред. центр', status: 'waiting', responses: 8, contractor: '', price: '55₽' },
-    ]},
-    { day: 'Пт', date: '7', orders: [
-      { id: 7, time: '09:00 - 17:00', address: 'Главный офис', status: 'active', contractor: 'Дмитрий', responses: 0, price: '45₽' },
-    ]},
-    { day: 'Сб', date: '8', orders: [
-      { id: 9, time: '08:00 - 16:00', address: 'Склад Б', status: 'waiting', responses: 12, contractor: '', price: '70₽' },
-    ]},
-    { day: 'Вс', date: '9', orders: [] },
-  ];
-
-  const history = [
-    { id: 10, date: '2 марта', address: 'Склад A', price: '₽1 440' },
-    { id: 11, date: '1 марта', address: 'Склад Б', price: '₽2 160' },
-    { id: 12, date: '28 февр.', address: 'Склад Е', price: '₽1 800' },
-  ];
-
-  const subscriptions = [
-    { id: 1, address: 'ул. Баумана, 58', days: [1, 4], time: '18:00', price: '50₽', active: true },
-    { id: 2, address: 'пр. Победы, 120', days: [2, 5], time: '16:00', price: '45₽', active: true },
-  ];
+  const stats = {
+    totalOrders: myOrders.length,
+    activeOrders: myOrders.filter(o => o.status === 'waiting' || o.status === 'active').length,
+    completedOrders: myOrders.filter(o => o.status === 'cancelled').length,
+    referrals: 0,
+  };
 
   const today = new Date();
   const todayLabel = today.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -338,13 +306,29 @@ export default function CustomerDashboard() {
             <div className="max-w-4xl mx-auto space-y-4">
               <LevelSystem data={levelData} variant="customer" compact={true} />
 
-              {/* My created orders */}
-              {myOrders.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-xl font-semibold" style={{ color: c.text }}>Мои заказы</h2>
+              {/* My orders */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-xl font-semibold" style={{ color: c.text }}>Мои заказы</h2>
+                  {myOrders.length > 0 && (
                     <span className="text-sm px-2 py-0.5 rounded-full" style={{ background: `${ACCENT}18`, color: ACCENT }}>{myOrders.length}</span>
+                  )}
+                </div>
+
+                {myOrders.length === 0 ? (
+                  <div className="text-center py-12" style={card}>
+                    <Package className="w-12 h-12 mx-auto mb-4" style={{ color: c.border }} />
+                    <div className="font-medium mb-1" style={{ color: c.text }}>Заказов пока нет</div>
+                    <div className="text-sm mb-4" style={{ color: c.muted }}>Создайте первый заказ — исполнители увидят его сразу</div>
+                    <button
+                      className="px-5 py-2.5 rounded-xl font-medium text-sm"
+                      style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                      onClick={() => setActiveTab('create')}
+                    >
+                      + Создать заказ
+                    </button>
                   </div>
+                ) : (
                   <div className="space-y-3">
                     {myOrders.map((order) => (
                       <div key={order.id} style={{ ...card2, borderColor: c.border, cursor: 'pointer' }} onClick={() => setSelectedOrder(order)}>
@@ -380,60 +364,15 @@ export default function CustomerDashboard() {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Today */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xl font-semibold" style={{ color: c.text }}>Сегодня</h2>
-                  <span className="text-sm" style={{ color: c.muted }}>{todayCapitalized}</span>
-                </div>
-                <div className="space-y-3">
-                  {weekOrders[0].orders.map((order) => (
-                    <div key={order.id} style={{ ...card2, borderColor: c.border }}>
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="text-lg font-semibold mb-1" style={{ color: c.text }}>{order.time}</div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <MapPin className="w-4 h-4" style={{ color: c.muted }} />
-                            <span style={{ color: c.textSub }}>{order.address}</span>
-                          </div>
-                          {order.status === 'active' ? (
-                            <div className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg" style={{ background: `${ACCENT}18`, color: ACCENT }}>
-                              <CheckCircle className="w-4 h-4" />
-                              <span>Исполнитель: {order.contractor}</span>
-                            </div>
-                          ) : (
-                            <div className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg" style={{ background: '#F97316' + '18', color: '#F97316' }}>
-                              <Clock className="w-4 h-4" />
-                              <span>{order.responses} откликов</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-2xl font-semibold ml-4" style={{ color: c.text }}>{order.price}</div>
-                      </div>
-                      <div className="flex gap-2">
-                        {order.status === 'active' ? (
-                          <>
-                            <button className="flex-1 py-2 rounded-lg text-sm font-medium" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info('Позвоните исполнителю', { description: `+7 (903) 123-45-67 — ${order.contractor}`, duration: 3000 })}>Позвонить</button>
-                            <button className="flex-1 py-2 rounded-lg text-sm font-medium" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info('Чат в разработке', { duration: 2500 })}>Написать</button>
-                          </>
-                        ) : (
-                          <button className="w-full py-2 rounded-lg text-sm font-medium" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info(`${order.responses} откликов на ваш заказ`, { duration: 2500 })}>Посмотреть отклики</button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                )}
               </div>
 
               {/* Stats */}
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { value: stats.activeOrders, label: 'Активных', color: c.text },
-                  { value: stats.completedOrders, label: 'Выполнено', color: c.text },
-                  { value: '15₽', label: 'Экономия', color: ACCENT },
+                  { value: stats.totalOrders, label: 'Всего заказов', color: c.text },
+                  { value: stats.referrals, label: 'Рефералов', color: ACCENT },
                 ].map((s, i) => (
                   <div key={i} style={{ ...card }}>
                     <div className="text-2xl font-semibold text-center mb-1" style={{ color: s.color }}>{s.value}</div>
@@ -442,7 +381,7 @@ export default function CustomerDashboard() {
                 ))}
               </div>
 
-              {/* Subscriptions */}
+              {/* Subscriptions placeholder */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-lg font-semibold" style={{ color: c.text }}>Подписки</h2>
@@ -450,75 +389,10 @@ export default function CustomerDashboard() {
                     <Plus className="w-4 h-4" /> Создать
                   </button>
                 </div>
-                <div className="space-y-3">
-                  {subscriptions.map((sub) => (
-                    <div key={sub.id} style={card}>
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <RefreshCw className="w-4 h-4" style={{ color: '#A78BFA' }} />
-                            <span className="font-semibold" style={{ color: c.text }}>Регулярный вывоз</span>
-                          </div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <MapPin className="w-4 h-4" style={{ color: c.muted }} />
-                            <span style={{ color: c.textSub }}>{sub.address}</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-sm" style={{ color: c.muted }}>
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5" />
-                              <span>{sub.time}</span>
-                            </div>
-                            <div className="flex gap-1">
-                              {sub.days.map((dayId) => (
-                                <span key={dayId} className="px-2 py-0.5 rounded text-xs font-medium" style={{ background: '#A78BFA' + '20', color: '#A78BFA' }}>{getDayLabel(dayId)}</span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right ml-4">
-                          <div className="text-xl font-semibold" style={{ color: c.text }}>{sub.price}</div>
-                          <div className="text-xs" style={{ color: c.muted }}>за раз</div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button className="flex-1 py-1.5 text-sm rounded-lg" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info('Редактирование подписки', { duration: 2500 })}>Редактировать</button>
-                        <button className="flex-1 py-1.5 text-sm rounded-lg" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.success('Подписка приостановлена', { duration: 2500 })}>Пауза</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* My Contractors */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-lg font-semibold" style={{ color: c.text }}>Мои исполнители</h2>
-                  <button className="text-sm flex items-center gap-1" style={{ background: 'none', border: 'none', color: c.muted, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info('Поиск исполнителей', { duration: 3000 })}>
-                    <Plus className="w-4 h-4" /> Найти
-                  </button>
-                </div>
-                <div style={{ ...card, cursor: 'pointer' }} onClick={() => navigate('/my-contractors')}>
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: c.subtle }}>
-                      <User className="w-6 h-6" style={{ color: c.muted }} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold mb-2" style={{ color: c.text }}>Постоянные исполнители</div>
-                      <div className="space-y-1 mb-3">
-                        {myContractors.map((contractor) => (
-                          <div key={contractor.id} className="text-sm" style={{ color: c.textSub }}>
-                            • {contractor.name} ⭐ {contractor.rating} ({getDayLabel(contractor.days[0])}, {getDayLabel(contractor.days[1])} в {contractor.time})
-                          </div>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-3 text-xs">
-                        <div className="px-3 py-1.5 rounded-lg" style={{ background: c.subtle, border: `1px solid ${c.border}` }}>
-                          <span className="font-semibold" style={{ color: c.textSub }}>-80₽ экономия/месяц</span>
-                        </div>
-                        <span style={{ color: c.muted }}>2 активных подписки</span>
-                      </div>
-                    </div>
-                  </div>
+                <div className="text-center py-8" style={card}>
+                  <RefreshCw className="w-8 h-8 mx-auto mb-3" style={{ color: c.border }} />
+                  <div className="text-sm font-medium mb-1" style={{ color: c.text }}>Нет активных подписок</div>
+                  <div className="text-xs" style={{ color: c.muted }}>Регулярный вывоз по расписанию</div>
                 </div>
               </div>
             </div>
@@ -528,61 +402,28 @@ export default function CustomerDashboard() {
           {activeTab === 'calendar' && (
             <div className="max-w-4xl mx-auto space-y-6">
               <div>
-                <h2 className="text-lg font-semibold mb-4" style={{ color: c.text }}>Активные заказы</h2>
-                {weekOrders[currentWeek].orders.length > 0 ? (
-                  <div className="space-y-3">
-                    {weekOrders[currentWeek].orders.map((order) => (
-                      <div key={order.id} style={card}>
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <MapPin className="w-4 h-4" style={{ color: c.muted }} />
-                              <span className="font-medium" style={{ color: c.text }}>{order.address}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm" style={{ color: c.muted }}>
-                              <Clock className="w-4 h-4" />
-                              <span>Сегодня в {order.time}</span>
-                            </div>
-                          </div>
-                          <div className="font-semibold" style={{ color: c.text }}>{order.price}</div>
-                        </div>
-                        {order.status === 'active' ? (
-                          <div className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg" style={{ background: `${ACCENT}18`, color: ACCENT }}>
-                            <CheckCircle className="w-4 h-4" />
-                            <span>Исполнитель: {order.contractor}</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg" style={{ background: '#F97316' + '18', color: '#F97316' }}>
-                            <Clock className="w-4 h-4" />
-                            <span>Ожидание • {order.responses} откликов</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
+                <h2 className="text-lg font-semibold mb-4" style={{ color: c.text }}>История заказов</h2>
+                {myOrders.length === 0 ? (
                   <div className="text-center py-12" style={{ ...card }}>
                     <Package className="w-12 h-12 mx-auto mb-4" style={{ color: c.border }} />
-                    <div className="mb-4" style={{ color: c.muted }}>У вас пока нет активных заказов</div>
+                    <div className="mb-4" style={{ color: c.muted }}>История заказов пуста</div>
                     <button className="px-4 py-2 rounded-xl font-medium" style={{ background: c.text, color: c.surface, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setActiveTab('create')}>
                       + Создать заказ
                     </button>
                   </div>
-                )}
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold mb-4" style={{ color: c.text }}>История</h2>
-                <div className="space-y-2">
-                  {history.map((order) => (
-                    <div key={order.id} className="flex items-center justify-between" style={{ ...card, padding: '1rem' }}>
-                      <div>
-                        <div className="text-sm font-medium" style={{ color: c.text }}>{order.address}</div>
-                        <div className="text-xs" style={{ color: c.muted }}>{order.date}</div>
+                ) : (
+                  <div className="space-y-2">
+                    {myOrders.map((order) => (
+                      <div key={order.id} className="flex items-center justify-between" style={{ ...card, padding: '1rem', cursor: 'pointer' }} onClick={() => setSelectedOrder(order)}>
+                        <div>
+                          <div className="text-sm font-medium" style={{ color: c.text }}>{order.address}</div>
+                          <div className="text-xs" style={{ color: c.muted }}>{order.createdAt} · {order.volume} мешк.</div>
+                        </div>
+                        <div className="text-sm font-medium" style={{ color: c.text }}>{order.price}₽</div>
                       </div>
-                      <div className="text-sm font-medium" style={{ color: c.text }}>{order.price}</div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -598,8 +439,8 @@ export default function CustomerDashboard() {
                       <User className="w-7 h-7" style={{ color: c.muted }} />
                     </div>
                     <div>
-                      <h1 className="text-lg font-semibold" style={{ color: c.text }}>{user?.name || 'Александр'}</h1>
-                      <div className="text-sm" style={{ color: c.muted }}>{user?.phone || '+7 (903) 123-45-67'}</div>
+                      <h1 className="text-lg font-semibold" style={{ color: c.text }}>{user?.name || '—'}</h1>
+                      <div className="text-sm" style={{ color: c.muted }}>{user?.phone || '—'}</div>
                     </div>
                   </div>
                   <button className="h-8 px-3 rounded-lg text-xs" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info('Редактирование профиля', { description: 'Функция в разработке' })}>

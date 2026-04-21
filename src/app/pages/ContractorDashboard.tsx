@@ -30,20 +30,24 @@ export default function ContractorDashboard() {
   };
 
   const levelData: LevelData = {
-    level: 18, xp: 4500, nextLevelXp: 5000,
-    title: 'Профессиональный исполнитель', rank: '💪 Профи',
-    achievements: 12, totalOrders: 143,
+    level: user?.level ?? 1,
+    xp: user?.xp ?? 0,
+    nextLevelXp: 100,
+    title: 'Новый исполнитель',
+    rank: '🌱 Новичок',
+    achievements: 0,
+    totalOrders: 0,
   };
 
   const achievements: Achievement[] = [
-    { id: 'first_pickup', icon: '🎯', title: 'Первый вывоз', description: 'Выполните свой первый заказ', unlocked: true, reward: '+10 XP' },
-    { id: 'speed_master', icon: '⚡', title: 'Мастер скорости', description: 'Вывезите 100 адресов за день', unlocked: true, progress: 143, maxProgress: 100, reward: '+50 XP' },
-    { id: 'reliable_contractor', icon: '⭐', title: 'Надежный исполнитель', description: 'Рейтинг 4.5+ после 20 заказов', unlocked: true, progress: 143, maxProgress: 20, reward: 'Значок надежности' },
-    { id: 'subscription_pro', icon: '🔄', title: 'Мастер подписок', description: 'Получите 5 постоянных адресов', unlocked: true, progress: 4, maxProgress: 5, reward: 'Приоритет в поиске' },
+    { id: 'first_pickup', icon: '🎯', title: 'Первый вывоз', description: 'Выполните свой первый заказ', unlocked: false, reward: '+10 XP' },
+    { id: 'speed_master', icon: '⚡', title: 'Мастер скорости', description: 'Вывезите 100 адресов', unlocked: false, progress: 0, maxProgress: 100, reward: '+50 XP' },
+    { id: 'reliable_contractor', icon: '⭐', title: 'Надежный исполнитель', description: 'Рейтинг 4.5+ после 20 заказов', unlocked: false, progress: 0, maxProgress: 20, reward: 'Значок надежности' },
+    { id: 'subscription_pro', icon: '🔄', title: 'Мастер подписок', description: 'Получите 5 постоянных адресов', unlocked: false, progress: 0, maxProgress: 5, reward: 'Приоритет в поиске' },
     { id: 'early_bird', icon: '🌅', title: 'Ранняя пташка', description: 'Начните вывоз до 7:00', unlocked: false, progress: 0, maxProgress: 1 },
-    { id: 'marathon_runner', icon: '🏃', title: 'Марафонец', description: 'Работайте 30 дней подряд', unlocked: false, progress: 18, maxProgress: 30 },
-    { id: 'top_rated', icon: '🌟', title: 'Лучший рейтинг', description: 'Получите рейтинг 5.0', unlocked: false, progress: 4.8, maxProgress: 5.0 },
-    { id: 'big_earner', icon: '💰', title: 'Большой заработок', description: 'Заработайте 50000₽ за месяц', unlocked: false, progress: 32400, maxProgress: 50000 },
+    { id: 'marathon_runner', icon: '🏃', title: 'Марафонец', description: 'Работайте 30 дней подряд', unlocked: false, progress: 0, maxProgress: 30 },
+    { id: 'top_rated', icon: '🌟', title: 'Лучший рейтинг', description: 'Получите рейтинг 5.0', unlocked: false, progress: 0, maxProgress: 5.0 },
+    { id: 'big_earner', icon: '💰', title: 'Большой заработок', description: 'Заработайте 50000₽ за месяц', unlocked: false, progress: 0, maxProgress: 50000 },
   ];
 
   const handleStartPickup = (order: any) => {
@@ -51,35 +55,10 @@ export default function ContractorDashboard() {
     setTimeout(() => toast.info('📱 Уведомления доставлены', { description: `${order.addressCount} клиентов получили push-уведомление`, duration: 2500 }), 1000);
   };
 
-  const myAddresses = [
-    { id: 1, address: 'ул. Баумана, 58', building: 'Подъезд 1-3', customer: 'Александр', days: [1, 4], time: '18:00-20:00', addressCount: 12, price: 600, nextOrder: 'Завтра в 18:00', floor: '1-9 этажи', hasLift: true },
-    { id: 2, address: 'пр. Победы, 120', building: 'Подъезд 1-2', customer: 'Мария', days: [2, 5], time: '17:00-19:00', addressCount: 8, price: 400, nextOrder: 'Пт в 17:00', floor: '1-5 этажи', hasLift: false },
-    { id: 3, address: 'ул. Пушкина, 23', building: 'Подъезд 1-5', customer: 'ЖК "Центральный"', days: [3, 6], time: '16:00-19:00', addressCount: 18, price: 900, nextOrder: 'Ср в 16:00', floor: '1-12 этажи', hasLift: true },
-    { id: 4, address: 'ул. Чистопольская, 61', building: 'Подъезды 1-4', customer: 'ТСЖ "Надежда"', days: [1, 3, 5], time: '17:00-20:00', addressCount: 22, price: 1100, nextOrder: 'Завтра в 17:00', floor: '1-9 этажи', hasLift: true },
-  ];
-
-  const todayOrders = [
-    { id: 1, address: 'ул. Баумана, 58', building: 'Подъезд 1-3', customer: 'Александр', time: '18:00-20:00', addressCount: 12, price: 600, floor: '1-9 этажи', hasLift: true, status: 'upcoming' },
-    { id: 2, address: 'ул. Чистопольская, 61', building: 'Подъезды 1-4', customer: 'ТСЖ "Надежда"', time: '17:00-20:00', addressCount: 22, price: 1100, floor: '1-9 этажи', hasLift: true, status: 'upcoming' },
-  ];
-
-  const totalAddresses = myAddresses.reduce((sum, a) => sum + a.addressCount, 0);
-
-  const weekDays = [
-    { day: 'Пн', date: '10', orders: 2, addresses: 34, earned: 1700 },
-    { day: 'Вт', date: '11', orders: 1, addresses: 8, earned: 400 },
-    { day: 'Ср', date: '12', orders: 3, addresses: 52, earned: 2600 },
-    { day: 'Чт', date: '13', orders: 2, addresses: 34, earned: 1700 },
-    { day: 'Пт', date: '14', orders: 1, addresses: 22, earned: 1100 },
-    { day: 'Сб', date: '15', orders: 2, addresses: 26, earned: 1300 },
-    { day: 'Вс', date: '16', orders: 0, addresses: 0, earned: 0 },
-  ];
-
-  const history = [
-    { id: 1, address: 'ул. Баумана, 58', date: '9 марта', customer: '12 адресов', price: '600₽' },
-    { id: 2, address: 'пр. Победы, 120', date: '7 марта', customer: '8 адресов', price: '400₽' },
-    { id: 3, address: 'ул. Пушкина, 23', date: '6 марта', customer: '18 адресов', price: '900₽' },
-  ];
+  const myAddresses: { id: number; address: string; building: string; customer: string; days: number[]; time: string; addressCount: number; price: number; nextOrder: string; floor: string; hasLift: boolean }[] = [];
+  const todayOrders: { id: number; address: string; building: string; customer: string; time: string; addressCount: number; price: number; floor: string; hasLift: boolean; status: string }[] = [];
+  const totalAddresses = 0;
+  const history: { id: number; address: string; date: string; customer: string; price: string }[] = [];
 
   const today = new Date();
   const todayShort = today.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' });
@@ -366,6 +345,16 @@ export default function ContractorDashboard() {
                     <Plus className="w-3.5 h-3.5" /> Найти
                   </button>
                 </div>
+                {myAddresses.length === 0 ? (
+                  <div className="text-center py-8" style={card}>
+                    <MapPin className="w-8 h-8 mx-auto mb-3" style={{ color: c.border }} />
+                    <div className="text-sm font-medium mb-1" style={{ color: c.text }}>Нет активных адресов</div>
+                    <div className="text-xs mb-3" style={{ color: c.muted }}>Найдите заказы и возьмите первый адрес</div>
+                    <button className="px-4 py-2 rounded-lg text-xs font-medium" style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setActiveTab('find')}>
+                      Найти заказы
+                    </button>
+                  </div>
+                ) : (
                 <div className="space-y-2">
                   {myAddresses.map((address) => (
                     <div key={address.id} style={{ ...card, padding: '0.75rem' }}>
@@ -409,41 +398,29 @@ export default function ContractorDashboard() {
                     </div>
                   ))}
                 </div>
-              </div>
-
-              {/* Week calendar */}
-              <div>
-                <h2 className="text-base font-semibold mb-2" style={{ color: c.text }}>Неделя</h2>
-                <div className="grid grid-cols-7 gap-1.5">
-                  {weekDays.map((day, index) => (
-                    <div key={index} className="p-2 rounded-lg text-center" style={{ background: day.orders > 0 ? `${ACCENT}12` : c.subtle, border: `1px solid ${day.orders > 0 ? ACCENT + '30' : c.border}` }}>
-                      <div className="text-xs" style={{ color: c.muted }}>{day.day}</div>
-                      <div className="text-base font-semibold" style={{ color: c.text }}>{day.date}</div>
-                      {day.orders > 0 && (
-                        <>
-                          <div className="text-xs" style={{ color: c.muted }}>{day.addresses}а</div>
-                          <div className="text-xs font-semibold" style={{ color: '#4CAF50' }}>{day.earned}₽</div>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                )}
               </div>
 
               {/* History */}
               <div>
                 <h2 className="text-base font-semibold mb-2" style={{ color: c.text }}>История</h2>
-                <div className="space-y-1.5">
-                  {history.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between" style={{ ...card, padding: '0.625rem 0.75rem' }}>
-                      <div>
-                        <div className="text-sm font-medium" style={{ color: c.text }}>{item.address}</div>
-                        <div className="text-xs" style={{ color: c.muted }}>{item.date} • {item.customer}</div>
+                {history.length === 0 ? (
+                  <div className="text-center py-8" style={card}>
+                    <div className="text-sm" style={{ color: c.muted }}>История выполненных заказов появится здесь</div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {history.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between" style={{ ...card, padding: '0.625rem 0.75rem' }}>
+                        <div>
+                          <div className="text-sm font-medium" style={{ color: c.text }}>{item.address}</div>
+                          <div className="text-xs" style={{ color: c.muted }}>{item.date} • {item.customer}</div>
+                        </div>
+                        <div className="text-sm font-medium" style={{ color: '#4CAF50' }}>{item.price}</div>
                       </div>
-                      <div className="text-sm font-medium" style={{ color: '#4CAF50' }}>{item.price}</div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -459,8 +436,8 @@ export default function ContractorDashboard() {
                       <User className="w-7 h-7" style={{ color: ACCENT }} />
                     </div>
                     <div>
-                      <h1 className="text-lg font-semibold" style={{ color: c.text }}>{user?.name || 'Дмитрий'}</h1>
-                      <div className="text-sm" style={{ color: c.muted }}>{user?.phone || '+7 (903) 987-65-43'}</div>
+                      <h1 className="text-lg font-semibold" style={{ color: c.text }}>{user?.name || '—'}</h1>
+                      <div className="text-sm" style={{ color: c.muted }}>{user?.phone || '—'}</div>
                     </div>
                   </div>
                   <button className="h-8 px-3 rounded-lg text-xs" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info('Редактирование профиля', { description: 'Функция в разработке' })}>
@@ -469,9 +446,9 @@ export default function ContractorDashboard() {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { v: <><Star className="w-3.5 h-3.5 inline" style={{ color: '#FBBF24', fill: '#FBBF24' }} /> 4.8</>, l: '47 отзывов' },
+                    { v: <><Star className="w-3.5 h-3.5 inline" style={{ color: '#FBBF24', fill: '#FBBF24' }} /> —</>, l: 'рейтинг' },
                     { v: totalAddresses, l: 'адресов' },
-                    { v: 143, l: 'выполнено' },
+                    { v: 0, l: 'выполнено' },
                   ].map((s, i) => (
                     <div key={i} className="rounded-xl p-3 text-center" style={{ background: c.subtle }}>
                       <div className="text-xl font-semibold" style={{ color: c.text }}>{s.v}</div>
@@ -495,13 +472,13 @@ export default function ContractorDashboard() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl p-4" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
                     <div className="text-xs mb-1" style={{ color: c.muted }}>За неделю</div>
-                    <div className="text-2xl font-bold" style={{ color: '#4CAF50' }}>8 800₽</div>
-                    <div className="text-xs mt-0.5" style={{ color: c.muted }}>176 адресов</div>
+                    <div className="text-2xl font-bold" style={{ color: '#4CAF50' }}>0₽</div>
+                    <div className="text-xs mt-0.5" style={{ color: c.muted }}>0 адресов</div>
                   </div>
                   <div className="rounded-xl p-4" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
                     <div className="text-xs mb-1" style={{ color: c.muted }}>За месяц</div>
-                    <div className="text-2xl font-bold" style={{ color: '#4CAF50' }}>32 400₽</div>
-                    <div className="text-xs mt-0.5" style={{ color: c.muted }}>648 адресов</div>
+                    <div className="text-2xl font-bold" style={{ color: '#4CAF50' }}>0₽</div>
+                    <div className="text-xs mt-0.5" style={{ color: c.muted }}>0 адресов</div>
                   </div>
                 </div>
               </div>
