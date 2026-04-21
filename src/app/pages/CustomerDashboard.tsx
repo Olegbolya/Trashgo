@@ -1201,9 +1201,7 @@ export default function CustomerDashboard() {
               <span className="text-xs">Главная</span>
             </button>
             <button onClick={() => setActiveTab('create')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'create' ? ACCENT : c.muted }}>
-              <div className="w-12 h-12 rounded-full flex items-center justify-center -mt-2" style={{ background: activeTab === 'create' ? ACCENT : c.text }}>
-                <Plus className="w-6 h-6 text-white" />
-              </div>
+              <Plus className="w-6 h-6" />
               <span className="text-xs">Создать</span>
             </button>
           </div>

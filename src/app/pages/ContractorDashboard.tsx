@@ -719,9 +719,7 @@ export default function ContractorDashboard() {
               <span className="text-xs">Главная</span>
             </button>
             <button onClick={() => setActiveTab('find')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'find' ? ACCENT : c.muted }}>
-              <div className="w-12 h-12 rounded-full flex items-center justify-center -mt-2" style={{ background: activeTab === 'find' ? ACCENT : c.text }}>
-                <Search className="w-6 h-6 text-white" />
-              </div>
+              <Search className="w-6 h-6" />
               <span className="text-xs">Найти</span>
             </button>
           </div>
