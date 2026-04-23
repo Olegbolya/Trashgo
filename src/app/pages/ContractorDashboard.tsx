@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { Home, MapPin, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X } from 'lucide-react';
@@ -7,6 +7,8 @@ import { LevelSystem, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
 import { toast } from 'sonner';
 import { getDayLabel } from '../lib/utils';
+import { ordersApi } from '../../api/orders';
+import type { Order } from '../../types/order';
 
 const ACCENT = '#2196F3';
 
@@ -17,6 +19,27 @@ export default function ContractorDashboard() {
   const [activeTab, setActiveTab] = useState<'home' | 'orders' | 'profile' | 'find'>('home');
   const [isOnShift, setIsOnShift] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
+  const [myJobs, setMyJobs] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeTab !== 'find') return;
+    setOrdersLoading(true);
+    ordersApi.available().then((res: any) => {
+      setAvailableOrders(res?.data ?? []);
+    }).catch(() => {}).finally(() => setOrdersLoading(false));
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'home') return;
+    ordersApi.myJobs().then((res: any) => {
+      setMyJobs(res?.data ?? []);
+    }).catch(() => {});
+  }, [activeTab]);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -276,66 +299,96 @@ export default function ContractorDashboard() {
             <div className="max-w-4xl mx-auto space-y-4">
               <LevelSystem data={levelData} variant="contractor" compact={true} />
 
-              {/* Today */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-base font-semibold" style={{ color: c.text }}>Сегодня</h2>
-                  <span className="text-xs" style={{ color: c.muted }}>{todayShort}</span>
-                </div>
+              {/* Active jobs */}
+              {(() => {
+                const activeJobs = myJobs.filter(j => j.status === 'accepted' || j.status === 'in_progress');
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h2 className="text-base font-semibold" style={{ color: c.text }}>Мои заказы</h2>
+                      <span className="text-xs" style={{ color: c.muted }}>{activeJobs.length} активных</span>
+                    </div>
 
-                {todayOrders.length > 0 ? (
-                  <div className="space-y-2">
-                    {todayOrders.map((order) => (
-                      <div key={order.id} style={{ ...card, padding: '0.75rem' }}>
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm font-semibold" style={{ color: c.text }}>{order.time}</span>
-                              <span className="px-1.5 py-0.5 text-xs font-medium rounded" style={{ background: ACCENT, color: 'white' }}>{order.addressCount} адр</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <MapPin className="w-3.5 h-3.5" style={{ color: c.muted }} />
-                              <span className="text-sm font-medium" style={{ color: c.text }}>{order.address}</span>
-                            </div>
-                            <div className="text-xs mb-1" style={{ color: c.muted }}>{order.building} • {order.customer}</div>
-                            <div className="flex items-center gap-2 text-xs" style={{ color: c.muted }}>
-                              <span>{order.floor}</span>
-                              <span>•</span>
-                              <span>{order.hasLift ? '🛗' : '🚶'}</span>
-                            </div>
-                          </div>
-                          <div className="text-right ml-3">
-                            <div className="text-2xl font-bold" style={{ color: '#4CAF50' }}>{order.price}₽</div>
-                            <div className="text-xs" style={{ color: c.muted }}>{order.addressCount}×50</div>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            className="flex-1 text-xs font-semibold h-8 rounded-lg"
-                            style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-                            onClick={() => handleStartPickup(order)}
-                          >
-                            Начать
-                          </button>
-                          <button
-                            className="px-3 h-8 rounded-lg"
-                            style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.muted, cursor: 'pointer', fontFamily: 'inherit' }}
-                            onClick={() => toast.info(`Клиент: ${order.customer}`, { description: 'Контакт доступен после начала выноса', duration: 2500 })}
-                          >
-                            <Phone className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                    {activeJobs.length === 0 ? (
+                      <div className="text-center py-10" style={card}>
+                        <Calendar className="w-12 h-12 mx-auto mb-3" style={{ color: c.border }} />
+                        <div className="text-sm font-medium mb-1" style={{ color: c.text }}>Нет активных заказов</div>
+                        <div className="text-xs mb-3" style={{ color: c.muted }}>Перейдите во вкладку «Найти» и возьмите заказ</div>
+                        <button className="px-4 py-2 rounded-lg text-xs font-medium" style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setActiveTab('find')}>
+                          Найти заказ
+                        </button>
                       </div>
-                    ))}
+                    ) : (
+                      <div className="space-y-2">
+                        {activeJobs.map((job) => {
+                          const dt = new Date(job.scheduledAt);
+                          const timeStr = dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                          const dateStr = dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+                          const statusLabel = job.status === 'accepted' ? 'Принят' : 'В работе';
+                          const statusColor = job.status === 'accepted' ? ACCENT : '#FBBF24';
+                          return (
+                            <div key={job.id} style={{ ...card, padding: '0.875rem' }}>
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Clock className="w-3.5 h-3.5" style={{ color: c.muted }} />
+                                    <span className="text-sm font-semibold" style={{ color: c.text }}>{timeStr}</span>
+                                    <span className="text-xs" style={{ color: c.muted }}>{dateStr}</span>
+                                    <span className="px-1.5 py-0.5 text-xs font-medium rounded" style={{ background: `${statusColor}20`, color: statusColor }}>{statusLabel}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 mb-1">
+                                    <MapPin className="w-3.5 h-3.5" style={{ color: c.muted }} />
+                                    <span className="text-sm font-medium" style={{ color: c.text }}>{job.address}</span>
+                                  </div>
+                                  {job.description && (
+                                    <div className="text-xs" style={{ color: c.muted }}>{job.description}</div>
+                                  )}
+                                </div>
+                                <div className="text-right ml-3">
+                                  <div className="text-xl font-bold" style={{ color: ACCENT }}>{job.price}₽</div>
+                                  <div className="text-xs" style={{ color: c.muted }}>{job.volume} мешк.</div>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                {job.status === 'accepted' && (
+                                  <button
+                                    className="flex-1 text-xs font-semibold h-8 rounded-lg"
+                                    style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                                    onClick={async () => {
+                                      try {
+                                        await ordersApi.updateStatus(job.id, 'in_progress');
+                                        setMyJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'in_progress' as const } : j));
+                                        toast.success('Выполнение начато!');
+                                      } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
+                                    }}
+                                  >
+                                    Начать выполнение
+                                  </button>
+                                )}
+                                {job.status === 'in_progress' && (
+                                  <button
+                                    className="flex-1 text-xs font-semibold h-8 rounded-lg"
+                                    style={{ background: '#4CAF50', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                                    onClick={async () => {
+                                      try {
+                                        await ordersApi.updateStatus(job.id, 'completed');
+                                        setMyJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'completed' as const } : j));
+                                        toast.success('Заказ выполнен! Он перемещён в историю.', { duration: 3000 });
+                                      } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
+                                    }}
+                                  >
+                                    Завершить
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="text-center py-12" style={card}>
-                    <Calendar className="w-16 h-16 mx-auto mb-4" style={{ color: c.border }} />
-                    <div className="text-lg font-medium mb-2" style={{ color: c.text }}>Сегодня свободный день</div>
-                    <div className="text-sm" style={{ color: c.muted }}>Нет запланированных заказов</div>
-                  </div>
-                )}
-              </div>
+                );
+              })()}
 
               {/* My addresses */}
               <div>
@@ -402,26 +455,45 @@ export default function ContractorDashboard() {
               </div>
 
               {/* History */}
-              <div>
-                <h2 className="text-base font-semibold mb-2" style={{ color: c.text }}>История</h2>
-                {history.length === 0 ? (
-                  <div className="text-center py-8" style={card}>
-                    <div className="text-sm" style={{ color: c.muted }}>История выполненных заказов появится здесь</div>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    {history.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between" style={{ ...card, padding: '0.625rem 0.75rem' }}>
-                        <div>
-                          <div className="text-sm font-medium" style={{ color: c.text }}>{item.address}</div>
-                          <div className="text-xs" style={{ color: c.muted }}>{item.date} • {item.customer}</div>
-                        </div>
-                        <div className="text-sm font-medium" style={{ color: '#4CAF50' }}>{item.price}</div>
+              {(() => {
+                const completedJobs = myJobs.filter(j => j.status === 'completed');
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h2 className="text-base font-semibold" style={{ color: c.text }}>История заказов</h2>
+                      {completedJobs.length > 0 && (
+                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#4CAF5018', color: '#4CAF50' }}>{completedJobs.length} выполнено</span>
+                      )}
+                    </div>
+                    {completedJobs.length === 0 ? (
+                      <div className="text-center py-8" style={card}>
+                        <CheckCircle className="w-8 h-8 mx-auto mb-2" style={{ color: c.border }} />
+                        <div className="text-sm" style={{ color: c.muted }}>Выполненные заказы появятся здесь</div>
                       </div>
-                    ))}
+                    ) : (
+                      <div className="space-y-1.5">
+                        {completedJobs.map((job) => {
+                          const dt = new Date(job.scheduledAt);
+                          const dateStr = dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+                          const timeStr = dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                          return (
+                            <div key={job.id} className="flex items-center justify-between" style={{ ...card, padding: '0.75rem' }}>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <CheckCircle className="w-3.5 h-3.5" style={{ color: '#4CAF50' }} />
+                                  <span className="text-sm font-medium" style={{ color: c.text }}>{job.address}</span>
+                                </div>
+                                <div className="text-xs" style={{ color: c.muted }}>{dateStr} · {timeStr} · {job.volume} мешк.</div>
+                              </div>
+                              <div className="text-base font-bold ml-3" style={{ color: '#4CAF50' }}>+{job.price}₽</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })()}
             </div>
           )}
 
@@ -574,68 +646,77 @@ export default function ContractorDashboard() {
             <div className="max-w-2xl mx-auto space-y-3">
               <div className="flex items-center justify-between">
                 <h1 className="text-xl font-semibold" style={{ color: c.text }}>Заказы рядом</h1>
-                <div className="text-sm" style={{ color: c.muted }}>Вахитовский р-н</div>
+                <div className="text-sm" style={{ color: c.muted }}>{user?.district || 'Все районы'}</div>
               </div>
 
-              <div style={card}>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl p-3 text-center" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
-                    <div className="text-2xl font-bold" style={{ color: '#4CAF50' }}>3 250₽</div>
-                    <div className="text-xs mt-0.5" style={{ color: c.muted }}>можно заработать</div>
-                  </div>
-                  <div className="rounded-xl p-3 text-center" style={{ background: c.subtle, border: `1px solid ${c.border}` }}>
-                    <div className="text-2xl font-bold" style={{ color: c.text }}>5</div>
-                    <div className="text-xs mt-0.5" style={{ color: c.muted }}>заказов доступно</div>
-                  </div>
+              {ordersLoading ? (
+                <div style={{ ...card, textAlign: 'center', padding: '2.5rem 1.25rem' }}>
+                  <div className="text-sm" style={{ color: c.muted }}>Загрузка заказов...</div>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                {[
-                  { id: 12847, address: 'ул. Баумана, 58', building: 'Подъезд 1-3', time: '14:00–16:00', addressCount: 12, price: 600, distance: '1.2 км', description: '1-9 этажи, есть лифт', customer: 'Александр', rating: 4.9 },
-                  { id: 12846, address: 'пр. Победы, 120', building: 'Подъезд 1-2', time: '15:00–17:00', addressCount: 8, price: 400, distance: '2.5 км', description: '1-5 этажи, без лифта', customer: 'Мария', rating: 4.7 },
-                  { id: 12845, address: 'ул. Пушкина, 23', building: 'Подъезд 1-5', time: '16:00–19:00', addressCount: 18, price: 900, distance: '3.1 км', description: '1-12 этажи, есть лифт', customer: 'ЖК Центральный', rating: 5.0 },
-                  { id: 12844, address: 'ул. Чистопольская, 61', building: 'Подъезды 1-4', time: '17:00–20:00', addressCount: 22, price: 1100, distance: '1.8 км', description: '1-9 этажи, есть лифт', customer: 'ТСЖ Надежда', rating: 4.8 },
-                  { id: 12843, address: 'ул. Гаврилова, 12', building: 'Подъезд 1', time: '18:00–20:00', addressCount: 5, price: 250, distance: '0.8 км', description: '1-5 этажи, без лифта', customer: 'Елена', rating: 4.6 },
-                ].map((order) => (
-                  <div key={order.id} style={card}>
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Clock className="w-4 h-4" style={{ color: c.muted }} />
-                          <span className="text-base font-semibold" style={{ color: c.text }}>{order.time}</span>
-                          <span className="text-xs" style={{ color: c.muted }}>{order.distance}</span>
+              ) : availableOrders.length === 0 ? (
+                <div style={{ ...card, textAlign: 'center', padding: '2.5rem 1.25rem' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📭</div>
+                  <div className="font-semibold mb-1" style={{ color: c.text }}>Заказов пока нет</div>
+                  <div className="text-sm" style={{ color: c.muted }}>Когда заказчики создадут заявки, они появятся здесь</div>
+                </div>
+              ) : (
+                <>
+                  <div style={card}>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-xl p-3 text-center" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
+                        <div className="text-2xl font-bold" style={{ color: ACCENT }}>
+                          {availableOrders.reduce((s, o) => s + o.price, 0)}₽
                         </div>
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <MapPin className="w-3.5 h-3.5" style={{ color: c.muted }} />
-                          <span className="text-sm font-medium" style={{ color: c.text }}>{order.address}</span>
-                        </div>
-                        <div className="text-xs mb-2" style={{ color: c.muted }}>{order.building} • {order.customer}</div>
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: `${ACCENT}18`, border: `1px solid ${ACCENT}20`, color: ACCENT }}>
-                            <Package className="w-3 h-3" />{order.addressCount} адр
-                          </span>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs" style={{ background: c.subtle, border: `1px solid ${c.border}`, color: c.muted }}>
-                            <Star className="w-3 h-3" style={{ color: '#FBBF24', fill: '#FBBF24' }} />{order.rating}
-                          </span>
-                          <span className="text-xs" style={{ color: c.muted }}>{order.description}</span>
-                        </div>
+                        <div className="text-xs mt-0.5" style={{ color: c.muted }}>можно заработать</div>
                       </div>
-                      <div className="text-right ml-4">
-                        <div className="text-2xl font-bold" style={{ color: c.text }}>{order.price}₽</div>
-                        <div className="text-xs" style={{ color: c.muted }}>{order.addressCount}×50</div>
+                      <div className="rounded-xl p-3 text-center" style={{ background: c.subtle, border: `1px solid ${c.border}` }}>
+                        <div className="text-2xl font-bold" style={{ color: c.text }}>{availableOrders.length}</div>
+                        <div className="text-xs mt-0.5" style={{ color: c.muted }}>заказов доступно</div>
                       </div>
                     </div>
-                    <button
-                      className="w-full h-9 rounded-xl text-sm font-semibold"
-                      style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-                      onClick={() => toast.success(`Заявка на заказ #${order.id} отправлена!`, { duration: 2500 })}
-                    >
-                      Взять заказ
-                    </button>
                   </div>
-                ))}
-              </div>
+
+                  <div className="space-y-2">
+                    {availableOrders.map((order) => {
+                      const dt = new Date(order.scheduledAt);
+                      const timeStr = dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                      const dateStr = dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+                      return (
+                        <div key={order.id} style={{ ...card, cursor: 'pointer' }} onClick={() => setSelectedOrder(order)}>
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Clock className="w-4 h-4" style={{ color: c.muted }} />
+                                <span className="text-base font-semibold" style={{ color: c.text }}>{timeStr}</span>
+                                <span className="text-xs" style={{ color: c.muted }}>{dateStr}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <MapPin className="w-3.5 h-3.5" style={{ color: c.muted }} />
+                                <span className="text-sm font-medium" style={{ color: c.text }}>{order.address}</span>
+                              </div>
+                              {order.description && (
+                                <div className="text-xs mb-2" style={{ color: c.muted }}>{order.description}</div>
+                              )}
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: `${ACCENT}18`, border: `1px solid ${ACCENT}20`, color: ACCENT }}>
+                                  <Package className="w-3 h-3" />{order.volume} мешк.
+                                </span>
+                                {(order.photoUrls?.length ?? 0) > 0 && (
+                                  <span className="text-xs" style={{ color: c.muted }}>📷 {order.photoUrls.length}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right ml-4">
+                              <div className="text-2xl font-bold" style={{ color: c.text }}>{order.price}₽</div>
+                              <div className="text-xs mt-1" style={{ color: c.muted }}>Подробнее →</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -686,6 +767,112 @@ export default function ContractorDashboard() {
           )}
         </div>
       </div>
+
+      {/* Order detail modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 z-[80] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setSelectedOrder(null)}>
+          <div
+            className="w-full lg:max-w-lg rounded-t-2xl lg:rounded-2xl overflow-y-auto"
+            style={{ background: c.surface, maxHeight: '90vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4" style={{ borderBottom: `1px solid ${c.border}` }}>
+              <h2 className="text-lg font-bold" style={{ color: c.text }}>Детали заказа</h2>
+              <button onClick={() => setSelectedOrder(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted }}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Address & time */}
+              <div style={{ ...card, padding: '1rem' }}>
+                <div className="flex items-start gap-3 mb-3">
+                  <MapPin className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: ACCENT }} />
+                  <div>
+                    <div className="font-semibold" style={{ color: c.text }}>{selectedOrder.address}</div>
+                    <div className="text-sm mt-0.5" style={{ color: c.muted }}>{selectedOrder.district}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 flex-shrink-0" style={{ color: c.muted }} />
+                  <div className="text-sm" style={{ color: c.text }}>
+                    {new Date(selectedOrder.scheduledAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
+                    {' · '}
+                    {new Date(selectedOrder.scheduledAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Params */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl p-3 text-center" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
+                  <div className="text-2xl font-bold" style={{ color: ACCENT }}>{selectedOrder.price}₽</div>
+                  <div className="text-xs mt-0.5" style={{ color: c.muted }}>оплата</div>
+                </div>
+                <div className="rounded-xl p-3 text-center" style={{ background: c.subtle, border: `1px solid ${c.border}` }}>
+                  <div className="text-2xl font-bold" style={{ color: c.text }}>{selectedOrder.volume}</div>
+                  <div className="text-xs mt-0.5" style={{ color: c.muted }}>мешков</div>
+                </div>
+              </div>
+
+              {/* Description */}
+              {selectedOrder.description && (
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: c.muted }}>Описание</div>
+                  <div className="text-sm" style={{ color: c.text }}>{selectedOrder.description}</div>
+                </div>
+              )}
+
+              {/* Photos */}
+              {selectedOrder.photoUrls && selectedOrder.photoUrls.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: c.muted }}>Фото ({selectedOrder.photoUrls.length})</div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedOrder.photoUrls.map((url, i) => (
+                      <button key={i} onClick={() => setLightboxUrl(url)} style={{ padding: 0, border: 'none', background: 'none', cursor: 'pointer' }}>
+                        <img src={url} alt="" style={{ width: '5rem', height: '5rem', objectFit: 'cover', borderRadius: '0.75rem', border: `2px solid ${c.border}` }} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Accept button */}
+              <button
+                className="w-full h-12 rounded-xl text-sm font-semibold"
+                disabled={acceptingId === selectedOrder.id}
+                style={{ background: ACCENT, color: 'white', border: 'none', cursor: acceptingId === selectedOrder.id ? 'not-allowed' : 'pointer', opacity: acceptingId === selectedOrder.id ? 0.6 : 1, fontFamily: 'inherit' }}
+                onClick={async () => {
+                  setAcceptingId(selectedOrder.id);
+                  try {
+                    const res = await ordersApi.updateStatus(selectedOrder.id, 'accepted') as any;
+                    const accepted = res?.data ?? { ...selectedOrder, status: 'accepted' as const };
+                    setAvailableOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
+                    setMyJobs((prev) => [accepted, ...prev]);
+                    setSelectedOrder(null);
+                    setActiveTab('home');
+                    toast.success('Заказ принят!', { description: 'Он появился в разделе «Мои заказы»', duration: 3000 });
+                  } catch (err: any) {
+                    toast.error(err?.message || 'Не удалось принять заказ');
+                  } finally {
+                    setAcceptingId(null);
+                  }
+                }}
+              >
+                {acceptingId === selectedOrder.id ? 'Принимаем...' : 'Взять заказ'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxUrl && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.9)' }} onClick={() => setLightboxUrl(null)}>
+          <img src={lightboxUrl} alt="" style={{ maxWidth: '95vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '0.5rem' }} />
+        </div>
+      )}
 
       {/* Bottom nav - mobile */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40" style={{ background: c.surface, borderTop: `1px solid ${c.border}` }}>
