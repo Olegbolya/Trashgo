@@ -75,10 +75,10 @@ export const router = createBrowserRouter([
   { path: "/register-contractor", element: page(RegisterContractor) },
   { path: "/how-it-works", element: page(HowItWorks) },
 
-  // Protected — auth required, role-specific
+  // Protected — auth required (both dashboards accessible for role switching)
   { path: "/dashboard", element: guarded(UnifiedDashboard) },
-  { path: "/customer", element: guarded(CustomerDashboard, 'customer') },
-  { path: "/contractor", element: guarded(ContractorDashboard, 'contractor') },
+  { path: "/customer", element: guarded(CustomerDashboard) },
+  { path: "/contractor", element: guarded(ContractorDashboard) },
 
   // Protected + Layout — customer pages
   { path: "/create-order", element: guardedLayout(CreateOrder, 'customer') },

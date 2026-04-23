@@ -1,9 +1,8 @@
-import type { ApiError } from '../types/api';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api/v1' : 'http://localhost:3000/api/v1');
 
 class ApiClient {
   private baseUrl: string;
+  private refreshing: Promise<string | null> | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -20,29 +19,108 @@ class ApiClient {
     }
   }
 
-  private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  private getRefreshToken(): string | null {
+    try {
+      const stored = localStorage.getItem('auth-storage');
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      return parsed?.state?.refreshToken ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async doRefresh(): Promise<string | null> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) return null;
+
+    try {
+      const res = await fetch(`${this.baseUrl}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!res.ok) {
+        // Refresh token expired — clear auth state
+        this.clearAuth();
+        return null;
+      }
+
+      const body = await res.json();
+      const { token, refreshToken: newRefreshToken } = body.data;
+
+      // Persist new tokens into localStorage so zustand picks them up
+      const raw = localStorage.getItem('auth-storage');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.state) {
+          parsed.state.token = token;
+          parsed.state.refreshToken = newRefreshToken;
+          localStorage.setItem('auth-storage', JSON.stringify(parsed));
+        }
+      }
+
+      return token;
+    } catch {
+      this.clearAuth();
+      return null;
+    }
+  }
+
+  private clearAuth() {
+    try {
+      const raw = localStorage.getItem('auth-storage');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed?.state) {
+        parsed.state.token = null;
+        parsed.state.refreshToken = null;
+        parsed.state.isAuthenticated = false;
+        parsed.state.user = null;
+        localStorage.setItem('auth-storage', JSON.stringify(parsed));
+      }
+    } catch {}
+    // Force page reload to go back to login
+    window.location.href = '/';
+  }
+
+  private async request<T>(path: string, options: RequestInit = {}, isRetry = false): Promise<T> {
     const token = this.getToken();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers as Record<string, string>,
+      ...(options.headers as Record<string, string>),
     };
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      ...options,
-      headers,
-    });
+    const response = await fetch(`${this.baseUrl}${path}`, { ...options, headers });
+
+    // On 401, try to refresh once (but not for auth endpoints to avoid loops)
+    if (response.status === 401 && !isRetry && !path.startsWith('/auth/')) {
+      // Deduplicate concurrent refresh calls
+      if (!this.refreshing) {
+        this.refreshing = this.doRefresh().finally(() => { this.refreshing = null; });
+      }
+      const newToken = await this.refreshing;
+      if (newToken) {
+        return this.request<T>(path, options, true);
+      }
+      // doRefresh already cleared auth + redirected
+      return undefined as T;
+    }
 
     if (!response.ok) {
-      const error: ApiError = await response.json().catch(() => ({
-        code: 'UNKNOWN',
-        message: `HTTP ${response.status}`,
-      }));
-      throw error;
+      const body = await response.json().catch(() => null);
+      const message =
+        body?.error?.message ||
+        body?.message ||
+        `HTTP ${response.status}`;
+      const code = body?.error?.code || body?.code || 'UNKNOWN';
+      throw { code, message };
     }
 
     if (response.status === 204) return undefined as T;

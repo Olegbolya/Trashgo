@@ -181,6 +181,15 @@
   }
 }
 
+/* ─── Smooth theme transition ─── */
+*, *::before, *::after {
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
 /* ─── Dark mode: override hardcoded Tailwind gray classes ─── */
 
 /* Backgrounds */

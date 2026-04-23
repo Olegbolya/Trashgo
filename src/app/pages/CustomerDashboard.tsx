@@ -7,6 +7,8 @@ import { LevelSystem, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
 import { toast } from 'sonner';
 import { getDayLabel } from '../lib/utils';
+import { ordersApi } from '../../api/orders';
+import type { Order } from '../../types/order';
 
 const ACCENT = '#66BB6A';
 
@@ -26,23 +28,52 @@ export default function CustomerDashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   type MyOrder = {
-    id: number; address: string; entrance: string; apartment: string;
+    id: string; address: string; entrance: string; apartment: string;
     date: string; time: string; volume: number; price: number;
     description: string; photoUrls: string[]; status: 'waiting' | 'active' | 'cancelled';
     responses: number; createdAt: string;
   };
-  const storageKey = `trashgo_my_orders_${user?.id || 'guest'}`;
-  const [myOrders, setMyOrders] = useState<MyOrder[]>(() => {
-    try {
-      const stored = localStorage.getItem(`trashgo_my_orders_${user?.id || 'guest'}`);
-      return stored ? JSON.parse(stored) : [];
-    } catch { return []; }
-  });
+
+  function apiOrderToMyOrder(o: Order, inMemoryPhotos?: string[]): MyOrder {
+    return {
+      id: o.id,
+      address: o.address,
+      entrance: '',
+      apartment: '',
+      date: o.scheduledAt.slice(0, 10),
+      time: o.scheduledAt.slice(11, 16),
+      volume: o.volume,
+      price: o.price,
+      description: o.description,
+      photoUrls: inMemoryPhotos ?? o.photoUrls ?? [],
+      status: o.status === 'new' ? 'waiting' : o.status === 'cancelled' ? 'cancelled' : 'active',
+      responses: 0,
+      createdAt: new Date(o.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }),
+    };
+  }
+
+  const [myOrders, setMyOrders] = useState<MyOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<MyOrder | null>(null);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+
+  const refreshOrders = () => {
+    setOrdersLoading(true);
+    ordersApi.list().then((res: any) => {
+      const orders: Order[] = res?.data ?? [];
+      setMyOrders(orders.map((o) => apiOrderToMyOrder(o)));
+    }).catch(() => {}).finally(() => setOrdersLoading(false));
+  };
 
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(myOrders));
-  }, [myOrders, storageKey]);
+    refreshOrders();
+  }, []);
+
+  // Refresh when switching to home tab
+  useEffect(() => {
+    if (activeTab === 'home') refreshOrders();
+  }, [activeTab]);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -87,6 +118,7 @@ export default function CustomerDashboard() {
   const navItems = [
     { id: 'home', icon: Home, label: 'Главная' },
     { id: 'create', icon: Plus, label: 'Создать заказ' },
+    { id: 'calendar', icon: Clock, label: 'История заказов' },
     { id: 'profile', icon: User, label: 'Профиль' },
   ] as const;
 
@@ -341,10 +373,21 @@ export default function CustomerDashboard() {
                             <div className="text-sm mb-2" style={{ color: c.muted }}>
                               {new Date(order.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })} · {order.time} · {order.volume} мешк.
                             </div>
-                            <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#F97316' + '18', color: '#F97316' }}>
-                              <Clock className="w-3.5 h-3.5" />
-                              <span>Ждёт исполнителя · {order.responses} откликов</span>
-                            </div>
+                            {order.status === 'waiting' ? (
+                              <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#F97316' + '18', color: '#F97316' }}>
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>Ждёт исполнителя</span>
+                              </div>
+                            ) : order.status === 'active' ? (
+                              <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: `${ACCENT}18`, color: ACCENT }}>
+                                <CheckCircle className="w-3.5 h-3.5" />
+                                <span>Исполнитель найден</span>
+                              </div>
+                            ) : (
+                              <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#9ca3af18', color: '#9ca3af' }}>
+                                <span>Отменён</span>
+                              </div>
+                            )}
                           </div>
                           <div className="ml-4 text-right">
                             <div className="text-xl font-bold" style={{ color: c.text }}>{order.price}₽</div>
@@ -576,36 +619,55 @@ export default function CustomerDashboard() {
               if (createForm.price <= 0) errors.price = 'Цена должна быть больше 0';
               setCreateErrors(errors);
               if (Object.keys(errors).length > 0) return;
+
               const newPhotoUrls = await Promise.all(createPhotos.map(toBase64));
               const photoUrls = [...preloadedPhotoUrls, ...newPhotoUrls].slice(0, 5);
-              const newOrder: MyOrder = {
-                id: Date.now(),
-                address: createForm.address,
-                entrance: createForm.entrance,
-                apartment: createForm.apartment,
-                date: createForm.date,
-                time: createForm.time,
-                volume: createForm.volume,
-                price: createForm.price,
-                description: createForm.description,
-                photoUrls,
-                status: 'waiting',
-                responses: 0,
-                createdAt: new Date().toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }),
-              };
-              setMyOrders((prev) => {
-                const updated = [newOrder, ...prev];
-                localStorage.setItem('trashgo_my_orders', JSON.stringify(updated));
-                return updated;
-              });
-              toast.success('Заказ создан!', { description: 'Исполнители уже видят ваш заказ', duration: 3000 });
-              setCreateForm({ address: '', date: '', time: '', volume: 1, price: 50, entrance: '', apartment: '', description: '' });
-              setCreatePhotos([]);
-              setPreloadedPhotoUrls([]);
-              setCreateErrors({});
-              setIsEditing(false);
-              setOriginalOrder(null);
-              setActiveTab('home');
+
+              let fullAddress = createForm.address.trim();
+              if (createForm.entrance) fullAddress += `, подъезд ${createForm.entrance}`;
+              if (createForm.apartment) fullAddress += `, кв. ${createForm.apartment}`;
+
+              const scheduledAt = new Date(`${createForm.date}T${createForm.time}:00`).toISOString();
+
+              try {
+                const res = await ordersApi.create({
+                  address: fullAddress,
+                  district: user?.district || 'Казань',
+                  volume: createForm.volume,
+                  price: createForm.price,
+                  description: createForm.description,
+                  scheduledAt,
+                  photoUrls,
+                }) as any;
+
+                const apiOrder: Order = res?.data ?? res;
+                const newOrder: MyOrder = {
+                  id: apiOrder.id,
+                  address: createForm.address,
+                  entrance: createForm.entrance,
+                  apartment: createForm.apartment,
+                  date: createForm.date,
+                  time: createForm.time,
+                  volume: createForm.volume,
+                  price: createForm.price,
+                  description: createForm.description,
+                  photoUrls,
+                  status: 'waiting',
+                  responses: 0,
+                  createdAt: new Date().toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }),
+                };
+                setMyOrders((prev) => [newOrder, ...prev]);
+                toast.success('Заказ создан!', { description: 'Исполнители уже видят ваш заказ', duration: 3000 });
+                setCreateForm({ address: '', date: '', time: '', volume: 1, price: 50, entrance: '', apartment: '', description: '' });
+                setCreatePhotos([]);
+                setPreloadedPhotoUrls([]);
+                setCreateErrors({});
+                setIsEditing(false);
+                setOriginalOrder(null);
+                setActiveTab('home');
+              } catch (err: any) {
+                toast.error(err?.message || 'Не удалось создать заказ');
+              }
             };
 
             return (
@@ -616,14 +678,55 @@ export default function CustomerDashboard() {
                   <div className="space-y-4">
 
                     {/* Адрес дома — обязательное */}
-                    <div>
+                    <div style={{ position: 'relative' }}>
                       <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: c.muted }}>Адрес <span style={{ color: '#ef4444' }}>*</span></label>
                       <input
                         value={createForm.address}
-                        onChange={(e) => { setCreateForm({ ...createForm, address: e.target.value }); setCreateErrors({ ...createErrors, address: '' }); }}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCreateForm({ ...createForm, address: val });
+                          setCreateErrors({ ...createErrors, address: '' });
+                          if (val.length > 0) {
+                            const unique = [...new Set(myOrders.map(o => o.address).filter(a => a.toLowerCase().includes(val.toLowerCase())))];
+                            setAddressSuggestions(unique);
+                            setShowAddressSuggestions(unique.length > 0);
+                          } else {
+                            setShowAddressSuggestions(false);
+                          }
+                        }}
+                        onFocus={() => {
+                          if (createForm.address.length === 0) {
+                            const unique = [...new Set(myOrders.map(o => o.address).filter(Boolean))];
+                            if (unique.length > 0) {
+                              setAddressSuggestions(unique);
+                              setShowAddressSuggestions(true);
+                            }
+                          }
+                        }}
+                        onBlur={() => { setTimeout(() => setShowAddressSuggestions(false), 150); }}
                         placeholder="ул. Баумана, 58"
                         style={inputStyle(!!createErrors.address)}
                       />
+                      {showAddressSuggestions && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: c.surface, border: `1px solid ${c.border}`, borderRadius: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginTop: '2px', overflow: 'hidden' }}>
+                          {addressSuggestions.map((addr, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onMouseDown={() => {
+                                setCreateForm({ ...createForm, address: addr });
+                                setShowAddressSuggestions(false);
+                              }}
+                              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.625rem 0.875rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: c.text, fontFamily: 'inherit', borderBottom: i < addressSuggestions.length - 1 ? `1px solid ${c.border}` : 'none' }}
+                              onMouseEnter={e => (e.currentTarget.style.background = c.subtle)}
+                              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                            >
+                              <MapPin style={{ display: 'inline', width: '0.875rem', height: '0.875rem', marginRight: '0.5rem', color: c.muted, verticalAlign: 'middle' }} />
+                              {addr}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       {createErrors.address && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{createErrors.address}</p>}
                     </div>
 
@@ -796,9 +899,7 @@ export default function CustomerDashboard() {
                         onClick={() => {
                           if (originalOrder) {
                             setMyOrders((prev) => {
-                              const updated = [originalOrder, ...prev];
-                              localStorage.setItem('trashgo_my_orders', JSON.stringify(updated));
-                              return updated;
+                              return [originalOrder, ...prev];
                             });
                           }
                           setCreateErrors({});
@@ -814,7 +915,11 @@ export default function CustomerDashboard() {
                       <button
                         className="flex-1 h-11 rounded-xl text-sm font-medium"
                         style={{ border: `1px solid #fca5a5`, background: 'transparent', color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit' }}
-                        onClick={() => {
+                        onClick={async () => {
+                          if (originalOrder) {
+                            try { await ordersApi.updateStatus(originalOrder.id, 'cancelled'); } catch {}
+                            setMyOrders((prev) => prev.filter((o) => o.id !== originalOrder.id));
+                          }
                           setCreateErrors({});
                           setPreloadedPhotoUrls([]);
                           setCreatePhotos([]);
@@ -1015,12 +1120,9 @@ export default function CustomerDashboard() {
                 <button
                   className="flex-1 py-2.5 rounded-xl text-sm font-medium"
                   style={{ border: `1px solid #fca5a5`, background: 'transparent', color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit' }}
-                  onClick={() => {
-                    setMyOrders((prev) => {
-                      const updated = prev.filter((o) => o.id !== selectedOrder.id);
-                      localStorage.setItem('trashgo_my_orders', JSON.stringify(updated));
-                      return updated;
-                    });
+                  onClick={async () => {
+                    try { await ordersApi.updateStatus(selectedOrder.id, 'cancelled'); } catch {}
+                    setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
                     setSelectedOrder(null);
                     toast.success('Заказ отменён');
                   }}

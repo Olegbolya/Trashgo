@@ -45,9 +45,6 @@ export default function Login() {
 
     try {
       const res = await authApi.login(formattedPhone);
-      if (res.devCode) {
-        toast.info(`Код для входа: ${res.devCode}`, { duration: 30000 });
-      }
       navigate('/verify', { state: { phone: formattedPhone, role, isNewUser: res.isNewUser } });
     } catch {
       toast.error('Ошибка отправки кода. Попробуйте ещё раз.');
