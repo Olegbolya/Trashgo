@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { User, Moon, Sun, ChevronUp } from 'lucide-react';
+import { User, Moon, Sun, ChevronDown, LogOut } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore, ROLE_COLORS } from '../../stores/role.store';
@@ -17,30 +17,95 @@ function formatPhone(raw: string) {
   return result;
 }
 
+const FAQ_ITEMS = [
+  {
+    q: 'Как оставить заявку на вывоз мусора?',
+    a: 'Выберите роль «Заказчик», войдите по номеру телефона и нажмите «Создать заявку». Укажите адрес, объём и удобное время — исполнители в вашем районе увидят заявку и откликнутся.',
+  },
+  {
+    q: 'Сколько стоит вывоз?',
+    a: 'Вы сами указываете желаемую цену при создании заявки. Исполнители могут принять её или предложить свою стоимость — вы выбираете лучшее предложение.',
+  },
+  {
+    q: 'Как быстро приедет исполнитель?',
+    a: 'Обычно в тот же или следующий день. При создании заявки вы выбираете удобный временной слот, исполнитель подтверждает время и приезжает точно в срок.',
+  },
+  {
+    q: 'Как стать исполнителем и начать зарабатывать?',
+    a: 'Выберите роль «Исполнитель», зарегистрируйтесь и укажите свой район. После этого вы сразу увидите доступные заявки рядом с вами и сможете их принимать.',
+  },
+  {
+    q: 'Что именно можно вывезти?',
+    a: 'Бытовой мусор в пакетах, крупногабаритную мебель и технику, строительный мусор после ремонта, старую одежду и прочее. Уточните детали в описании заявки.',
+  },
+  {
+    q: 'Безопасно ли пускать исполнителя домой?',
+    a: 'Все исполнители проходят верификацию по номеру телефона. Профиль каждого содержит рейтинг, отзывы и историю заказов — вы видите, кому открываете дверь.',
+  },
+  {
+    q: 'Что делать, если исполнитель не приехал?',
+    a: 'Напишите в поддержку через раздел «Помощь» в профиле. Мы оперативно разберём ситуацию и при необходимости найдём другого исполнителя или вернём средства.',
+  },
+  {
+    q: 'Есть ли мобильное приложение?',
+    a: 'TrashGo уже адаптирован для мобильных браузеров — добавьте сайт на главный экран телефона. Нативное приложение для iOS и Android сейчас в разработке.',
+  },
+];
+
 export default function Home() {
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, logout } = useAuthStore();
   const { selectedRole, accentColor, setRole } = useRoleStore();
 
   const authSectionRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const accent = accentColor;
-  const accentShadow = selectedRole ? `${ROLE_COLORS[selectedRole]}30` : 'transparent';
+
+  const c = {
+    bg:        isDark ? '#0f172a' : '#ffffff',
+    surface:   isDark ? '#1e293b' : '#f8fafc',
+    border:    isDark ? 'rgba(255,255,255,0.09)' : '#e5e7eb',
+    text:      isDark ? '#ffffff' : '#111827',
+    textSub:   isDark ? 'rgba(255,255,255,0.65)' : '#4b5563',
+    textMuted: isDark ? 'rgba(255,255,255,0.38)' : '#9ca3af',
+    inputBg:   isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
+    hoverBg:   isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6',
+    pillBg:    isDark ? 'rgba(255,255,255,0.07)' : '#f3f4f6',
+    divider:   isDark ? 'rgba(255,255,255,0.07)' : '#f1f5f9',
+    headerBg:  isDark ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.85)',
+  };
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const handleRoleSelect = (role: 'customer' | 'contractor') => {
     setRole(role);
-    setTimeout(() => {
-      authSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 80);
+    setPhoneError('');
+    setTimeout(() => authSectionRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
   };
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRole || phone.replace(/\D/g, '').length < 10) return;
+    setPhoneError('');
+    const digits = phone.replace(/\D/g, '').replace(/^7/, '').replace(/^8/, '');
+    if (digits.length < 10) { setPhoneError('Введите полный номер телефона'); return; }
+    if (!selectedRole) { setPhoneError('Сначала выберите роль выше'); return; }
     const formattedPhone = formatPhone(phone);
     setLoading(true);
     try {
@@ -48,330 +113,330 @@ export default function Home() {
       if (res.devCode) toast.info(`Код для входа: ${res.devCode}`, { duration: 30000 });
       navigate('/verify', { state: { phone: formattedPhone, role: selectedRole, isNewUser: res.isNewUser } });
     } catch {
-      toast.error('Ошибка. Попробуйте ещё раз.');
+      setPhoneError('Ошибка отправки кода. Проверьте номер и попробуйте ещё раз.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleProfileClick = () => {
-    if (isAuthenticated) {
-      navigate(user?.role === 'contractor' ? '/contractor' : '/customer');
-    } else {
-      navigate('/login');
-    }
-  };
+  const phoneDigits = phone.replace(/\D/g, '').replace(/^7/, '').replace(/^8/, '');
+  const phoneReady = phoneDigits.length >= 10;
 
   return (
-    <div style={{ fontFamily: "'Inter', system-ui, sans-serif" }} className="bg-white text-black">
+    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", background: c.bg, color: c.text, minHeight: '100vh' }}>
 
-      {/* ── HERO SECTION ── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden">
+      {/* ── HEADER ── */}
+      <header style={{
+        position: 'fixed', top: 0, left: 0, right: 0, height: '3.25rem',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 1.25rem', zIndex: 50,
+        background: c.headerBg, backdropFilter: 'blur(12px)',
+        borderBottom: `1px solid ${c.border}`,
+      }}>
+        <span style={{ fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.02em', color: accent, transition: 'color 0.4s' }}>
+          TrashGo
+        </span>
 
-        {/* Top-right controls */}
-        <div className="absolute top-6 right-6 flex items-center gap-2">
-          {!isAuthenticated && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          {isAuthenticated && (
             <button
-              onClick={toggleTheme}
-              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors duration-200"
-              title={isDark ? 'Светлая тема' : 'Тёмная тема'}
+              onClick={() => navigate(user?.role === 'contractor' ? '/contractor' : '/customer')}
+              style={{ fontSize: '0.8rem', color: c.textMuted, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '0.4rem 0.625rem', borderRadius: '0.375rem' }}
             >
-              {isDark
-                ? <Sun className="w-5 h-5 text-gray-600" />
-                : <Moon className="w-5 h-5 text-gray-600" />
-              }
+              Войти в кабинет
             </button>
           )}
+
           <button
-            onClick={handleProfileClick}
-            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors duration-200"
-            title={isAuthenticated ? 'Профиль' : 'Войти'}
+            onClick={toggleTheme}
+            style={{ width: '2rem', height: '2rem', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            <User className="w-5 h-5 text-gray-700" />
+            {isDark
+              ? <Sun style={{ width: '0.875rem', height: '0.875rem', color: c.textMuted }} />
+              : <Moon style={{ width: '0.875rem', height: '0.875rem', color: c.textMuted }} />
+            }
           </button>
-        </div>
 
-        {/* Center content */}
-        <div className="max-w-2xl w-full text-center">
-
-          {/* Title */}
-          <h1 className="mb-4 leading-none">
-            <span
-              style={{
-                color: accent,
-                transition: 'color 0.5s cubic-bezier(0.4,0,0.2,1)',
-                fontSize: 'clamp(3rem, 10vw, 6rem)',
-                fontWeight: 900,
-                letterSpacing: '-0.04em',
-                display: 'block',
-              }}
-            >
-              TrashGo
-            </span>
-            <span
-              style={{
-                fontSize: 'clamp(1rem, 2.5vw, 1.35rem)',
-                fontWeight: 300,
-                letterSpacing: '-0.01em',
-                color: '#374151',
-                display: 'block',
-                marginTop: '0.75rem',
-                lineHeight: 1.5,
-              }}
-            >
-              — платформа для вывоза мусора с геймификацией
-              <br className="hidden sm:block" /> и системой поиска подрядчиков
-            </span>
-          </h1>
-
-          {/* Role cards */}
-          <div className="grid sm:grid-cols-2 gap-4 mt-12">
-
-            {/* Заказчик */}
+          <div ref={dropdownRef} style={{ position: 'relative' }}>
             <button
-              onClick={() => handleRoleSelect('customer')}
-              style={{
-                borderColor: selectedRole === 'customer' ? ROLE_COLORS.customer : '#e5e7eb',
-                boxShadow: selectedRole === 'customer'
-                  ? `0 0 0 4px ${ROLE_COLORS.customer}22, 0 4px 24px ${ROLE_COLORS.customer}18`
-                  : '0 1px 4px rgba(0,0,0,0.06)',
-                transition: 'border-color 0.4s cubic-bezier(0.4,0,0.2,1), box-shadow 0.4s cubic-bezier(0.4,0,0.2,1)',
-              }}
-              className="border-2 rounded-2xl p-7 text-left bg-white hover:border-[#66BB6A] group"
+              onClick={() => setDropdownOpen(v => !v)}
+              style={{ width: '2rem', height: '2rem', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' }}
             >
-              <div
-                style={{
-                  background: selectedRole === 'customer' ? `${ROLE_COLORS.customer}15` : '#f9fafb',
-                  transition: 'background 0.4s ease',
-                }}
-                className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 text-2xl"
-              >
-                📦
-              </div>
-              <h3
-                style={{
-                  fontSize: '1.125rem',
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                  marginBottom: '0.375rem',
-                }}
-              >
-                Стать заказчиком
-              </h3>
-              <p style={{ fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.5 }}>
-                Создавайте заказы и выбирайте исполнителей рядом с домом
-              </p>
+              <User style={{ width: '0.875rem', height: '0.875rem', color: c.textMuted }} />
             </button>
 
-            {/* Исполнитель */}
-            <button
-              onClick={() => handleRoleSelect('contractor')}
-              style={{
-                borderColor: selectedRole === 'contractor' ? ROLE_COLORS.contractor : '#e5e7eb',
-                boxShadow: selectedRole === 'contractor'
-                  ? `0 0 0 4px ${ROLE_COLORS.contractor}22, 0 4px 24px ${ROLE_COLORS.contractor}18`
-                  : '0 1px 4px rgba(0,0,0,0.06)',
-                transition: 'border-color 0.4s cubic-bezier(0.4,0,0.2,1), box-shadow 0.4s cubic-bezier(0.4,0,0.2,1)',
-              }}
-              className="border-2 rounded-2xl p-7 text-left bg-white hover:border-[#2196F3] group"
-            >
-              <div
-                style={{
-                  background: selectedRole === 'contractor' ? `${ROLE_COLORS.contractor}15` : '#f9fafb',
-                  transition: 'background 0.4s ease',
-                }}
-                className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 text-2xl"
-              >
-                💼
+            {dropdownOpen && (
+              <div style={{
+                position: 'absolute', top: '2.25rem', right: 0,
+                background: isDark ? '#1e293b' : '#ffffff',
+                border: `1px solid ${c.border}`,
+                borderRadius: '0.75rem',
+                boxShadow: isDark ? '0 12px 32px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.08)',
+                minWidth: '150px', zIndex: 100, overflow: 'hidden',
+              }}>
+                <DropItem
+                  label={isAuthenticated ? 'Мой профиль' : 'Войти'}
+                  color={c.text}
+                  hoverBg={c.hoverBg}
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    if (isAuthenticated) navigate(user?.role === 'contractor' ? '/contractor' : '/customer');
+                    else { if (!selectedRole) setRole('customer'); authSectionRef.current?.scrollIntoView({ behavior: 'smooth' }); }
+                  }}
+                />
+                {isAuthenticated && (
+                  <>
+                    <div style={{ height: '1px', background: c.divider }} />
+                    <DropItem
+                      label="Выйти"
+                      color="#ef4444"
+                      hoverBg={isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2'}
+                      onClick={() => { logout(); setDropdownOpen(false); }}
+                    />
+                  </>
+                )}
               </div>
-              <h3
-                style={{
-                  fontSize: '1.125rem',
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                  marginBottom: '0.375rem',
-                }}
-              >
-                Стать исполнителем
-              </h3>
-              <p style={{ fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.5 }}>
-                Берите заказы рядом с домом и зарабатывайте по своему графику
-              </p>
-            </button>
+            )}
           </div>
+        </div>
+      </header>
 
-          {/* Scroll hint */}
-          {selectedRole && (
-            <p
+      {/* ── HERO ── */}
+      <section style={{
+        paddingTop: '8rem', paddingBottom: '4rem',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        textAlign: 'center', padding: '8rem 1.5rem 4rem',
+      }}>
+        <h1 style={{ margin: 0 }}>
+          <span style={{
+            display: 'block',
+            fontSize: 'clamp(3rem, 11vw, 6.5rem)',
+            fontWeight: 900, letterSpacing: '-0.04em',
+            color: accent,
+            transition: 'color 0.5s cubic-bezier(0.4,0,0.2,1)',
+            lineHeight: 1,
+          }}>
+            TrashGo
+          </span>
+          <span style={{
+            display: 'block',
+            fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+            fontWeight: 400,
+            color: c.textSub,
+            marginTop: '1rem',
+            lineHeight: 1.65,
+            transition: 'color 0.3s',
+          }}>
+            Платформа для вывоза мусора.
+            <br />Найдите исполнителя рядом — или начните зарабатывать сами.
+          </span>
+        </h1>
+
+        {/* Role buttons */}
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '2.5rem' }}>
+          {(['customer', 'contractor'] as const).map((role) => (
+            <button
+              key={role}
+              onClick={() => handleRoleSelect(role)}
               style={{
-                marginTop: '2rem',
-                fontSize: '0.8rem',
-                color: '#9ca3af',
-                animation: 'fadeIn 0.4s ease',
+                padding: '0.6rem 1.375rem',
+                borderRadius: '0.5rem',
+                border: `1.5px solid ${selectedRole === role ? ROLE_COLORS[role] : c.border}`,
+                background: selectedRole === role ? ROLE_COLORS[role] : 'transparent',
+                color: selectedRole === role ? '#ffffff' : c.text,
+                fontSize: '0.875rem', fontWeight: 500,
+                fontFamily: 'inherit', cursor: 'pointer',
+                transition: 'border-color 0.25s, background 0.25s, color 0.25s',
               }}
             >
-              Прокрутите вниз ↓
-            </p>
-          )}
+              {role === 'customer' ? 'Я заказчик' : 'Я исполнитель'}
+            </button>
+          ))}
         </div>
       </section>
 
-      {/* ── AUTH SECTION ── */}
+      {/* ── AUTH ── */}
       <section
         ref={authSectionRef}
-        className="min-h-screen flex flex-col items-center justify-center px-6 py-20"
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 1.5rem 5rem' }}
       >
         {selectedRole ? (
-          <div className="w-full max-w-md">
+          <div style={{ width: '100%', maxWidth: '380px' }}>
+            <div style={{
+              border: `1.5px solid ${c.border}`,
+              borderRadius: '1rem', padding: '1.75rem',
+              background: c.surface,
+            }}>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <span style={{
+                  display: 'inline-block',
+                  padding: '0.2rem 0.7rem', borderRadius: '0.375rem',
+                  fontSize: '0.75rem', fontWeight: 600,
+                  background: `${accent}18`, color: accent,
+                  letterSpacing: '0.01em',
+                }}>
+                  {selectedRole === 'customer' ? 'Заказчик' : 'Исполнитель'}
+                </span>
+                <button
+                  onClick={() => handleRoleSelect(selectedRole === 'customer' ? 'contractor' : 'customer')}
+                  style={{ fontSize: '0.75rem', color: c.textMuted, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginLeft: '0.75rem' }}
+                >
+                  Сменить
+                </button>
+              </div>
 
-            {/* Role badge */}
-            <div className="flex items-center gap-2 mb-8">
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.375rem 0.875rem',
-                  borderRadius: '9999px',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  background: `${accent}15`,
-                  color: accent,
-                  transition: 'background 0.5s ease, color 0.5s ease',
-                }}
-              >
-                {selectedRole === 'customer' ? '📦 Заказчик' : '💼 Исполнитель'}
-              </span>
-              <button
-                onClick={() => {
-                  const other = selectedRole === 'customer' ? 'contractor' : 'customer';
-                  handleRoleSelect(other);
-                }}
-                style={{
-                  fontSize: '0.75rem',
-                  color: '#9ca3af',
-                }}
-                className="hover:text-gray-600 transition-colors"
-              >
-                Сменить роль
-              </button>
-            </div>
-
-            {/* Card */}
-            <div
-              style={{
-                borderColor: accent,
-                boxShadow: `0 0 0 1px ${accentShadow}, 0 8px 40px ${accentShadow}`,
-                transition: 'border-color 0.5s cubic-bezier(0.4,0,0.2,1), box-shadow 0.5s cubic-bezier(0.4,0,0.2,1)',
-              }}
-              className="border-2 rounded-3xl p-8 bg-white"
-            >
-              <h2
-                style={{
-                  fontSize: '1.75rem',
-                  fontWeight: 800,
-                  letterSpacing: '-0.03em',
-                  marginBottom: '0.5rem',
-                }}
-              >
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '0.25rem', color: c.text }}>
                 Вход или регистрация
               </h2>
-              <p style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '1.75rem' }}>
-                Введите номер телефона — отправим код подтверждения
+              <p style={{ fontSize: '0.82rem', color: c.textMuted, marginBottom: '1.375rem' }}>
+                Введите номер телефона — пришлём код
               </p>
 
               <form onSubmit={handlePhoneSubmit}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    color: '#374151',
-                    marginBottom: '0.5rem',
-                    letterSpacing: '0.02em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Номер телефона
-                </label>
                 <input
                   type="tel"
+                  inputMode="numeric"
                   placeholder="+7 (___) ___-__-__"
                   value={phone ? formatPhone(phone) : ''}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => { setPhoneError(''); setPhone(e.target.value.replace(/\D/g, '')); }}
                   onFocus={() => setInputFocused(true)}
                   onBlur={() => setInputFocused(false)}
                   style={{
-                    display: 'block',
-                    width: '100%',
-                    height: '3.25rem',
-                    padding: '0 1rem',
-                    borderRadius: '0.875rem',
-                    border: `2px solid ${inputFocused || phone.length > 0 ? accent : '#e5e7eb'}`,
-                    fontSize: '1.125rem',
-                    outline: 'none',
-                    transition: 'border-color 0.3s ease',
-                    marginBottom: '1rem',
+                    display: 'block', width: '100%', height: '2.875rem',
+                    padding: '0 0.875rem', borderRadius: '0.625rem',
+                    border: `1.5px solid ${phoneError ? '#ef4444' : inputFocused || phone.length > 0 ? accent : c.border}`,
+                    fontSize: '1rem', outline: 'none',
+                    transition: 'border-color 0.2s',
+                    marginBottom: phoneError ? '0.375rem' : '0.75rem',
                     fontFamily: 'inherit',
-                    background: 'white',
-                    color: '#111827',
+                    background: c.inputBg,
+                    color: c.text,
+                    boxSizing: 'border-box',
                   }}
-                  required
                 />
+                {phoneError && (
+                  <p style={{ color: '#ef4444', fontSize: '0.76rem', marginBottom: '0.75rem' }}>{phoneError}</p>
+                )}
                 <button
                   type="submit"
-                  disabled={loading || phone.replace(/\D/g, '').length < 10}
+                  disabled={loading || !phoneReady}
                   style={{
-                    display: 'block',
-                    width: '100%',
-                    height: '3.25rem',
-                    borderRadius: '0.875rem',
-                    background: accent,
-                    color: 'white',
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    letterSpacing: '-0.01em',
+                    display: 'block', width: '100%', height: '2.875rem',
+                    borderRadius: '0.625rem', background: accent,
+                    color: '#ffffff', fontSize: '0.875rem', fontWeight: 600,
                     border: 'none',
-                    cursor: loading || phone.replace(/\D/g, '').length < 10 ? 'not-allowed' : 'pointer',
-                    opacity: loading || phone.replace(/\D/g, '').length < 10 ? 0.6 : 1,
-                    transition: 'background 0.5s ease, opacity 0.2s ease',
+                    cursor: loading || !phoneReady ? 'not-allowed' : 'pointer',
+                    opacity: loading || !phoneReady ? 0.4 : 1,
+                    transition: 'background 0.4s, opacity 0.2s',
                     fontFamily: 'inherit',
                   }}
                 >
-                  {loading ? 'Отправляем...' : 'Получить код →'}
+                  {loading ? 'Отправляем...' : 'Получить код'}
                 </button>
               </form>
             </div>
-
-            {/* Back to top */}
-            <button
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="mt-6 w-full flex items-center justify-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <ChevronUp className="w-4 h-4" />
-              Вернуться к выбору роли
-            </button>
           </div>
         ) : (
-          /* If no role selected yet — prompt to scroll up */
-          <div className="text-center">
-            <button
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="flex flex-col items-center gap-3 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <ChevronUp className="w-6 h-6" />
-              <span style={{ fontSize: '0.9rem' }}>Выберите роль выше</span>
-            </button>
-          </div>
+          <p style={{ fontSize: '0.85rem', color: c.textMuted, textAlign: 'center' }}>
+            Выберите роль выше, чтобы продолжить
+          </p>
         )}
       </section>
 
+      {/* ── FAQ ── */}
+      <section style={{ maxWidth: '640px', margin: '0 auto', padding: '0 1.5rem 6rem' }}>
+        <h2 style={{
+          fontSize: 'clamp(1.375rem, 3.5vw, 1.75rem)',
+          fontWeight: 700, letterSpacing: '-0.025em',
+          marginBottom: '0.375rem', color: c.text,
+        }}>
+          Частые вопросы
+        </h2>
+        <p style={{ fontSize: '0.85rem', color: c.textMuted, marginBottom: '1.75rem' }}>
+          Если не нашли ответ — напишите нам в поддержку
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+          {FAQ_ITEMS.map((item, i) => (
+            <div
+              key={i}
+              style={{
+                borderRadius: '0.75rem', overflow: 'hidden',
+                border: `1px solid ${openFaq === i ? accent : c.border}`,
+                transition: 'border-color 0.2s',
+                background: c.surface,
+              }}
+            >
+              <button
+                onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  width: '100%', padding: '0.875rem 1rem',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontFamily: 'inherit', textAlign: 'left', gap: '1rem',
+                }}
+              >
+                <span style={{ fontSize: '0.875rem', fontWeight: 500, color: c.text, lineHeight: 1.4 }}>
+                  {item.q}
+                </span>
+                <ChevronDown style={{
+                  flexShrink: 0, width: '0.9rem', height: '0.9rem', color: c.textMuted,
+                  transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s',
+                }} />
+              </button>
+              {openFaq === i && (
+                <div style={{
+                  padding: '0 1rem 0.875rem',
+                  fontSize: '0.845rem', color: c.textSub,
+                  lineHeight: 1.65, animation: 'fadeIn 0.15s ease',
+                }}>
+                  {item.a}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer style={{ borderTop: `1px solid ${c.border}`, padding: '1.25rem 1.5rem', textAlign: 'center' }}>
+        <p style={{ fontSize: '0.78rem', color: c.textMuted, margin: 0 }}>
+          © 2026 TrashGo · Казань
+        </p>
+      </footer>
+
       <style>{`
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(4px); }
+          from { opacity: 0; transform: translateY(3px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        * { box-sizing: border-box; }
       `}</style>
     </div>
+  );
+}
+
+function DropItem({ label, color, hoverBg, onClick }: {
+  label: string; color: string; hoverBg: string; onClick: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex', alignItems: 'center',
+        width: '100%', padding: '0.6rem 0.875rem',
+        fontSize: '0.82rem', fontWeight: 500, color,
+        background: hovered ? hoverBg : 'none',
+        border: 'none', cursor: 'pointer',
+        fontFamily: 'inherit', textAlign: 'left',
+        transition: 'background 0.15s',
+      }}
+    >
+      {label}
+    </button>
   );
 }

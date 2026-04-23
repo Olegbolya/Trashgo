@@ -36,4 +36,8 @@ export const ordersApi = {
     const qs = district ? `?district=${district}` : '';
     return api.get<ApiResponse<Order[]>>(`/orders/available${qs}`);
   },
+
+  myJobs() {
+    return api.get<ApiResponse<Order[]>>('/orders?mode=contractor');
+  },
 };
