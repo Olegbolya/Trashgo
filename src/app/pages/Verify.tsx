@@ -1,40 +1,50 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router';
-import { Trash2, ArrowLeft } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
+import { ArrowLeft } from 'lucide-react';
 import { authApi } from '../../api/auth';
 import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore } from '../../stores/role.store';
+import { useTheme } from '../context/ThemeContext';
 import { toast } from 'sonner';
 
 export default function Verify() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDark } = useTheme();
   const phone = location.state?.phone || '';
   const role = location.state?.role || 'customer';
+  const devCode = location.state?.devCode as string | undefined;
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const setAuth = useAuthStore((s) => s.setAuth);
   const accent = useRoleStore((s) => s.accentColor);
 
+  const c = {
+    bg:      isDark ? '#0f172a' : '#f9fafb',
+    surface: isDark ? '#1e293b' : '#ffffff',
+    border:  isDark ? 'rgba(255,255,255,0.09)' : '#e5e7eb',
+    text:    isDark ? '#ffffff' : '#111827',
+    muted:   isDark ? 'rgba(255,255,255,0.4)' : '#6b7280',
+    hint:    isDark ? 'rgba(255,255,255,0.08)' : '#f3f4f6',
+    input:   isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
-
     try {
       const res = await authApi.verify(phone, code);
-
       if (res.isNewUser) {
-        navigate('/select-role', { state: { phone, verifiedCode: code } });
+        const target = role === 'contractor' ? '/register-contractor' : '/register-customer';
+        navigate(target, { state: { phone, verifiedCode: code, role } });
         return;
       }
-
       setAuth(res.user, res.token, res.refreshToken);
-      navigate(res.user.role === 'contractor' ? '/contractor' : '/customer');
+      navigate(res.user.role === 'contractor' ? '/contractor' : '/customer', { replace: true });
     } catch (err: any) {
-      const msg = err?.message || 'Неверный или истёкший код';
-      toast.error(msg);
+      setError(err?.message || 'Неверный или истёкший код');
     } finally {
       setLoading(false);
     }
@@ -42,71 +52,118 @@ export default function Verify() {
 
   const handleResend = async () => {
     try {
-      const res = await authApi.login(phone);
-      if (res.devCode) {
-        toast.info(`Новый код: ${res.devCode}`, { duration: 30000 });
-      } else {
-        toast.success('Код отправлен повторно');
-      }
+      await authApi.login(phone);
+      toast.success('Код отправлен повторно');
     } catch {
       toast.error('Ошибка. Попробуйте позже.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div style={{
+      minHeight: '100vh', background: c.bg,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '1.5rem', fontFamily: "'Inter', system-ui, sans-serif",
+    }}>
+      <div style={{ width: '100%', maxWidth: '380px' }}>
+
         <button
-          onClick={() => navigate('/login')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8"
+          onClick={() => navigate('/')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            color: c.muted, background: 'none', border: 'none',
+            cursor: 'pointer', fontSize: '0.875rem', marginBottom: '2.5rem',
+            fontFamily: 'inherit',
+          }}
         >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Назад</span>
+          <ArrowLeft style={{ width: '1rem', height: '1rem' }} />
+          Назад
         </button>
 
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Trash2 className="w-10 h-10 text-gray-900" />
-            <div>
-              <div className="text-2xl font-semibold text-gray-900">Вынос Мусора</div>
-              <div className="text-sm text-gray-600">Казань</div>
+        <h1 style={{ fontSize: '1.625rem', fontWeight: 800, letterSpacing: '-0.03em', color: c.text, marginBottom: '0.375rem' }}>
+          Введите код
+        </h1>
+        <p style={{ fontSize: '0.875rem', color: c.muted, marginBottom: '1.75rem' }}>
+          Отправили SMS на{' '}
+          <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span>
+        </p>
+
+        {/* Dev hint */}
+        <div style={{
+          background: c.hint,
+          border: `1px solid ${c.border}`,
+          borderRadius: '0.625rem',
+          padding: '0.75rem 1rem',
+          marginBottom: '1.5rem',
+          display: 'flex', alignItems: 'center', gap: '0.625rem',
+        }}>
+          <span style={{ fontSize: '1rem' }}>🔑</span>
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: c.muted, marginBottom: '0.125rem' }}>
+              Тестовый режим
+            </div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: accent, letterSpacing: '0.15em' }}>
+              {devCode ?? '1111'}
             </div>
           </div>
-          <h1 className="text-2xl text-gray-900 mb-2">Введите код</h1>
-          <p className="text-gray-600">
-            Отправили SMS на номер {phone}
-          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4">
-          <div className="mb-6">
-            <label className="text-sm text-gray-600 mb-2 block">Код из SMS</label>
-            <Input
-              type="text"
-              placeholder="••••"
-              className="h-12 border-gray-200 text-center text-2xl tracking-widest"
-              maxLength={4}
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              required
-            />
-          </div>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="• • • •"
+            maxLength={4}
+            value={code}
+            onChange={(e) => { setError(''); setCode(e.target.value.replace(/\D/g, '')); }}
+            style={{
+              display: 'block', width: '100%', height: '3.75rem',
+              padding: '0 1.25rem',
+              borderRadius: '0.875rem',
+              border: `2px solid ${error ? '#ef4444' : code.length > 0 ? accent : c.border}`,
+              fontSize: '2rem', fontWeight: 700,
+              textAlign: 'center', letterSpacing: '0.5rem',
+              outline: 'none', fontFamily: 'inherit',
+              background: c.input, color: c.text,
+              boxSizing: 'border-box',
+              transition: 'border-color 0.2s',
+              marginBottom: error ? '0.5rem' : '1rem',
+            }}
+            required
+            autoFocus
+          />
 
-          <Button
+          {error && (
+            <p style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: '1rem' }}>{error}</p>
+          )}
+
+          <button
             type="submit"
             disabled={loading || code.length < 4}
-            style={{ background: accent, border: 'none' }}
-            className="w-full h-12 text-white hover:opacity-90"
+            style={{
+              display: 'block', width: '100%', height: '3rem',
+              borderRadius: '0.875rem', background: accent,
+              color: 'white', fontSize: '0.95rem', fontWeight: 700,
+              border: 'none',
+              cursor: loading || code.length < 4 ? 'not-allowed' : 'pointer',
+              opacity: loading || code.length < 4 ? 0.45 : 1,
+              transition: 'opacity 0.2s', fontFamily: 'inherit',
+              marginBottom: '0.875rem',
+            }}
           >
             {loading ? 'Проверяем...' : 'Подтвердить'}
-          </Button>
+          </button>
 
           <button
             type="button"
             onClick={handleResend}
-            className="w-full text-sm text-gray-600 hover:text-gray-900 mt-4"
+            style={{
+              display: 'block', width: '100%', padding: '0.5rem',
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: '0.85rem', color: c.muted, fontFamily: 'inherit',
+            }}
           >
-            Отправить код повторно
+            Отправить повторно
           </button>
         </form>
       </div>

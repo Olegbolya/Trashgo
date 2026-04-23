@@ -110,8 +110,7 @@ export default function Home() {
     setLoading(true);
     try {
       const res = await authApi.login(formattedPhone);
-      if (res.devCode) toast.info(`Код для входа: ${res.devCode}`, { duration: 30000 });
-      navigate('/verify', { state: { phone: formattedPhone, role: selectedRole, isNewUser: res.isNewUser } });
+      navigate('/verify', { state: { phone: formattedPhone, role: selectedRole, isNewUser: res.isNewUser, devCode: res.devCode } });
     } catch {
       setPhoneError('Ошибка отправки кода. Проверьте номер и попробуйте ещё раз.');
     } finally {
