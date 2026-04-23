@@ -1,46 +1,68 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { MapPin, Clock, Package, ArrowLeft, User } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
+import { ordersApi } from '../../api/orders';
+import type { Order } from '../../types/order';
 
 export default function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [price, setPrice] = useState('');
   const [message, setMessage] = useState('');
+  const [order, setOrder] = useState<Order | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data
-  const order = {
-    id: id,
-    address: 'ул. Баумана, 58',
-    time: '5 мин назад',
-    date: '12 марта в 15:00',
-    volume: '3-5 мешков',
-    customerPrice: '50₽',
-    distance: '1.2 км',
-    description: 'Вынести бытовой мусор, 4 этаж, есть лифт. Код домофона: 123',
-    customer: {
-      name: 'Александр',
-      rating: 4.8,
-      orders: 12,
-    },
-  };
+  useEffect(() => {
+    if (!id) return;
+    setIsLoading(true);
+    ordersApi
+      .getById(id)
+      .then((res) => {
+        const data = (res as unknown as { data: Order }).data ?? (res as unknown as Order);
+        setOrder(data);
+      })
+      .catch(() => toast.error('Не удалось загрузить заказ'))
+      .finally(() => setIsLoading(false));
+  }, [id]);
 
   const handleRespond = () => {
-    // Здесь бы отправляли отклик
     toast.success('Отклик отправлен!', { description: 'Ожидайте ответа заказчика' });
-    navigate('/contractor');
+    navigate('/dashboard');
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500">Загрузка...</div>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500">Заказ не найден</div>
+      </div>
+    );
+  }
+
+  const scheduledDate = new Date(order.scheduledAt).toLocaleString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
           {/* Back button */}
-          <button 
+          <button
             onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
           >
@@ -52,12 +74,11 @@ export default function OrderDetail() {
           <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <div className="text-sm text-gray-600 mb-1">Заказ #{order.id}</div>
+                <div className="text-sm text-gray-600 mb-1">Заказ #{order.id.slice(0, 8)}</div>
                 <h1 className="text-xl text-gray-900">Вынос мусора</h1>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-semibold text-gray-900">{order.customerPrice}</div>
-                <div className="text-xs text-gray-500 mt-1">{order.time}</div>
+                <div className="text-2xl font-semibold text-gray-900">{order.price}₽</div>
               </div>
             </div>
 
@@ -67,7 +88,6 @@ export default function OrderDetail() {
                 <div>
                   <div className="text-sm text-gray-600 mb-1">Адрес</div>
                   <div className="text-gray-900">{order.address}</div>
-                  <div className="text-sm text-gray-500 mt-1">{order.distance} от вас</div>
                 </div>
               </div>
 
@@ -75,7 +95,7 @@ export default function OrderDetail() {
                 <Clock className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <div className="text-sm text-gray-600 mb-1">Дата и время</div>
-                  <div className="text-gray-900">{order.date}</div>
+                  <div className="text-gray-900">{scheduledDate}</div>
                 </div>
               </div>
 
@@ -83,7 +103,7 @@ export default function OrderDetail() {
                 <Package className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <div className="text-sm text-gray-600 mb-1">Объем</div>
-                  <div className="text-gray-900">{order.volume}</div>
+                  <div className="text-gray-900">{order.volume} мешков</div>
                 </div>
               </div>
 
@@ -103,10 +123,10 @@ export default function OrderDetail() {
                 <User className="w-6 h-6 text-gray-600" />
               </div>
               <div className="flex-1">
-                <div className="font-medium text-gray-900">{order.customer.name}</div>
-                <div className="text-sm text-gray-600">
-                  ⭐ {order.customer.rating} • {order.customer.orders} заказов
+                <div className="font-medium text-gray-900">
+                  {order.customerName || 'Заказчик'}
                 </div>
+                <div className="text-sm text-gray-500">Заказчик</div>
               </div>
             </div>
           </div>
@@ -114,7 +134,7 @@ export default function OrderDetail() {
           {/* Response form */}
           <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
             <h2 className="text-lg text-gray-900 mb-4">Откликнуться на заказ</h2>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-gray-600 mb-2 block">Ваша цена</label>
@@ -129,7 +149,7 @@ export default function OrderDetail() {
                   <span className="text-gray-600">₽</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
-                  Клиент готов заплатить {order.customerPrice}
+                  Клиент готов заплатить {order.price}₽
                 </p>
               </div>
 
@@ -145,7 +165,7 @@ export default function OrderDetail() {
                 />
               </div>
 
-              <Button 
+              <Button
                 className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white"
                 onClick={handleRespond}
               >

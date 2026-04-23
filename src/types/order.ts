@@ -4,12 +4,14 @@ export interface Order {
   id: string;
   customerId: string;
   contractorId: string | null;
+  customerName?: string;
   address: string;
   district: string;
   status: OrderStatus;
   volume: number;
   price: number;
   description: string;
+  photoUrls: string[];
   scheduledAt: string;
   createdAt: string;
 }
@@ -21,4 +23,5 @@ export interface CreateOrderInput {
   price: number;
   description: string;
   scheduledAt: string;
+  photoUrls?: string[];
 }
