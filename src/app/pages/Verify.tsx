@@ -35,7 +35,7 @@ export default function Verify() {
     setError('');
     setLoading(true);
     try {
-      const res = await authApi.verify(phone, code);
+      const res = await authApi.verify(phone, code, role);
       if (res.isNewUser) {
         const target = role === 'contractor' ? '/register-contractor' : '/register-customer';
         navigate(target, { state: { phone, verifiedCode: code, role } });

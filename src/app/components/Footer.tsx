@@ -33,7 +33,7 @@ export function Footer() {
               <li><a href="/how-it-works" className="text-white/70 hover:text-white transition-colors">Как это работает</a></li>
               <li><a href="#" className="text-white/70 hover:text-white transition-colors">Районы обслуживания</a></li>
               <li><a href="#" className="text-white/70 hover:text-white transition-colors">Тарифы</a></li>
-              <li><a href="/login" className="text-white/70 hover:text-white transition-colors">Стать исполнителем</a></li>
+              <li><a href="/" className="text-white/70 hover:text-white transition-colors">Стать исполнителем</a></li>
             </ul>
           </div>
 

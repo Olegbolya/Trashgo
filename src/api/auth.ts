@@ -35,8 +35,8 @@ export const authApi = {
     return res.data;
   },
 
-  async verify(phone: string, code: string): Promise<VerifyResponse> {
-    const res = await api.post<{ data: VerifyResponse }>('/auth/verify', { phone, code });
+  async verify(phone: string, code: string, role?: string): Promise<VerifyResponse> {
+    const res = await api.post<{ data: VerifyResponse }>('/auth/verify', { phone, code, role });
     return res.data;
   },
 
