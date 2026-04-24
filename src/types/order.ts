@@ -1,10 +1,21 @@
 export type OrderStatus = 'new' | 'accepted' | 'in_progress' | 'pending_confirmation' | 'completed' | 'cancelled';
 
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface Order {
   id: string;
   customerId: string;
   contractorId: string | null;
   customerName?: string;
+  customerPhone?: string;
+  contractorPhone?: string;
+  contractorName?: string;
   address: string;
   district: string;
   status: OrderStatus;

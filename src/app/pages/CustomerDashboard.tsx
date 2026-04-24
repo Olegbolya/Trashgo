@@ -8,7 +8,7 @@ import { AchievementsPanel, type Achievement } from '../components/AchievementsP
 import { toast } from 'sonner';
 import { getDayLabel } from '../lib/utils';
 import { ordersApi } from '../../api/orders';
-import type { Order } from '../../types/order';
+import type { Order, ChatMessage } from '../../types/order';
 
 const ACCENT = '#66BB6A';
 
@@ -43,6 +43,12 @@ export default function CustomerDashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const publishingRef = useRef(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatSending, setChatSending] = useState(false);
+  const [orderContact, setOrderContact] = useState<{ contractorPhone: string; contractorName: string } | null>(null);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   type MyOrder = {
     id: string; address: string; entrance: string; floor: string; apartment: string;
@@ -110,6 +116,32 @@ export default function CustomerDashboard() {
       return () => clearInterval(interval);
     }
   }, [activeTab]);
+
+  // Fetch contractor contact when opening an active/pending order
+  useEffect(() => {
+    setChatOpen(false);
+    setChatMessages([]);
+    setChatInput('');
+    setOrderContact(null);
+    if (selectedOrder && (selectedOrder.status === 'active' || selectedOrder.status === 'pending')) {
+      ordersApi.getById(selectedOrder.id).then((res: any) => {
+        const d = res?.data ?? res;
+        if (d?.contractorPhone) setOrderContact({ contractorPhone: d.contractorPhone, contractorName: d.contractorName ?? '' });
+      }).catch(() => {});
+    }
+  }, [selectedOrder?.id]);
+
+  // Poll chat messages every 5s while chat is open
+  useEffect(() => {
+    if (!chatOpen || !selectedOrder) return;
+    const fetch = () => ordersApi.getMessages(selectedOrder.id).then((res: any) => {
+      setChatMessages(res?.data ?? []);
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    }).catch(() => {});
+    fetch();
+    const interval = setInterval(fetch, 5000);
+    return () => clearInterval(interval);
+  }, [chatOpen, selectedOrder?.id]);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -1126,7 +1158,21 @@ export default function CustomerDashboard() {
       )}
 
       {/* Order detail modal */}
-      {selectedOrder && (
+      {selectedOrder && (() => {
+        const sendChatMessage = async () => {
+          if (!chatInput.trim() || chatSending || !selectedOrder) return;
+          const text = chatInput.trim();
+          setChatInput('');
+          setChatSending(true);
+          try {
+            await ordersApi.sendMessage(selectedOrder.id, text);
+            const res = await ordersApi.getMessages(selectedOrder.id) as any;
+            setChatMessages(res?.data ?? []);
+            setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+          } catch { setChatInput(text); }
+          finally { setChatSending(false); }
+        };
+        return (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}
           onClick={() => setSelectedOrder(null)}
@@ -1174,7 +1220,7 @@ export default function CustomerDashboard() {
             )}
 
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold" style={{ color: c.text }}>Детали заказа #{selectedOrder.id}</h2>
+              <h2 className="text-lg font-bold" style={{ color: c.text }}>Детали заказа #{selectedOrder.id.slice(-6)}</h2>
               <span className="text-xs px-2 py-1 rounded-full font-medium" style={{
                 background: selectedOrder.status === 'waiting' ? '#F97316' + '18' : selectedOrder.status === 'pending' ? '#FBBF2420' : `${ACCENT}18`,
                 color: selectedOrder.status === 'waiting' ? '#F97316' : selectedOrder.status === 'pending' ? '#92400e' : ACCENT,
@@ -1182,6 +1228,69 @@ export default function CustomerDashboard() {
                 {selectedOrder.status === 'waiting' ? `Ждёт исполнителя · ${selectedOrder.responses} откликов` : selectedOrder.status === 'pending' ? '⏳ Ждёт подтверждения' : 'Принят'}
               </span>
             </div>
+
+            {/* Call + Chat bar — shown when contractor is assigned */}
+            {(selectedOrder.status === 'active' || selectedOrder.status === 'pending') && (
+              <div className="flex gap-2 mb-4">
+                <a
+                  href={orderContact?.contractorPhone ? `tel:${orderContact.contractorPhone}` : undefined}
+                  onClick={!orderContact?.contractorPhone ? (e) => { e.preventDefault(); toast.info('Контакт исполнителя загружается…'); } : undefined}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', height: '2.75rem', borderRadius: '0.75rem', border: `1.5px solid ${c.border}`, background: c.subtle, color: c.text, textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}
+                >
+                  <Phone style={{ width: '1rem', height: '1rem' }} />
+                  Позвонить
+                </a>
+                <button
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', height: '2.75rem', borderRadius: '0.75rem', border: `1.5px solid ${chatOpen ? ACCENT : c.border}`, background: chatOpen ? `${ACCENT}18` : c.subtle, color: chatOpen ? ACCENT : c.text, fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                  onClick={() => setChatOpen(v => !v)}
+                >
+                  <MessageCircle style={{ width: '1rem', height: '1rem' }} />
+                  Чат
+                </button>
+              </div>
+            )}
+
+            {/* Chat panel */}
+            {chatOpen && selectedOrder && (
+              <div style={{ marginBottom: '1rem', border: `1.5px solid ${c.border}`, borderRadius: '0.875rem', overflow: 'hidden' }}>
+                <div style={{ height: '240px', overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: c.subtle }}>
+                  {chatMessages.length === 0 && (
+                    <div style={{ textAlign: 'center', color: c.muted, fontSize: '0.8rem', marginTop: '2rem' }}>
+                      Начните переписку с исполнителем
+                    </div>
+                  )}
+                  {chatMessages.map(msg => {
+                    const isMine = msg.senderId === user?.id;
+                    return (
+                      <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
+                        {!isMine && <span style={{ fontSize: '0.7rem', color: c.muted, marginBottom: '0.15rem', paddingLeft: '0.25rem' }}>{msg.senderName}</span>}
+                        <div style={{ maxWidth: '80%', padding: '0.5rem 0.75rem', borderRadius: isMine ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem', background: isMine ? ACCENT : c.surface, color: isMine ? 'white' : c.text, fontSize: '0.875rem', wordBreak: 'break-word' }}>
+                          {msg.text}
+                        </div>
+                        <span style={{ fontSize: '0.65rem', color: c.muted, marginTop: '0.15rem', paddingLeft: '0.25rem', paddingRight: '0.25rem' }}>
+                          {new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  <div ref={chatBottomRef} />
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', padding: '0.625rem', background: c.surface, borderTop: `1px solid ${c.border}` }}>
+                  <input
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyDown={async e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); await sendChatMessage(); } }}
+                    placeholder="Написать исполнителю…"
+                    style={{ flex: 1, height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.625rem', border: `1.5px solid ${c.border}`, background: c.input, color: c.text, fontSize: '0.875rem', outline: 'none', fontFamily: 'inherit' }}
+                  />
+                  <button
+                    disabled={!chatInput.trim() || chatSending}
+                    onClick={sendChatMessage}
+                    style={{ width: '2.25rem', height: '2.25rem', borderRadius: '0.625rem', background: chatInput.trim() ? ACCENT : c.border, color: 'white', border: 'none', cursor: chatInput.trim() ? 'pointer' : 'default', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                  >→</button>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               {/* Адрес */}
@@ -1367,7 +1476,8 @@ export default function CustomerDashboard() {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Bottom nav - mobile */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40" style={{ background: c.surface, borderTop: `1px solid ${c.border}` }}>

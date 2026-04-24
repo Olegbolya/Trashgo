@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { Home, MapPin, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X } from 'lucide-react';
@@ -8,7 +8,7 @@ import { AchievementsPanel, type Achievement } from '../components/AchievementsP
 import { toast } from 'sonner';
 import { getDayLabel } from '../lib/utils';
 import { ordersApi } from '../../api/orders';
-import type { Order } from '../../types/order';
+import type { Order, ChatMessage } from '../../types/order';
 
 const ACCENT = '#2196F3';
 
@@ -27,6 +27,12 @@ export default function ContractorDashboard() {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [completionPhotos, setCompletionPhotos] = useState<Record<string, File[]>>({});
   const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [chatJobId, setChatJobId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatSending, setChatSending] = useState(false);
+  const [jobContacts, setJobContacts] = useState<Record<string, { phone: string; name: string }>>({});
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (activeTab !== 'find') return;
@@ -52,6 +58,18 @@ export default function ContractorDashboard() {
     const interval = setInterval(load, 10000);
     return () => clearInterval(interval);
   }, [activeTab]);
+
+  // Poll chat messages while a chat is open
+  useEffect(() => {
+    if (!chatJobId) return;
+    const fetch = () => ordersApi.getMessages(chatJobId).then((res: any) => {
+      setChatMessages(res?.data ?? []);
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    }).catch(() => {});
+    fetch();
+    const interval = setInterval(fetch, 5000);
+    return () => clearInterval(interval);
+  }, [chatJobId]);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -450,6 +468,86 @@ export default function ContractorDashboard() {
                                 {job.status === 'pending_confirmation' && (
                                   <div className="w-full h-8 rounded-lg flex items-center justify-center text-xs font-semibold" style={{ background: '#FFF3CD', color: '#856404', border: '1px solid #ffc107' }}>
                                     ⏳ Ждёт подтверждения заказчика
+                                  </div>
+                                )}
+                                {/* Call + Chat */}
+                                <div className="flex gap-2 pt-1">
+                                  <a
+                                    href={jobContacts[job.id]?.phone ? `tel:${jobContacts[job.id].phone}` : undefined}
+                                    onClick={!jobContacts[job.id]?.phone ? async (e) => {
+                                      e.preventDefault();
+                                      const res = await ordersApi.getById(job.id) as any;
+                                      const d = res?.data ?? res;
+                                      if (d?.customerPhone) {
+                                        setJobContacts(prev => ({ ...prev, [job.id]: { phone: d.customerPhone, name: d.customerName ?? '' } }));
+                                        window.location.href = `tel:${d.customerPhone}`;
+                                      } else toast.info('Телефон заказчика недоступен');
+                                    } : undefined}
+                                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', height: '2rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, textDecoration: 'none', fontSize: '0.75rem', fontWeight: 600 }}
+                                  >
+                                    <Phone className="w-3 h-3" />Позвонить
+                                  </a>
+                                  <button
+                                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', height: '2rem', borderRadius: '0.5rem', border: `1px solid ${chatJobId === job.id ? ACCENT : c.border}`, background: chatJobId === job.id ? `${ACCENT}18` : 'transparent', color: chatJobId === job.id ? ACCENT : c.textSub, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                                    onClick={() => { setChatJobId(prev => prev === job.id ? null : job.id); setChatMessages([]); setChatInput(''); }}
+                                  >
+                                    <MessageCircle className="w-3 h-3" />Чат
+                                  </button>
+                                </div>
+                                {/* Chat panel */}
+                                {chatJobId === job.id && (
+                                  <div style={{ border: `1.5px solid ${c.border}`, borderRadius: '0.75rem', overflow: 'hidden', marginTop: '0.25rem' }}>
+                                    <div style={{ height: '200px', overflowY: 'auto', padding: '0.625rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', background: c.subtle }}>
+                                      {chatMessages.length === 0 && (
+                                        <div style={{ textAlign: 'center', color: c.muted, fontSize: '0.75rem', marginTop: '1.5rem' }}>Начните переписку с заказчиком</div>
+                                      )}
+                                      {chatMessages.map(msg => {
+                                        const isMine = msg.senderId === user?.id;
+                                        return (
+                                          <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
+                                            {!isMine && <span style={{ fontSize: '0.65rem', color: c.muted, marginBottom: '0.1rem', paddingLeft: '0.2rem' }}>{msg.senderName}</span>}
+                                            <div style={{ maxWidth: '80%', padding: '0.4rem 0.625rem', borderRadius: isMine ? '0.875rem 0.875rem 0.2rem 0.875rem' : '0.875rem 0.875rem 0.875rem 0.2rem', background: isMine ? ACCENT : c.surface, color: isMine ? 'white' : c.text, fontSize: '0.8rem', wordBreak: 'break-word' }}>{msg.text}</div>
+                                            <span style={{ fontSize: '0.6rem', color: c.muted, marginTop: '0.1rem' }}>{new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
+                                          </div>
+                                        );
+                                      })}
+                                      <div ref={chatBottomRef} />
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.4rem', padding: '0.5rem', background: c.surface, borderTop: `1px solid ${c.border}` }}>
+                                      <input
+                                        value={chatInput}
+                                        onChange={e => setChatInput(e.target.value)}
+                                        onKeyDown={async e => {
+                                          if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            if (!chatInput.trim() || chatSending) return;
+                                            const text = chatInput.trim(); setChatInput(''); setChatSending(true);
+                                            try {
+                                              await ordersApi.sendMessage(job.id, text);
+                                              const res = await ordersApi.getMessages(job.id) as any;
+                                              setChatMessages(res?.data ?? []);
+                                              setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+                                            } catch { setChatInput(text); } finally { setChatSending(false); }
+                                          }
+                                        }}
+                                        placeholder="Написать заказчику…"
+                                        style={{ flex: 1, height: '2rem', padding: '0 0.625rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: c.input, color: c.text, fontSize: '0.8rem', outline: 'none', fontFamily: 'inherit' }}
+                                      />
+                                      <button
+                                        disabled={!chatInput.trim() || chatSending}
+                                        onClick={async () => {
+                                          if (!chatInput.trim() || chatSending) return;
+                                          const text = chatInput.trim(); setChatInput(''); setChatSending(true);
+                                          try {
+                                            await ordersApi.sendMessage(job.id, text);
+                                            const res = await ordersApi.getMessages(job.id) as any;
+                                            setChatMessages(res?.data ?? []);
+                                            setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+                                          } catch { setChatInput(text); } finally { setChatSending(false); }
+                                        }}
+                                        style={{ width: '2rem', height: '2rem', borderRadius: '0.5rem', background: chatInput.trim() ? ACCENT : c.border, color: 'white', border: 'none', cursor: chatInput.trim() ? 'pointer' : 'default', fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                                      >→</button>
+                                    </div>
                                   </div>
                                 )}
                               </div>

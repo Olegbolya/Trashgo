@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { Order, CreateOrderInput, OrderStatus } from '../types/order';
+import type { Order, CreateOrderInput, OrderStatus, ChatMessage } from '../types/order';
 import type { ApiResponse } from '../types/api';
 
 interface OrdersQuery {
@@ -47,5 +47,13 @@ export const ordersApi = {
 
   confirmOrder(id: string) {
     return api.post<Order>(`/orders/${id}/confirm`, {});
+  },
+
+  getMessages(id: string) {
+    return api.get<ApiResponse<ChatMessage[]>>(`/orders/${id}/messages`);
+  },
+
+  sendMessage(id: string, text: string) {
+    return api.post<ChatMessage>(`/orders/${id}/messages`, { text });
   },
 };
