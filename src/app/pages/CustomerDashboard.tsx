@@ -25,6 +25,7 @@ export default function CustomerDashboard() {
   const [isEditing, setIsEditing] = useState(false);
   const [originalOrder, setOriginalOrder] = useState<MyOrder | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   type MyOrder = {
@@ -1088,15 +1089,21 @@ export default function CustomerDashboard() {
             {/* Confirm banner — shown at the top for maximum visibility */}
             {selectedOrder.status === 'pending' && (
               <button
+                disabled={confirmingId === selectedOrder.id}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
                   width: '100%', padding: '0.875rem', marginBottom: '1rem',
                   background: ACCENT, color: 'white', border: 'none', borderRadius: '0.875rem',
-                  fontSize: '0.9375rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                  boxShadow: '0 4px 12px rgba(102,187,106,0.4)',
+                  fontSize: '0.9375rem', fontWeight: 700,
+                  cursor: confirmingId === selectedOrder.id ? 'not-allowed' : 'pointer',
+                  opacity: confirmingId === selectedOrder.id ? 0.7 : 1,
+                  fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(102,187,106,0.4)',
+                  transition: 'opacity 0.15s',
                 }}
                 onClick={async (e) => {
                   e.stopPropagation();
+                  if (confirmingId) return;
+                  setConfirmingId(selectedOrder.id);
                   try {
                     await ordersApi.confirmOrder(selectedOrder.id);
                     setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
@@ -1104,10 +1111,12 @@ export default function CustomerDashboard() {
                     toast.success('Заказ подтверждён!', { description: 'Оплата исполнителю начислена', duration: 3000 });
                   } catch (err: any) {
                     toast.error(err?.message || 'Ошибка подтверждения');
+                  } finally {
+                    setConfirmingId(null);
                   }
                 }}
               >
-                ✅ Подтвердить выполнение
+                {confirmingId === selectedOrder.id ? '⏳ Подтверждаем...' : '✅ Подтвердить выполнение'}
               </button>
             )}
 
@@ -1217,8 +1226,11 @@ export default function CustomerDashboard() {
                 <>
                   <button
                     className="w-full py-3 rounded-xl text-sm font-semibold"
-                    style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                    disabled={confirmingId === selectedOrder.id}
+                    style={{ background: ACCENT, color: 'white', border: 'none', cursor: confirmingId === selectedOrder.id ? 'not-allowed' : 'pointer', opacity: confirmingId === selectedOrder.id ? 0.7 : 1, fontFamily: 'inherit', transition: 'opacity 0.15s' }}
                     onClick={async () => {
+                      if (confirmingId) return;
+                      setConfirmingId(selectedOrder.id);
                       try {
                         await ordersApi.confirmOrder(selectedOrder.id);
                         setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
@@ -1226,10 +1238,12 @@ export default function CustomerDashboard() {
                         toast.success('Заказ подтверждён!', { description: 'Оплата исполнителю начислена', duration: 3000 });
                       } catch (e: any) {
                         toast.error(e?.message || 'Ошибка подтверждения');
+                      } finally {
+                        setConfirmingId(null);
                       }
                     }}
                   >
-                    ✅ Подтвердить выполнение
+                    {confirmingId === selectedOrder.id ? '⏳ Подтверждаем...' : '✅ Подтвердить выполнение'}
                   </button>
                   <button
                     className="w-full py-2.5 rounded-xl text-sm font-medium"
