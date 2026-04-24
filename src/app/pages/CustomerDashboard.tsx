@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { Home, MapPin, User, Plus, Package, CheckCircle, Clock, RefreshCw, Edit, LogOut, Bell, CreditCard, UserPlus, HelpCircle, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Star, Phone, MessageCircle, Menu, X } from 'lucide-react';
@@ -42,6 +42,7 @@ export default function CustomerDashboard() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const publishingRef = useRef(false);
 
   type MyOrder = {
     id: string; address: string; entrance: string; floor: string; apartment: string;
@@ -669,6 +670,7 @@ export default function CustomerDashboard() {
               });
 
             const handlePublish = async () => {
+              if (publishingRef.current) return;
               const errors: Record<string, string> = {};
               if (!createForm.address.trim()) errors.address = 'Укажите адрес дома';
               if (!createForm.asap && !createForm.date) errors.date = 'Укажите дату';
@@ -677,6 +679,7 @@ export default function CustomerDashboard() {
               setCreateErrors(errors);
               if (Object.keys(errors).length > 0) return;
 
+              publishingRef.current = true;
               setIsPublishing(true);
               const newPhotoUrls = await Promise.all(createPhotos.map(toBase64));
               const photoUrls = [...preloadedPhotoUrls, ...newPhotoUrls].slice(0, 5);
@@ -733,6 +736,7 @@ export default function CustomerDashboard() {
               } catch (err: any) {
                 toast.error(err?.message || 'Не удалось создать заказ');
               } finally {
+                publishingRef.current = false;
                 setIsPublishing(false);
               }
             };
