@@ -677,10 +677,12 @@ export default function CustomerDashboard() {
                   apartment: createForm.apartment,
                   date: createForm.date,
                   time: createForm.time,
+                  asap: createForm.asap,
                   volume: createForm.volume,
                   price: createForm.price,
                   description: createForm.description,
                   photoUrls,
+                  completionPhotoUrls: [],
                   status: 'waiting',
                   responses: 0,
                   createdAt: new Date().toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }),
@@ -1077,11 +1079,37 @@ export default function CustomerDashboard() {
           onClick={() => setSelectedOrder(null)}
         >
           <div
-            style={{ width: '100%', maxWidth: '600px', background: c.surface, borderRadius: '1.25rem 1.25rem 0 0', padding: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}
+            style={{ width: '100%', maxWidth: '600px', background: c.surface, borderRadius: '1.25rem 1.25rem 0 0', padding: '1.5rem', paddingBottom: '5rem', maxHeight: '90vh', overflowY: 'auto' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Handle */}
             <div style={{ width: '2.5rem', height: '0.25rem', borderRadius: '2px', background: c.border, margin: '0 auto 1.25rem' }} />
+
+            {/* Confirm banner — shown at the top for maximum visibility */}
+            {selectedOrder.status === 'pending' && (
+              <button
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                  width: '100%', padding: '0.875rem', marginBottom: '1rem',
+                  background: ACCENT, color: 'white', border: 'none', borderRadius: '0.875rem',
+                  fontSize: '0.9375rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  boxShadow: '0 4px 12px rgba(102,187,106,0.4)',
+                }}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    await ordersApi.confirmOrder(selectedOrder.id);
+                    setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
+                    setSelectedOrder(null);
+                    toast.success('Заказ подтверждён!', { description: 'Оплата исполнителю начислена', duration: 3000 });
+                  } catch (err: any) {
+                    toast.error(err?.message || 'Ошибка подтверждения');
+                  }
+                }}
+              >
+                ✅ Подтвердить выполнение
+              </button>
+            )}
 
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold" style={{ color: c.text }}>Детали заказа #{selectedOrder.id}</h2>
