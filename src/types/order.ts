@@ -12,7 +12,8 @@ export interface Order {
   price: number;
   description: string;
   photoUrls: string[];
-  scheduledAt: string;
+  asap: boolean;
+  scheduledAt: string | null;
   createdAt: string;
 }
 
@@ -22,6 +23,7 @@ export interface CreateOrderInput {
   volume: number;
   price: number;
   description: string;
-  scheduledAt: string;
+  asap?: boolean;
+  scheduledAt?: string;
   photoUrls?: string[];
 }

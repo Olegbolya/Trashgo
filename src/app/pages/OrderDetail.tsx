@@ -50,12 +50,11 @@ export default function OrderDetail() {
     );
   }
 
-  const scheduledDate = new Date(order.scheduledAt).toLocaleString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const scheduledDate = order.asap
+    ? '⚡ Как можно скорее'
+    : order.scheduledAt
+      ? new Date(order.scheduledAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
+      : '—';
 
   return (
     <div className="min-h-screen bg-gray-50">

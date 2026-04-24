@@ -321,9 +321,9 @@ export default function ContractorDashboard() {
                     ) : (
                       <div className="space-y-2">
                         {activeJobs.map((job) => {
-                          const dt = new Date(job.scheduledAt);
-                          const timeStr = dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                          const dateStr = dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+                          const dt = job.scheduledAt ? new Date(job.scheduledAt) : null;
+                          const timeStr = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+                          const dateStr = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
                           const statusLabel = job.status === 'accepted' ? 'Принят' : 'В работе';
                           const statusColor = job.status === 'accepted' ? ACCENT : '#FBBF24';
                           return (
@@ -331,9 +331,15 @@ export default function ContractorDashboard() {
                               <div className="flex items-start justify-between mb-2">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <Clock className="w-3.5 h-3.5" style={{ color: c.muted }} />
-                                    <span className="text-sm font-semibold" style={{ color: c.text }}>{timeStr}</span>
-                                    <span className="text-xs" style={{ color: c.muted }}>{dateStr}</span>
+                                    {job.asap ? (
+                                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: ACCENT }}>⚡ Как можно скорее</span>
+                                    ) : (
+                                      <>
+                                        <Clock className="w-3.5 h-3.5" style={{ color: c.muted }} />
+                                        <span className="text-sm font-semibold" style={{ color: c.text }}>{timeStr}</span>
+                                        <span className="text-xs" style={{ color: c.muted }}>{dateStr}</span>
+                                      </>
+                                    )}
                                     <span className="px-1.5 py-0.5 text-xs font-medium rounded" style={{ background: `${statusColor}20`, color: statusColor }}>{statusLabel}</span>
                                   </div>
                                   <div className="flex items-center gap-1.5 mb-1">
@@ -473,9 +479,9 @@ export default function ContractorDashboard() {
                     ) : (
                       <div className="space-y-1.5">
                         {completedJobs.map((job) => {
-                          const dt = new Date(job.scheduledAt);
-                          const dateStr = dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-                          const timeStr = dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                          const dt = job.scheduledAt ? new Date(job.scheduledAt) : null;
+                          const dateStr = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
+                          const timeStr = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
                           return (
                             <div key={job.id} className="flex items-center justify-between" style={{ ...card, padding: '0.75rem' }}>
                               <div className="flex-1">
@@ -483,7 +489,9 @@ export default function ContractorDashboard() {
                                   <CheckCircle className="w-3.5 h-3.5" style={{ color: '#4CAF50' }} />
                                   <span className="text-sm font-medium" style={{ color: c.text }}>{job.address}</span>
                                 </div>
-                                <div className="text-xs" style={{ color: c.muted }}>{dateStr} · {timeStr} · {job.volume} мешк.</div>
+                                <div className="text-xs" style={{ color: c.muted }}>
+                                  {job.asap ? '⚡ ASAP' : `${dateStr} · ${timeStr}`} · {job.volume} мешк.
+                                </div>
                               </div>
                               <div className="text-base font-bold ml-3" style={{ color: '#4CAF50' }}>+{job.price}₽</div>
                             </div>
@@ -678,17 +686,26 @@ export default function ContractorDashboard() {
 
                   <div className="space-y-2">
                     {availableOrders.map((order) => {
-                      const dt = new Date(order.scheduledAt);
-                      const timeStr = dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                      const dateStr = dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+                      const isAsap = order.asap;
+                      const dt = order.scheduledAt ? new Date(order.scheduledAt) : null;
+                      const timeStr = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+                      const dateStr = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
                       return (
-                        <div key={order.id} style={{ ...card, cursor: 'pointer' }} onClick={() => setSelectedOrder(order)}>
+                        <div key={order.id} style={{ ...card, cursor: 'pointer', borderColor: isAsap ? ACCENT : c.border }} onClick={() => setSelectedOrder(order)}>
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <Clock className="w-4 h-4" style={{ color: c.muted }} />
-                                <span className="text-base font-semibold" style={{ color: c.text }}>{timeStr}</span>
-                                <span className="text-xs" style={{ color: c.muted }}>{dateStr}</span>
+                                {isAsap ? (
+                                  <>
+                                    <span style={{ fontSize: '0.875rem', fontWeight: 700, color: ACCENT }}>⚡ Как можно скорее</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock className="w-4 h-4" style={{ color: c.muted }} />
+                                    <span className="text-base font-semibold" style={{ color: c.text }}>{timeStr}</span>
+                                    <span className="text-xs" style={{ color: c.muted }}>{dateStr}</span>
+                                  </>
+                                )}
                               </div>
                               <div className="flex items-center gap-1.5 mb-1">
                                 <MapPin className="w-3.5 h-3.5" style={{ color: c.muted }} />
@@ -795,12 +812,15 @@ export default function ContractorDashboard() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Clock className="w-5 h-5 flex-shrink-0" style={{ color: c.muted }} />
-                  <div className="text-sm" style={{ color: c.text }}>
-                    {new Date(selectedOrder.scheduledAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
-                    {' · '}
-                    {new Date(selectedOrder.scheduledAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                  </div>
+                  <Clock className="w-5 h-5 flex-shrink-0" style={{ color: selectedOrder.asap ? ACCENT : c.muted }} />
+                  {selectedOrder.asap ? (
+                    <span style={{ fontSize: '0.875rem', fontWeight: 700, color: ACCENT }}>⚡ Как можно скорее</span>
+                  ) : (
+                    <div className="text-sm" style={{ color: c.text }}>
+                      {selectedOrder.scheduledAt ? new Date(selectedOrder.scheduledAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : ''}
+                      {selectedOrder.scheduledAt ? ' · ' + new Date(selectedOrder.scheduledAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </div>
+                  )}
                 </div>
               </div>
 

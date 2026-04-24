@@ -18,7 +18,7 @@ export default function CustomerDashboard() {
   const { user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'home' | 'calendar' | 'profile' | 'create'>('home');
   const [currentWeek, setCurrentWeek] = useState(0);
-  const [createForm, setCreateForm] = useState({ address: '', date: '', time: '', volume: 1, price: 50, entrance: '', apartment: '', description: '' });
+  const [createForm, setCreateForm] = useState({ address: '', date: '', time: '', asap: false, volume: 1, price: 50, entrance: '', apartment: '', description: '' });
   const [createPhotos, setCreatePhotos] = useState<File[]>([]);
   const [preloadedPhotoUrls, setPreloadedPhotoUrls] = useState<string[]>([]);
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
@@ -29,7 +29,7 @@ export default function CustomerDashboard() {
 
   type MyOrder = {
     id: string; address: string; entrance: string; apartment: string;
-    date: string; time: string; volume: number; price: number;
+    date: string; time: string; asap: boolean; volume: number; price: number;
     description: string; photoUrls: string[]; status: 'waiting' | 'active' | 'cancelled';
     responses: number; createdAt: string;
   };
@@ -40,8 +40,9 @@ export default function CustomerDashboard() {
       address: o.address,
       entrance: '',
       apartment: '',
-      date: o.scheduledAt.slice(0, 10),
-      time: o.scheduledAt.slice(11, 16),
+      date: o.asap ? '' : (o.scheduledAt?.slice(0, 10) ?? ''),
+      time: o.asap ? '' : (o.scheduledAt?.slice(11, 16) ?? ''),
+      asap: o.asap ?? false,
       volume: o.volume,
       price: o.price,
       description: o.description,
@@ -370,8 +371,13 @@ export default function CustomerDashboard() {
                               <MapPin className="w-4 h-4" style={{ color: c.muted }} />
                               <span className="font-semibold" style={{ color: c.text }}>{order.address}</span>
                             </div>
-                            <div className="text-sm mb-2" style={{ color: c.muted }}>
-                              {new Date(order.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })} · {order.time} · {order.volume} мешк.
+                            <div className="text-sm mb-2 flex items-center gap-1.5 flex-wrap" style={{ color: c.muted }}>
+                              {order.asap ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: ACCENT, fontWeight: 600 }}>⚡ Как можно скорее</span>
+                              ) : (
+                                <span>{order.date ? new Date(order.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : ''}{order.time ? ` · ${order.time}` : ''}</span>
+                              )}
+                              <span>· {order.volume} мешк.</span>
                             </div>
                             {order.status === 'waiting' ? (
                               <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#F97316' + '18', color: '#F97316' }}>
@@ -614,8 +620,8 @@ export default function CustomerDashboard() {
             const handlePublish = async () => {
               const errors: Record<string, string> = {};
               if (!createForm.address.trim()) errors.address = 'Укажите адрес дома';
-              if (!createForm.date) errors.date = 'Укажите дату';
-              if (!createForm.time) errors.time = 'Укажите время';
+              if (!createForm.asap && !createForm.date) errors.date = 'Укажите дату';
+              if (!createForm.asap && !createForm.time) errors.time = 'Укажите время';
               if (createForm.price <= 0) errors.price = 'Цена должна быть больше 0';
               setCreateErrors(errors);
               if (Object.keys(errors).length > 0) return;
@@ -627,7 +633,9 @@ export default function CustomerDashboard() {
               if (createForm.entrance) fullAddress += `, подъезд ${createForm.entrance}`;
               if (createForm.apartment) fullAddress += `, кв. ${createForm.apartment}`;
 
-              const scheduledAt = new Date(`${createForm.date}T${createForm.time}:00`).toISOString();
+              const scheduledAt = createForm.asap
+                ? undefined
+                : new Date(`${createForm.date}T${createForm.time}:00`).toISOString();
 
               try {
                 const res = await ordersApi.create({
@@ -636,6 +644,7 @@ export default function CustomerDashboard() {
                   volume: createForm.volume,
                   price: createForm.price,
                   description: createForm.description,
+                  asap: createForm.asap,
                   scheduledAt,
                   photoUrls,
                 }) as any;
@@ -658,7 +667,7 @@ export default function CustomerDashboard() {
                 };
                 setMyOrders((prev) => [newOrder, ...prev]);
                 toast.success('Заказ создан!', { description: 'Исполнители уже видят ваш заказ', duration: 3000 });
-                setCreateForm({ address: '', date: '', time: '', volume: 1, price: 50, entrance: '', apartment: '', description: '' });
+                setCreateForm({ address: '', date: '', time: '', asap: false, volume: 1, price: 50, entrance: '', apartment: '', description: '' });
                 setCreatePhotos([]);
                 setPreloadedPhotoUrls([]);
                 setCreateErrors({});
@@ -687,7 +696,9 @@ export default function CustomerDashboard() {
                           setCreateForm({ ...createForm, address: val });
                           setCreateErrors({ ...createErrors, address: '' });
                           if (val.length > 0) {
-                            const unique = [...new Set(myOrders.map(o => o.address).filter(a => a.toLowerCase().includes(val.toLowerCase())))];
+                            const pastAddrs = [...new Set(myOrders.map(o => o.address).filter(a => a.toLowerCase().includes(val.toLowerCase())))];
+                            const regAddr = user?.district && user.district.toLowerCase().includes(val.toLowerCase()) ? [user.district] : [];
+                            const unique = [...new Set([...regAddr, ...pastAddrs])];
                             setAddressSuggestions(unique);
                             setShowAddressSuggestions(unique.length > 0);
                           } else {
@@ -696,7 +707,9 @@ export default function CustomerDashboard() {
                         }}
                         onFocus={() => {
                           if (createForm.address.length === 0) {
-                            const unique = [...new Set(myOrders.map(o => o.address).filter(Boolean))];
+                            const pastAddrs = [...new Set(myOrders.map(o => o.address).filter(Boolean))];
+                            const regAddr = user?.district ? [user.district] : [];
+                            const unique = [...new Set([...regAddr, ...pastAddrs])];
                             if (unique.length > 0) {
                               setAddressSuggestions(unique);
                               setShowAddressSuggestions(true);
@@ -709,22 +722,32 @@ export default function CustomerDashboard() {
                       />
                       {showAddressSuggestions && (
                         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: c.surface, border: `1px solid ${c.border}`, borderRadius: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginTop: '2px', overflow: 'hidden' }}>
-                          {addressSuggestions.map((addr, i) => (
-                            <button
-                              key={i}
-                              type="button"
-                              onMouseDown={() => {
-                                setCreateForm({ ...createForm, address: addr });
-                                setShowAddressSuggestions(false);
-                              }}
-                              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.625rem 0.875rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: c.text, fontFamily: 'inherit', borderBottom: i < addressSuggestions.length - 1 ? `1px solid ${c.border}` : 'none' }}
-                              onMouseEnter={e => (e.currentTarget.style.background = c.subtle)}
-                              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                            >
-                              <MapPin style={{ display: 'inline', width: '0.875rem', height: '0.875rem', marginRight: '0.5rem', color: c.muted, verticalAlign: 'middle' }} />
-                              {addr}
-                            </button>
-                          ))}
+                          {addressSuggestions.map((addr, i) => {
+                            const isReg = addr === user?.district;
+                            return (
+                              <button
+                                key={i}
+                                type="button"
+                                onMouseDown={() => {
+                                  setCreateForm({ ...createForm, address: addr });
+                                  setShowAddressSuggestions(false);
+                                }}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', textAlign: 'left', padding: '0.625rem 0.875rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: c.text, fontFamily: 'inherit', borderBottom: i < addressSuggestions.length - 1 ? `1px solid ${c.border}` : 'none' }}
+                                onMouseEnter={e => (e.currentTarget.style.background = c.subtle)}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                              >
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <MapPin style={{ width: '0.875rem', height: '0.875rem', flexShrink: 0, color: isReg ? ACCENT : c.muted }} />
+                                  {addr}
+                                </span>
+                                {isReg && (
+                                  <span style={{ fontSize: '0.7rem', color: ACCENT, background: `${ACCENT}18`, padding: '0.1rem 0.4rem', borderRadius: '0.25rem', flexShrink: 0 }}>
+                                    мой район
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
                       {createErrors.address && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{createErrors.address}</p>}
@@ -752,28 +775,67 @@ export default function CustomerDashboard() {
                       </div>
                     </div>
 
-                    {/* Дата + Время — обязательные */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: c.muted }}>Дата <span style={{ color: '#ef4444' }}>*</span></label>
-                        <input
-                          type="date"
-                          value={createForm.date}
-                          onChange={(e) => { setCreateForm({ ...createForm, date: e.target.value }); setCreateErrors({ ...createErrors, date: '' }); }}
-                          style={inputStyle(!!createErrors.date)}
-                        />
-                        {createErrors.date && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{createErrors.date}</p>}
+                    {/* Когда — переключатель ASAP / к дате */}
+                    <div>
+                      <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: c.muted }}>
+                        Когда нужен исполнитель <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        {[
+                          { asap: true,  icon: '⚡', label: 'Как можно скорее' },
+                          { asap: false, icon: '📅', label: 'К определённой дате' },
+                        ].map((opt) => (
+                          <button
+                            key={String(opt.asap)}
+                            type="button"
+                            onClick={() => setCreateForm({ ...createForm, asap: opt.asap, date: '', time: '' })}
+                            style={{
+                              padding: '0.625rem 0.5rem',
+                              borderRadius: '0.75rem',
+                              border: `1.5px solid ${createForm.asap === opt.asap ? ACCENT : c.border}`,
+                              background: createForm.asap === opt.asap ? `${ACCENT}12` : 'transparent',
+                              cursor: 'pointer', fontFamily: 'inherit',
+                              fontSize: '0.8rem', fontWeight: createForm.asap === opt.asap ? 600 : 400,
+                              color: createForm.asap === opt.asap ? ACCENT : c.textSub,
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            <span style={{ marginRight: '0.375rem' }}>{opt.icon}</span>
+                            {opt.label}
+                          </button>
+                        ))}
                       </div>
-                      <div>
-                        <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: c.muted }}>Время <span style={{ color: '#ef4444' }}>*</span></label>
-                        <input
-                          type="time"
-                          value={createForm.time}
-                          onChange={(e) => { setCreateForm({ ...createForm, time: e.target.value }); setCreateErrors({ ...createErrors, time: '' }); }}
-                          style={inputStyle(!!createErrors.time)}
-                        />
-                        {createErrors.time && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{createErrors.time}</p>}
-                      </div>
+
+                      {!createForm.asap && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: c.muted }}>Дата <span style={{ color: '#ef4444' }}>*</span></label>
+                            <input
+                              type="date"
+                              value={createForm.date}
+                              onChange={(e) => { setCreateForm({ ...createForm, date: e.target.value }); setCreateErrors({ ...createErrors, date: '' }); }}
+                              style={inputStyle(!!createErrors.date)}
+                            />
+                            {createErrors.date && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{createErrors.date}</p>}
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: c.muted }}>Время <span style={{ color: '#ef4444' }}>*</span></label>
+                            <input
+                              type="time"
+                              value={createForm.time}
+                              onChange={(e) => { setCreateForm({ ...createForm, time: e.target.value }); setCreateErrors({ ...createErrors, time: '' }); }}
+                              style={inputStyle(!!createErrors.time)}
+                            />
+                            {createErrors.time && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{createErrors.time}</p>}
+                          </div>
+                        </div>
+                      )}
+
+                      {createForm.asap && (
+                        <div style={{ padding: '0.625rem 0.875rem', borderRadius: '0.75rem', background: `${ACCENT}10`, border: `1px solid ${ACCENT}30`, fontSize: '0.8rem', color: ACCENT }}>
+                          ⚡ Исполнители увидят, что заказ срочный
+                        </div>
+                      )}
                     </div>
 
                     {/* Мешков + Цена — обязательные */}
