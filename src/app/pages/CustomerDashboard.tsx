@@ -41,18 +41,20 @@ export default function CustomerDashboard() {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   type MyOrder = {
     id: string; address: string; entrance: string; floor: string; apartment: string;
     date: string; time: string; asap: boolean; volume: number; price: number;
     description: string; photoUrls: string[]; completionPhotoUrls: string[];
-    status: 'waiting' | 'active' | 'pending' | 'cancelled';
+    status: 'waiting' | 'active' | 'pending' | 'cancelled' | 'completed';
     responses: number; createdAt: string;
   };
 
   function apiOrderToMyOrder(o: Order, inMemoryPhotos?: string[]): MyOrder {
     const status = o.status === 'new' ? 'waiting'
       : o.status === 'cancelled' ? 'cancelled'
+      : o.status === 'completed' ? 'completed'
       : o.status === 'pending_confirmation' ? 'pending'
       : 'active';
     return {
@@ -140,7 +142,7 @@ export default function CustomerDashboard() {
   const stats = {
     totalOrders: myOrders.length,
     activeOrders: myOrders.filter(o => o.status === 'waiting' || o.status === 'active' || o.status === 'pending').length,
-    completedOrders: myOrders.filter(o => o.status === 'cancelled').length,
+    completedOrders: myOrders.filter(o => o.status === 'completed').length,
     referrals: 0,
   };
 
@@ -372,19 +374,22 @@ export default function CustomerDashboard() {
               <LevelSystem data={levelData} variant="customer" compact={true} />
 
               {/* My orders */}
+              {(() => {
+                const activeOrders = myOrders.filter(o => o.status === 'waiting' || o.status === 'active' || o.status === 'pending');
+                return (
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-xl font-semibold" style={{ color: c.text }}>Мои заказы</h2>
-                  {myOrders.length > 0 && (
-                    <span className="text-sm px-2 py-0.5 rounded-full" style={{ background: `${ACCENT}18`, color: ACCENT }}>{myOrders.length}</span>
+                  {activeOrders.length > 0 && (
+                    <span className="text-sm px-2 py-0.5 rounded-full" style={{ background: `${ACCENT}18`, color: ACCENT }}>{activeOrders.length}</span>
                   )}
                 </div>
 
-                {myOrders.length === 0 ? (
+                {activeOrders.length === 0 ? (
                   <div className="text-center py-12" style={card}>
                     <Package className="w-12 h-12 mx-auto mb-4" style={{ color: c.border }} />
-                    <div className="font-medium mb-1" style={{ color: c.text }}>Заказов пока нет</div>
-                    <div className="text-sm mb-4" style={{ color: c.muted }}>Создайте первый заказ — исполнители увидят его сразу</div>
+                    <div className="font-medium mb-1" style={{ color: c.text }}>Активных заказов нет</div>
+                    <div className="text-sm mb-4" style={{ color: c.muted }}>Создайте заказ — исполнители увидят его сразу</div>
                     <button
                       className="px-5 py-2.5 rounded-xl font-medium text-sm"
                       style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
@@ -395,7 +400,7 @@ export default function CustomerDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {myOrders.map((order) => (
+                    {activeOrders.map((order) => (
                       <div key={order.id} style={{ ...card2, borderColor: c.border, cursor: 'pointer' }} onClick={() => setSelectedOrder(order)}>
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
@@ -451,6 +456,8 @@ export default function CustomerDashboard() {
                   </div>
                 )}
               </div>
+                );
+              })()}
 
               {/* Stats */}
               <div className="grid grid-cols-3 gap-3">
@@ -484,25 +491,32 @@ export default function CustomerDashboard() {
           )}
 
           {/* CALENDAR TAB */}
-          {activeTab === 'calendar' && (
+          {activeTab === 'calendar' && (() => {
+            const historyOrders = myOrders.filter(o => o.status === 'completed' || o.status === 'cancelled');
+            return (
             <div className="max-w-4xl mx-auto space-y-6">
               <div>
                 <h2 className="text-lg font-semibold mb-4" style={{ color: c.text }}>История заказов</h2>
-                {myOrders.length === 0 ? (
+                {historyOrders.length === 0 ? (
                   <div className="text-center py-12" style={{ ...card }}>
                     <Package className="w-12 h-12 mx-auto mb-4" style={{ color: c.border }} />
-                    <div className="mb-4" style={{ color: c.muted }}>История заказов пуста</div>
+                    <div className="mb-4" style={{ color: c.muted }}>Завершённых заказов пока нет</div>
                     <button className="px-4 py-2 rounded-xl font-medium" style={{ background: c.text, color: c.surface, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setActiveTab('create')}>
                       + Создать заказ
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {myOrders.map((order) => (
+                    {historyOrders.map((order) => (
                       <div key={order.id} className="flex items-center justify-between" style={{ ...card, padding: '1rem', cursor: 'pointer' }} onClick={() => setSelectedOrder(order)}>
                         <div>
                           <div className="text-sm font-medium" style={{ color: c.text }}>{order.address}</div>
-                          <div className="text-xs" style={{ color: c.muted }}>{order.createdAt} · {order.volume} мешк.</div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <div className="text-xs" style={{ color: c.muted }}>{order.createdAt} · {order.volume} мешк.</div>
+                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: order.status === 'completed' ? `${ACCENT}18` : '#9ca3af18', color: order.status === 'completed' ? ACCENT : '#9ca3af' }}>
+                              {order.status === 'completed' ? '✓ Выполнен' : 'Отменён'}
+                            </span>
+                          </div>
                         </div>
                         <div className="text-sm font-medium" style={{ color: c.text }}>{order.price}₽</div>
                       </div>
@@ -511,7 +525,8 @@ export default function CustomerDashboard() {
                 )}
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* PROFILE TAB */}
           {activeTab === 'profile' && (
@@ -662,6 +677,7 @@ export default function CustomerDashboard() {
               setCreateErrors(errors);
               if (Object.keys(errors).length > 0) return;
 
+              setIsPublishing(true);
               const newPhotoUrls = await Promise.all(createPhotos.map(toBase64));
               const photoUrls = [...preloadedPhotoUrls, ...newPhotoUrls].slice(0, 5);
 
@@ -716,6 +732,8 @@ export default function CustomerDashboard() {
                 setActiveTab('home');
               } catch (err: any) {
                 toast.error(err?.message || 'Не удалось создать заказ');
+              } finally {
+                setIsPublishing(false);
               }
             };
 
@@ -999,10 +1017,11 @@ export default function CustomerDashboard() {
                   <div className="flex flex-col gap-2">
                     <button
                       className="w-full h-12 rounded-xl text-sm font-semibold"
-                      style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                      disabled={isPublishing}
+                      style={{ background: ACCENT, color: 'white', border: 'none', cursor: isPublishing ? 'not-allowed' : 'pointer', opacity: isPublishing ? 0.7 : 1, fontFamily: 'inherit', transition: 'opacity 0.15s' }}
                       onClick={handlePublish}
                     >
-                      Сохранить изменения
+                      {isPublishing ? '⏳ Сохраняем...' : 'Сохранить изменения'}
                     </button>
                     <div className="flex gap-2">
                       <button
@@ -1049,17 +1068,19 @@ export default function CustomerDashboard() {
                   <div className="flex gap-3">
                     <button
                       className="flex-1 h-12 rounded-xl text-sm font-medium"
-                      style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
+                      disabled={isPublishing}
+                      style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: isPublishing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: isPublishing ? 0.5 : 1 }}
                       onClick={() => { setCreateErrors({}); setPreloadedPhotoUrls([]); setCreatePhotos([]); setActiveTab('home'); }}
                     >
                       Отменить
                     </button>
                     <button
                       className="flex-1 h-12 rounded-xl text-sm font-semibold"
-                      style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                      disabled={isPublishing}
+                      style={{ background: ACCENT, color: 'white', border: 'none', cursor: isPublishing ? 'not-allowed' : 'pointer', opacity: isPublishing ? 0.7 : 1, fontFamily: 'inherit', transition: 'opacity 0.15s' }}
                       onClick={handlePublish}
                     >
-                      Опубликовать заказ
+                      {isPublishing ? '⏳ Публикуем...' : 'Опубликовать заказ'}
                     </button>
                   </div>
                 )}
@@ -1130,10 +1151,11 @@ export default function CustomerDashboard() {
                 onClick={async (e) => {
                   e.stopPropagation();
                   if (confirmingId) return;
-                  setConfirmingId(selectedOrder.id);
+                  const orderId = selectedOrder.id;
+                  setConfirmingId(orderId);
                   try {
-                    await ordersApi.confirmOrder(selectedOrder.id);
-                    setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
+                    await ordersApi.confirmOrder(orderId);
+                    setMyOrders((prev) => prev.map(o => o.id === orderId ? { ...o, status: 'completed' as const } : o));
                     setSelectedOrder(null);
                     toast.success('Заказ подтверждён!', { description: 'Оплата исполнителю начислена', duration: 3000 });
                   } catch (err: any) {
@@ -1258,10 +1280,11 @@ export default function CustomerDashboard() {
                     style={{ background: ACCENT, color: 'white', border: 'none', cursor: confirmingId === selectedOrder.id ? 'not-allowed' : 'pointer', opacity: confirmingId === selectedOrder.id ? 0.7 : 1, fontFamily: 'inherit', transition: 'opacity 0.15s' }}
                     onClick={async () => {
                       if (confirmingId) return;
-                      setConfirmingId(selectedOrder.id);
+                      const orderId = selectedOrder.id;
+                      setConfirmingId(orderId);
                       try {
-                        await ordersApi.confirmOrder(selectedOrder.id);
-                        setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
+                        await ordersApi.confirmOrder(orderId);
+                        setMyOrders((prev) => prev.map(o => o.id === orderId ? { ...o, status: 'completed' as const } : o));
                         setSelectedOrder(null);
                         toast.success('Заказ подтверждён!', { description: 'Оплата исполнителю начислена', duration: 3000 });
                       } catch (e: any) {
