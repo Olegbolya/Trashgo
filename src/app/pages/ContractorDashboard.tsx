@@ -25,6 +25,8 @@ export default function ContractorDashboard() {
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [completionPhotos, setCompletionPhotos] = useState<Record<string, File[]>>({});
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeTab !== 'find') return;
@@ -301,7 +303,7 @@ export default function ContractorDashboard() {
 
               {/* Active jobs */}
               {(() => {
-                const activeJobs = myJobs.filter(j => j.status === 'accepted' || j.status === 'in_progress');
+                const activeJobs = myJobs.filter(j => j.status === 'accepted' || j.status === 'in_progress' || j.status === 'pending_confirmation');
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -324,8 +326,8 @@ export default function ContractorDashboard() {
                           const dt = job.scheduledAt ? new Date(job.scheduledAt) : null;
                           const timeStr = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
                           const dateStr = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
-                          const statusLabel = job.status === 'accepted' ? 'Принят' : 'В работе';
-                          const statusColor = job.status === 'accepted' ? ACCENT : '#FBBF24';
+                          const statusLabel = job.status === 'accepted' ? 'Принят' : job.status === 'in_progress' ? 'В работе' : 'Ждёт подтверждения';
+                          const statusColor = job.status === 'accepted' ? ACCENT : job.status === 'in_progress' ? '#FBBF24' : '#F97316';
                           return (
                             <div key={job.id} style={{ ...card, padding: '0.875rem' }}>
                               <div className="flex items-start justify-between mb-2">
@@ -355,36 +357,86 @@ export default function ContractorDashboard() {
                                   <div className="text-xs" style={{ color: c.muted }}>{job.volume} мешк.</div>
                                 </div>
                               </div>
-                              <div className="flex gap-2">
+                              <div className="flex gap-2 flex-col">
                                 {job.status === 'accepted' && (
                                   <button
-                                    className="flex-1 text-xs font-semibold h-8 rounded-lg"
+                                    className="w-full text-xs font-semibold h-9 rounded-lg"
                                     style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                                     onClick={async () => {
                                       try {
                                         await ordersApi.updateStatus(job.id, 'in_progress');
                                         setMyJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'in_progress' as const } : j));
-                                        toast.success('Выполнение начато!');
+                                        toast.success('Отмечено: мусор получен, идёте к баку');
                                       } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
                                     }}
                                   >
-                                    Начать выполнение
+                                    ✅ Получено — иду к баку
                                   </button>
                                 )}
                                 {job.status === 'in_progress' && (
-                                  <button
-                                    className="flex-1 text-xs font-semibold h-8 rounded-lg"
-                                    style={{ background: '#4CAF50', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-                                    onClick={async () => {
-                                      try {
-                                        await ordersApi.updateStatus(job.id, 'completed');
-                                        setMyJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'completed' as const } : j));
-                                        toast.success('Заказ выполнен! Он перемещён в историю.', { duration: 3000 });
-                                      } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
-                                    }}
-                                  >
-                                    Завершить
-                                  </button>
+                                  <div className="space-y-2">
+                                    <div className="text-xs font-medium" style={{ color: c.muted }}>Сфотографируйте мусор у бака:</div>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', border: `1.5px dashed ${c.border}`, borderRadius: '0.625rem', cursor: 'pointer', background: c.subtle }}>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        style={{ display: 'none' }}
+                                        onChange={(e) => {
+                                          const files = Array.from(e.target.files || []);
+                                          setCompletionPhotos(prev => ({ ...prev, [job.id]: [...(prev[job.id] || []), ...files].slice(0, 3) }));
+                                        }}
+                                      />
+                                      <span style={{ fontSize: '1.1rem' }}>📷</span>
+                                      <span className="text-xs" style={{ color: c.textSub }}>
+                                        {(completionPhotos[job.id]?.length ?? 0) > 0
+                                          ? `${completionPhotos[job.id].length} фото выбрано`
+                                          : 'Добавить фото (до 3)'}
+                                      </span>
+                                    </label>
+                                    {(completionPhotos[job.id]?.length ?? 0) > 0 && (
+                                      <div className="flex gap-1.5 flex-wrap">
+                                        {completionPhotos[job.id].map((file, i) => (
+                                          <div key={i} style={{ position: 'relative' }}>
+                                            <img src={URL.createObjectURL(file)} alt="" style={{ width: '3rem', height: '3rem', objectFit: 'cover', borderRadius: '0.5rem', border: `1px solid ${c.border}` }} />
+                                            <button
+                                              onClick={() => setCompletionPhotos(prev => ({ ...prev, [job.id]: prev[job.id].filter((_, idx) => idx !== i) }))}
+                                              style={{ position: 'absolute', top: '-0.25rem', right: '-0.25rem', width: '1rem', height: '1rem', borderRadius: '50%', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                            >✕</button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    <button
+                                      className="w-full text-xs font-semibold h-9 rounded-lg"
+                                      disabled={submittingId === job.id}
+                                      style={{ background: '#4CAF50', color: 'white', border: 'none', cursor: submittingId === job.id ? 'not-allowed' : 'pointer', opacity: submittingId === job.id ? 0.6 : 1, fontFamily: 'inherit' }}
+                                      onClick={async () => {
+                                        setSubmittingId(job.id);
+                                        try {
+                                          const photos = completionPhotos[job.id] || [];
+                                          const toBase64 = (f: File) => new Promise<string>((resolve) => {
+                                            const r = new FileReader();
+                                            r.onload = () => resolve(r.result as string);
+                                            r.readAsDataURL(f);
+                                          });
+                                          const urls = await Promise.all(photos.map(toBase64));
+                                          await ordersApi.completeOrder(job.id, urls);
+                                          setMyJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'pending_confirmation' as const } : j));
+                                          setCompletionPhotos(prev => { const n = { ...prev }; delete n[job.id]; return n; });
+                                          toast.success('Выполнение отправлено!', { description: 'Ждите подтверждения от заказчика', duration: 3000 });
+                                        } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
+                                        finally { setSubmittingId(null); }
+                                      }}
+                                    >
+                                      {submittingId === job.id ? 'Отправляем...' : '🏁 Завершить — отправить фото'}
+                                    </button>
+                                  </div>
+                                )}
+                                {job.status === 'pending_confirmation' && (
+                                  <div className="w-full h-8 rounded-lg flex items-center justify-center text-xs font-semibold" style={{ background: '#FFF3CD', color: '#856404', border: '1px solid #ffc107' }}>
+                                    ⏳ Ждёт подтверждения заказчика
+                                  </div>
                                 )}
                               </div>
                             </div>

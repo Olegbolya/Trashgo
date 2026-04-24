@@ -40,4 +40,12 @@ export const ordersApi = {
   myJobs() {
     return api.get<ApiResponse<Order[]>>('/orders?mode=contractor');
   },
+
+  completeOrder(id: string, completionPhotoUrls: string[]) {
+    return api.post<Order>(`/orders/${id}/complete`, { completionPhotoUrls });
+  },
+
+  confirmOrder(id: string) {
+    return api.post<Order>(`/orders/${id}/confirm`, {});
+  },
 };

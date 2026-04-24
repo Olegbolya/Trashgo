@@ -1,4 +1,4 @@
-export type OrderStatus = 'new' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
+export type OrderStatus = 'new' | 'accepted' | 'in_progress' | 'pending_confirmation' | 'completed' | 'cancelled';
 
 export interface Order {
   id: string;
@@ -12,6 +12,7 @@ export interface Order {
   price: number;
   description: string;
   photoUrls: string[];
+  completionPhotoUrls: string[];
   asap: boolean;
   scheduledAt: string | null;
   createdAt: string;

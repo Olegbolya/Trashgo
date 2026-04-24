@@ -30,11 +30,16 @@ export default function CustomerDashboard() {
   type MyOrder = {
     id: string; address: string; entrance: string; apartment: string;
     date: string; time: string; asap: boolean; volume: number; price: number;
-    description: string; photoUrls: string[]; status: 'waiting' | 'active' | 'cancelled';
+    description: string; photoUrls: string[]; completionPhotoUrls: string[];
+    status: 'waiting' | 'active' | 'pending' | 'cancelled';
     responses: number; createdAt: string;
   };
 
   function apiOrderToMyOrder(o: Order, inMemoryPhotos?: string[]): MyOrder {
+    const status = o.status === 'new' ? 'waiting'
+      : o.status === 'cancelled' ? 'cancelled'
+      : o.status === 'pending_confirmation' ? 'pending'
+      : 'active';
     return {
       id: o.id,
       address: o.address,
@@ -47,7 +52,8 @@ export default function CustomerDashboard() {
       price: o.price,
       description: o.description,
       photoUrls: inMemoryPhotos ?? o.photoUrls ?? [],
-      status: o.status === 'new' ? 'waiting' : o.status === 'cancelled' ? 'cancelled' : 'active',
+      completionPhotoUrls: o.completionPhotoUrls ?? [],
+      status,
       responses: 0,
       createdAt: new Date(o.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }),
     };
@@ -107,7 +113,7 @@ export default function CustomerDashboard() {
 
   const stats = {
     totalOrders: myOrders.length,
-    activeOrders: myOrders.filter(o => o.status === 'waiting' || o.status === 'active').length,
+    activeOrders: myOrders.filter(o => o.status === 'waiting' || o.status === 'active' || o.status === 'pending').length,
     completedOrders: myOrders.filter(o => o.status === 'cancelled').length,
     referrals: 0,
   };
@@ -383,6 +389,10 @@ export default function CustomerDashboard() {
                               <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#F97316' + '18', color: '#F97316' }}>
                                 <Clock className="w-3.5 h-3.5" />
                                 <span>Ждёт исполнителя</span>
+                              </div>
+                            ) : order.status === 'pending' ? (
+                              <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#FBBF2418', color: '#92400e', border: '1px solid #fbbf2450' }}>
+                                <span>⏳ Ждёт подтверждения</span>
                               </div>
                             ) : order.status === 'active' ? (
                               <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: `${ACCENT}18`, color: ACCENT }}>
@@ -1066,10 +1076,10 @@ export default function CustomerDashboard() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold" style={{ color: c.text }}>Детали заказа #{selectedOrder.id}</h2>
               <span className="text-xs px-2 py-1 rounded-full font-medium" style={{
-                background: selectedOrder.status === 'waiting' ? '#F97316' + '18' : `${ACCENT}18`,
-                color: selectedOrder.status === 'waiting' ? '#F97316' : ACCENT,
+                background: selectedOrder.status === 'waiting' ? '#F97316' + '18' : selectedOrder.status === 'pending' ? '#FBBF2420' : `${ACCENT}18`,
+                color: selectedOrder.status === 'waiting' ? '#F97316' : selectedOrder.status === 'pending' ? '#92400e' : ACCENT,
               }}>
-                {selectedOrder.status === 'waiting' ? `Ждёт исполнителя · ${selectedOrder.responses} откликов` : 'Принят'}
+                {selectedOrder.status === 'waiting' ? `Ждёт исполнителя · ${selectedOrder.responses} откликов` : selectedOrder.status === 'pending' ? '⏳ Ждёт подтверждения' : 'Принят'}
               </span>
             </div>
 
@@ -1118,7 +1128,7 @@ export default function CustomerDashboard() {
                 </div>
               )}
 
-              {/* Фото */}
+              {/* Фото заказчика */}
               {selectedOrder.photoUrls.length > 0 && (
                 <div>
                   <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: c.muted }}>Фото</div>
@@ -1141,57 +1151,111 @@ export default function CustomerDashboard() {
                 </div>
               )}
 
+              {/* Фото выполнения (от исполнителя) */}
+              {selectedOrder.status === 'pending' && selectedOrder.completionPhotoUrls.length > 0 && (
+                <div style={{ padding: '0.875rem', borderRadius: '0.75rem', background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+                  <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#92400e' }}>📷 Фото выполнения от исполнителя</div>
+                  <div className="flex gap-2 flex-wrap mb-2">
+                    {selectedOrder.completionPhotoUrls.map((url, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setLightboxUrl(url)}
+                        style={{ position: 'relative', flexShrink: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                      >
+                        <img src={url} alt="" style={{ width: '5rem', height: '5rem', objectFit: 'cover', borderRadius: '0.625rem', border: '2px solid #FDE68A', display: 'block' }} />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="text-xs" style={{ color: '#92400e' }}>Исполнитель выбросил мусор и ждёт вашего подтверждения</div>
+                </div>
+              )}
+
               {/* Создан */}
               <div className="text-xs text-center" style={{ color: c.muted }}>Создан {selectedOrder.createdAt}</div>
             </div>
 
             <div className="flex flex-col gap-2 mt-5">
-              <button
-                className="w-full py-3 rounded-xl text-sm font-semibold"
-                style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-                onClick={() => {
-                  setCreateForm({
-                    address: selectedOrder.address,
-                    entrance: selectedOrder.entrance,
-                    apartment: selectedOrder.apartment,
-                    date: selectedOrder.date,
-                    time: selectedOrder.time,
-                    volume: selectedOrder.volume,
-                    price: selectedOrder.price,
-                    description: selectedOrder.description,
-                  });
-                  setPreloadedPhotoUrls(selectedOrder.photoUrls);
-                  setCreatePhotos([]);
-                  setOriginalOrder(selectedOrder);
-                  setIsEditing(true);
-                  setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
-                  setSelectedOrder(null);
-                  setActiveTab('create');
-                }}
-              >
-                Редактировать заказ
-              </button>
-              <div className="flex gap-2">
-                <button
-                  className="flex-1 py-2.5 rounded-xl text-sm font-medium"
-                  style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
-                  onClick={() => setSelectedOrder(null)}
-                >
-                  Закрыть
-                </button>
-                <button
-                  className="flex-1 py-2.5 rounded-xl text-sm font-medium"
-                  style={{ border: `1px solid #fca5a5`, background: 'transparent', color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit' }}
-                  onClick={async () => {
-                    try { await ordersApi.updateStatus(selectedOrder.id, 'cancelled'); } catch {}
-                    setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
-                    setSelectedOrder(null);
-                    toast.success('Заказ отменён');
-                  }}
-                >
-                  Отменить заказ
-                </button>
-              </div>
+              {selectedOrder.status === 'pending' ? (
+                <>
+                  <button
+                    className="w-full py-3 rounded-xl text-sm font-semibold"
+                    style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                    onClick={async () => {
+                      try {
+                        await ordersApi.confirmOrder(selectedOrder.id);
+                        setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
+                        setSelectedOrder(null);
+                        toast.success('Заказ подтверждён!', { description: 'Оплата исполнителю начислена', duration: 3000 });
+                      } catch (e: any) {
+                        toast.error(e?.message || 'Ошибка подтверждения');
+                      }
+                    }}
+                  >
+                    ✅ Подтвердить выполнение
+                  </button>
+                  <button
+                    className="w-full py-2.5 rounded-xl text-sm font-medium"
+                    style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
+                    onClick={() => setSelectedOrder(null)}
+                  >
+                    Закрыть
+                  </button>
+                </>
+              ) : (
+                <>
+                  {selectedOrder.status === 'waiting' && (
+                    <button
+                      className="w-full py-3 rounded-xl text-sm font-semibold"
+                      style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                      onClick={() => {
+                        setCreateForm({
+                          address: selectedOrder.address,
+                          entrance: selectedOrder.entrance,
+                          apartment: selectedOrder.apartment,
+                          date: selectedOrder.date,
+                          time: selectedOrder.time,
+                          asap: selectedOrder.asap,
+                          volume: selectedOrder.volume,
+                          price: selectedOrder.price,
+                          description: selectedOrder.description,
+                        });
+                        setPreloadedPhotoUrls(selectedOrder.photoUrls);
+                        setCreatePhotos([]);
+                        setOriginalOrder(selectedOrder);
+                        setIsEditing(true);
+                        setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
+                        setSelectedOrder(null);
+                        setActiveTab('create');
+                      }}
+                    >
+                      Редактировать заказ
+                    </button>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+                      style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
+                      onClick={() => setSelectedOrder(null)}
+                    >
+                      Закрыть
+                    </button>
+                    {selectedOrder.status === 'waiting' && (
+                      <button
+                        className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+                        style={{ border: `1px solid #fca5a5`, background: 'transparent', color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit' }}
+                        onClick={async () => {
+                          try { await ordersApi.updateStatus(selectedOrder.id, 'cancelled'); } catch {}
+                          setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
+                          setSelectedOrder(null);
+                          toast.success('Заказ отменён');
+                        }}
+                      >
+                        Отменить заказ
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
