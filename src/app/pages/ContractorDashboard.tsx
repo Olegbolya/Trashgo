@@ -380,7 +380,7 @@ export default function ContractorDashboard() {
                                       <input
                                         type="file"
                                         accept="image/*"
-                                        multiple
+                                        capture="environment"
                                         style={{ display: 'none' }}
                                         onChange={(e) => {
                                           const files = Array.from(e.target.files || []);
