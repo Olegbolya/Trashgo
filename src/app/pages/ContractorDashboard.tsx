@@ -419,12 +419,16 @@ export default function ContractorDashboard() {
                                     )}
                                     <button
                                       className="w-full text-xs font-semibold h-9 rounded-lg"
-                                      disabled={submittingId === job.id}
-                                      style={{ background: '#4CAF50', color: 'white', border: 'none', cursor: submittingId === job.id ? 'not-allowed' : 'pointer', opacity: submittingId === job.id ? 0.6 : 1, fontFamily: 'inherit' }}
+                                      disabled={submittingId === job.id || (completionPhotos[job.id]?.length ?? 0) === 0}
+                                      style={{ background: (completionPhotos[job.id]?.length ?? 0) === 0 ? c.border : '#4CAF50', color: (completionPhotos[job.id]?.length ?? 0) === 0 ? c.muted : 'white', border: 'none', cursor: (completionPhotos[job.id]?.length ?? 0) === 0 || submittingId === job.id ? 'not-allowed' : 'pointer', opacity: submittingId === job.id ? 0.6 : 1, fontFamily: 'inherit' }}
                                       onClick={async () => {
+                                        const photos = completionPhotos[job.id] || [];
+                                        if (photos.length === 0) {
+                                          toast.error('Сначала сделайте фото мусора у бака');
+                                          return;
+                                        }
                                         setSubmittingId(job.id);
                                         try {
-                                          const photos = completionPhotos[job.id] || [];
                                           const toBase64 = (f: File) => new Promise<string>((resolve) => {
                                             const r = new FileReader();
                                             r.onload = () => resolve(r.result as string);
@@ -439,7 +443,7 @@ export default function ContractorDashboard() {
                                         finally { setSubmittingId(null); }
                                       }}
                                     >
-                                      {submittingId === job.id ? 'Отправляем...' : '🏁 Завершить — отправить фото'}
+                                      {submittingId === job.id ? 'Отправляем...' : (completionPhotos[job.id]?.length ?? 0) === 0 ? '📷 Сначала сделайте фото' : '🏁 Завершить — отправить фото'}
                                     </button>
                                   </div>
                                 )}
