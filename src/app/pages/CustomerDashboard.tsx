@@ -12,13 +12,27 @@ import type { Order } from '../../types/order';
 
 const ACCENT = '#66BB6A';
 
+function parseAddressParts(full: string): { address: string; entrance: string; floor: string; apartment: string } {
+  let remaining = full;
+  let entrance = '';
+  let floor = '';
+  let apartment = '';
+  const aptMatch = remaining.match(/,\s*кв\.?\s*(\S+)\s*$/i);
+  if (aptMatch) { apartment = aptMatch[1]; remaining = remaining.slice(0, aptMatch.index!); }
+  const floorMatch = remaining.match(/,\s*этаж\s*(\S+)\s*$/i);
+  if (floorMatch) { floor = floorMatch[1]; remaining = remaining.slice(0, floorMatch.index!); }
+  const entranceMatch = remaining.match(/,\s*подъезд\s*(\S+)\s*$/i);
+  if (entranceMatch) { entrance = entranceMatch[1]; remaining = remaining.slice(0, entranceMatch.index!); }
+  return { address: remaining.trim(), entrance, floor, apartment };
+}
+
 export default function CustomerDashboard() {
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'home' | 'calendar' | 'profile' | 'create'>('home');
   const [currentWeek, setCurrentWeek] = useState(0);
-  const [createForm, setCreateForm] = useState({ address: '', date: '', time: '', asap: false, volume: 1, price: 50, entrance: '', apartment: '', description: '' });
+  const [createForm, setCreateForm] = useState({ address: '', date: '', time: '', asap: false, volume: 1, price: 50, entrance: '', floor: '', apartment: '', description: '' });
   const [createPhotos, setCreatePhotos] = useState<File[]>([]);
   const [preloadedPhotoUrls, setPreloadedPhotoUrls] = useState<string[]>([]);
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
@@ -29,7 +43,7 @@ export default function CustomerDashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   type MyOrder = {
-    id: string; address: string; entrance: string; apartment: string;
+    id: string; address: string; entrance: string; floor: string; apartment: string;
     date: string; time: string; asap: boolean; volume: number; price: number;
     description: string; photoUrls: string[]; completionPhotoUrls: string[];
     status: 'waiting' | 'active' | 'pending' | 'cancelled';
@@ -45,6 +59,7 @@ export default function CustomerDashboard() {
       id: o.id,
       address: o.address,
       entrance: '',
+      floor: '',
       apartment: '',
       date: o.asap ? '' : (o.scheduledAt?.slice(0, 10) ?? ''),
       time: o.asap ? '' : (o.scheduledAt?.slice(11, 16) ?? ''),
@@ -652,6 +667,7 @@ export default function CustomerDashboard() {
 
               let fullAddress = createForm.address.trim();
               if (createForm.entrance) fullAddress += `, подъезд ${createForm.entrance}`;
+              if (createForm.floor) fullAddress += `, этаж ${createForm.floor}`;
               if (createForm.apartment) fullAddress += `, кв. ${createForm.apartment}`;
 
               const scheduledAt = createForm.asap
@@ -675,6 +691,7 @@ export default function CustomerDashboard() {
                   id: apiOrder.id,
                   address: createForm.address,
                   entrance: createForm.entrance,
+                  floor: createForm.floor,
                   apartment: createForm.apartment,
                   date: createForm.date,
                   time: createForm.time,
@@ -690,7 +707,7 @@ export default function CustomerDashboard() {
                 };
                 setMyOrders((prev) => [newOrder, ...prev]);
                 toast.success('Заказ создан!', { description: 'Исполнители уже видят ваш заказ', duration: 3000 });
-                setCreateForm({ address: '', date: '', time: '', asap: false, volume: 1, price: 50, entrance: '', apartment: '', description: '' });
+                setCreateForm({ address: '', date: '', time: '', asap: false, volume: 1, price: 50, entrance: '', floor: '', apartment: '', description: '' });
                 setCreatePhotos([]);
                 setPreloadedPhotoUrls([]);
                 setCreateErrors({});
@@ -752,7 +769,8 @@ export default function CustomerDashboard() {
                                 key={i}
                                 type="button"
                                 onMouseDown={() => {
-                                  setCreateForm({ ...createForm, address: addr });
+                                  const parsed = parseAddressParts(addr);
+                                  setCreateForm({ ...createForm, address: parsed.address, entrance: parsed.entrance, floor: parsed.floor, apartment: parsed.apartment });
                                   setShowAddressSuggestions(false);
                                 }}
                                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', textAlign: 'left', padding: '0.625rem 0.875rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: c.text, fontFamily: 'inherit', borderBottom: i < addressSuggestions.length - 1 ? `1px solid ${c.border}` : 'none' }}
@@ -765,7 +783,7 @@ export default function CustomerDashboard() {
                                 </span>
                                 {isReg && (
                                   <span style={{ fontSize: '0.7rem', color: ACCENT, background: `${ACCENT}18`, padding: '0.1rem 0.4rem', borderRadius: '0.25rem', flexShrink: 0 }}>
-                                    мой район
+                                    мой адрес
                                   </span>
                                 )}
                               </button>
@@ -776,14 +794,23 @@ export default function CustomerDashboard() {
                       {createErrors.address && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{createErrors.address}</p>}
                     </div>
 
-                    {/* Подъезд + Квартира — необязательные без пометки */}
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* Подъезд + Этаж + Квартира — необязательные без пометки */}
+                    <div className="grid grid-cols-3 gap-3">
                       <div>
                         <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: c.muted }}>Подъезд</label>
                         <input
                           value={createForm.entrance}
                           onChange={(e) => setCreateForm({ ...createForm, entrance: e.target.value })}
                           placeholder="1"
+                          style={inputStyle()}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: c.muted }}>Этаж</label>
+                        <input
+                          value={createForm.floor}
+                          onChange={(e) => setCreateForm({ ...createForm, floor: e.target.value })}
+                          placeholder="5"
                           style={inputStyle()}
                         />
                       </div>
@@ -1137,6 +1164,7 @@ export default function CustomerDashboard() {
                 <div className="font-medium" style={{ color: c.text }}>
                   {selectedOrder.address}
                   {selectedOrder.entrance && `, подъезд ${selectedOrder.entrance}`}
+                  {selectedOrder.floor && `, этаж ${selectedOrder.floor}`}
                   {selectedOrder.apartment && `, кв. ${selectedOrder.apartment}`}
                 </div>
               </div>
@@ -1263,6 +1291,7 @@ export default function CustomerDashboard() {
                         setCreateForm({
                           address: selectedOrder.address,
                           entrance: selectedOrder.entrance,
+                          floor: selectedOrder.floor,
                           apartment: selectedOrder.apartment,
                           date: selectedOrder.date,
                           time: selectedOrder.time,
