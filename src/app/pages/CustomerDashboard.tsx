@@ -65,21 +65,31 @@ export default function CustomerDashboard() {
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
 
-  const refreshOrders = () => {
-    setOrdersLoading(true);
+  const refreshOrders = (silent = false) => {
+    if (!silent) setOrdersLoading(true);
     ordersApi.list().then((res: any) => {
       const orders: Order[] = res?.data ?? [];
-      setMyOrders(orders.map((o) => apiOrderToMyOrder(o)));
-    }).catch(() => {}).finally(() => setOrdersLoading(false));
+      const mapped = orders.map((o) => apiOrderToMyOrder(o));
+      setMyOrders(mapped);
+      setSelectedOrder(prev => {
+        if (!prev) return prev;
+        const updated = mapped.find(o => o.id === prev.id);
+        return updated ?? prev;
+      });
+    }).catch(() => {}).finally(() => { if (!silent) setOrdersLoading(false); });
   };
 
   useEffect(() => {
     refreshOrders();
   }, []);
 
-  // Refresh when switching to home tab
+  // Refresh when switching to home tab + poll every 10s while on home tab
   useEffect(() => {
-    if (activeTab === 'home') refreshOrders();
+    if (activeTab === 'home') {
+      refreshOrders();
+      const interval = setInterval(() => refreshOrders(true), 10000);
+      return () => clearInterval(interval);
+    }
   }, [activeTab]);
 
   const c = {
