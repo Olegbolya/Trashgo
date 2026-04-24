@@ -30,17 +30,27 @@ export default function ContractorDashboard() {
 
   useEffect(() => {
     if (activeTab !== 'find') return;
-    setOrdersLoading(true);
-    ordersApi.available().then((res: any) => {
-      setAvailableOrders(res?.data ?? []);
-    }).catch(() => {}).finally(() => setOrdersLoading(false));
+    const load = (initial: boolean) => {
+      if (initial) setOrdersLoading(true);
+      ordersApi.available().then((res: any) => {
+        setAvailableOrders(res?.data ?? []);
+      }).catch(() => {}).finally(() => { if (initial) setOrdersLoading(false); });
+    };
+    load(true);
+    const interval = setInterval(() => load(false), 10000);
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   useEffect(() => {
     if (activeTab !== 'home') return;
-    ordersApi.myJobs().then((res: any) => {
-      setMyJobs(res?.data ?? []);
-    }).catch(() => {});
+    const load = () => {
+      ordersApi.myJobs().then((res: any) => {
+        setMyJobs(res?.data ?? []);
+      }).catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 10000);
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   const c = {
