@@ -8,6 +8,7 @@ export interface User {
   district: string;
   xp: number;
   level: number;
+  balance: number;
   createdAt: string;
 }
 

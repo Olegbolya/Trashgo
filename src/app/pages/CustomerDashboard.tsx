@@ -202,20 +202,27 @@ export default function CustomerDashboard() {
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col fixed top-0 left-0 h-full w-64 z-50" style={{ background: c.surface, borderRight: `2px solid ${ACCENT}` }}>
-        <div className="p-6" style={{ borderBottom: `1px solid ${c.border}` }}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${ACCENT}20` }}>
-              <Package className="w-5 h-5" style={{ color: ACCENT }} />
-            </div>
-            <div>
-              <div className="font-bold" style={{ color: c.text }}>TrashGo</div>
-              <div className="text-xs" style={{ color: c.muted }}>Вынос мусора</div>
-            </div>
+        {/* Profile header — clickable */}
+        <button
+          onClick={() => setActiveTab('profile')}
+          className="w-full flex items-center gap-3 p-5 text-left"
+          style={{ borderBottom: `1px solid ${c.border}`, background: 'none', border: 'none', borderBottom: `1px solid ${c.border}`, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base flex-shrink-0" style={{ background: `${ACCENT}20`, color: ACCENT }}>
+            {(user?.name || 'U').charAt(0).toUpperCase()}
           </div>
-        </div>
+          <div className="min-w-0">
+            <div className="font-semibold text-sm truncate" style={{ color: c.text }}>{user?.name || 'Профиль'}</div>
+            <div className="text-xs" style={{ color: c.muted }}>Заказчик</div>
+          </div>
+        </button>
 
         <nav className="flex-1 p-4 space-y-1">
-          {navItems.map(({ id, icon: Icon, label }) => (
+          {[
+            { id: 'home' as const, icon: Home, label: 'Главная' },
+            { id: 'create' as const, icon: Plus, label: 'Создать заказ' },
+            { id: 'calendar' as const, icon: Clock, label: 'История заказов' },
+          ].map(({ id, icon: Icon, label }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
@@ -241,6 +248,14 @@ export default function CustomerDashboard() {
         </nav>
 
         <div className="p-4 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
+          <button
+            onClick={() => toast.info('Как это работает?', { description: 'Создайте заказ — исполнители сами придут к вам!', duration: 3000 })}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
+            style={{ background: 'transparent', color: c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            <HelpCircle className="w-5 h-5" />
+            Как это работает?
+          </button>
           <button
             onClick={() => navigate('/contractor')}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
@@ -301,30 +316,33 @@ export default function CustomerDashboard() {
             className="lg:hidden fixed top-0 left-0 h-full z-[70] flex flex-col"
             style={{ width: '72vw', maxWidth: '300px', background: c.surface, borderRight: `2px solid ${ACCENT}` }}
           >
-            {/* Drawer header */}
-            <div className="flex items-center justify-between p-4" style={{ borderBottom: `1px solid ${c.border}` }}>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${ACCENT}20` }}>
-                  <Package className="w-4 h-4" style={{ color: ACCENT }} />
-                </div>
-                <div>
-                  <div className="text-sm font-bold" style={{ color: c.text }}>TrashGo</div>
-                  <div className="text-xs" style={{ color: c.muted }}>Вынос мусора</div>
-                </div>
+            {/* Drawer header — profile, clickable */}
+            <button
+              onClick={() => { setActiveTab('profile'); setMobileMenuOpen(false); }}
+              className="w-full flex items-center gap-3 p-4 text-left"
+              style={{ borderBottom: `1px solid ${c.border}`, background: 'none', border: 'none', borderBottom: `1px solid ${c.border}`, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base flex-shrink-0" style={{ background: `${ACCENT}20`, color: ACCENT }}>
+                {(user?.name || 'U').charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold truncate" style={{ color: c.text }}>{user?.name || 'Профиль'}</div>
+                <div className="text-xs" style={{ color: c.muted }}>Заказчик</div>
               </div>
               <button
-                onClick={() => setMobileMenuOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, display: 'flex', padding: '0.25rem' }}
+                onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(false); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, display: 'flex', padding: '0.25rem', flexShrink: 0 }}
               >
                 <X className="w-5 h-5" />
               </button>
-            </div>
+            </button>
 
             {/* Drawer nav */}
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
               {[
                 { id: 'home' as const, icon: Home, label: 'Главная' },
                 { id: 'create' as const, icon: Plus, label: 'Создать заказ' },
+                { id: 'calendar' as const, icon: Clock, label: 'История заказов' },
               ].map(({ id, icon: Icon, label }) => (
                 <button
                   key={id}
@@ -341,18 +359,6 @@ export default function CustomerDashboard() {
                 </button>
               ))}
               <button
-                onClick={() => { setActiveTab('calendar'); setMobileMenuOpen(false); }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
-                style={{
-                  background: activeTab === 'calendar' ? `${ACCENT}18` : 'transparent',
-                  color: activeTab === 'calendar' ? ACCENT : c.textSub,
-                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                <Clock className="w-5 h-5" />
-                История заказов
-              </button>
-              <button
                 onClick={() => { navigate('/my-subscriptions'); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
                 style={{ background: 'transparent', color: c.textSub, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
@@ -365,16 +371,12 @@ export default function CustomerDashboard() {
             {/* Drawer footer */}
             <div className="p-3 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
               <button
-                onClick={() => { setActiveTab('profile'); setMobileMenuOpen(false); }}
+                onClick={() => { toast.info('Как это работает?', { description: 'Создайте заказ — исполнители сами придут к вам!', duration: 3000 }); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
-                style={{
-                  background: activeTab === 'profile' ? `${ACCENT}18` : 'transparent',
-                  color: activeTab === 'profile' ? ACCENT : c.muted,
-                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                }}
+                style={{ background: 'transparent', color: c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
               >
-                <User className="w-5 h-5" />
-                Профиль
+                <HelpCircle className="w-5 h-5" />
+                Как это работает?
               </button>
               <button
                 onClick={() => { navigate('/contractor'); setMobileMenuOpen(false); }}
@@ -418,7 +420,19 @@ export default function CustomerDashboard() {
                   )}
                 </div>
 
-                {activeOrders.length === 0 ? (
+                {ordersLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2].map(i => (
+                      <div key={i} style={{ ...card, padding: '1.25rem' }}>
+                        <div className="animate-pulse space-y-3">
+                          <div className="h-4 rounded-lg w-3/4" style={{ background: c.border }} />
+                          <div className="h-3 rounded-lg w-1/2" style={{ background: c.border }} />
+                          <div className="h-8 rounded-lg w-full" style={{ background: c.border }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : activeOrders.length === 0 ? (
                   <div className="text-center py-12" style={card}>
                     <Package className="w-12 h-12 mx-auto mb-4" style={{ color: c.border }} />
                     <div className="font-medium mb-1" style={{ color: c.text }}>Активных заказов нет</div>
@@ -562,32 +576,36 @@ export default function CustomerDashboard() {
           })()}
 
           {/* PROFILE TAB */}
-          {activeTab === 'profile' && (
+          {activeTab === 'profile' && (() => {
+            const statusLabel = (user?.level ?? 1) >= 6 ? 'Мастер' : (user?.level ?? 1) >= 4 ? 'Профи' : (user?.level ?? 1) >= 2 ? 'Опытный' : 'Новичок';
+            return (
             <div className="max-w-4xl mx-auto space-y-3">
               {/* Profile Header */}
               <div style={card}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: c.subtle }}>
-                      <User className="w-7 h-7" style={{ color: c.muted }} />
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-2xl" style={{ background: `${ACCENT}20`, color: ACCENT }}>
+                      {(user?.name || 'U').charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <h1 className="text-lg font-semibold" style={{ color: c.text }}>{user?.name || '—'}</h1>
-                      <div className="text-sm" style={{ color: c.muted }}>{user?.phone || '—'}</div>
+                      <div className="text-xs font-medium px-2 py-0.5 rounded-full inline-block mt-0.5" style={{ background: `${ACCENT}18`, color: ACCENT }}>{statusLabel}</div>
+                      <div className="text-sm mt-1" style={{ color: c.muted }}>{user?.phone || '—'}</div>
                     </div>
                   </div>
                   <button className="h-8 px-3 rounded-lg text-xs" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info('Редактирование профиля', { description: 'Функция в разработке' })}>
                     <Edit className="w-3.5 h-3.5 inline mr-1" />Изменить
                   </button>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   {[
-                    { v: stats.completedOrders, l: 'выполнено' },
-                    { v: stats.activeOrders, l: 'активных' },
-                    { v: stats.referrals, l: 'рефералов' },
+                    { v: <><Star className="w-3.5 h-3.5 inline mb-0.5" style={{ color: '#FBBF24', fill: '#FBBF24' }} /> —</>, l: 'рейтинг' },
+                    { v: stats.totalOrders, l: 'заказов' },
+                    { v: achievements.filter(a => a.unlocked).length, l: 'достижений' },
+                    { v: '🏆', l: 'награды' },
                   ].map((s, i) => (
-                    <div key={i} className="rounded-xl p-3 text-center" style={{ background: c.subtle }}>
-                      <div className="text-xl font-semibold" style={{ color: c.text }}>{s.v}</div>
+                    <div key={i} className="rounded-xl p-2.5 text-center" style={{ background: c.subtle }}>
+                      <div className="text-lg font-semibold" style={{ color: c.text }}>{s.v}</div>
                       <div className="text-xs" style={{ color: c.muted }}>{s.l}</div>
                     </div>
                   ))}
@@ -682,7 +700,8 @@ export default function CustomerDashboard() {
                 Выйти из аккаунта
               </button>
             </div>
-          )}
+            );
+          })()}
 
           {/* CREATE TAB */}
           {activeTab === 'create' && (() => {

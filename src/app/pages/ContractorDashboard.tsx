@@ -8,6 +8,7 @@ import { AchievementsPanel, type Achievement } from '../components/AchievementsP
 import { toast } from 'sonner';
 import { getDayLabel } from '../lib/utils';
 import { ordersApi } from '../../api/orders';
+import { authApi } from '../../api/auth';
 import type { Order, ChatMessage } from '../../types/order';
 
 const ACCENT = '#2196F3';
@@ -16,7 +17,7 @@ export default function ContractorDashboard() {
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'home' | 'orders' | 'profile' | 'find'>('home');
+  const [activeTab, setActiveTab] = useState<'active' | 'home' | 'find' | 'history' | 'profile'>('active');
   const [isOnShift, setIsOnShift] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
@@ -48,7 +49,7 @@ export default function ContractorDashboard() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (activeTab !== 'home') return;
+    if (activeTab !== 'active' && activeTab !== 'home' && activeTab !== 'history') return;
     const load = () => {
       ordersApi.myJobs().then((res: any) => {
         setMyJobs(res?.data ?? []);
@@ -57,6 +58,13 @@ export default function ContractorDashboard() {
     load();
     const interval = setInterval(load, 10000);
     return () => clearInterval(interval);
+  }, [activeTab]);
+
+  // Refresh user data (balance) when opening profile
+  const { updateUser } = useAuthStore();
+  useEffect(() => {
+    if (activeTab !== 'profile') return;
+    authApi.me().then((u) => updateUser(u)).catch(() => {});
   }, [activeTab]);
 
   // Poll chat messages while a chat is open
@@ -121,42 +129,42 @@ export default function ContractorDashboard() {
     borderRadius: '1rem', padding: '1.25rem',
   };
 
-  const navItems = [
-    { id: 'home', icon: Home, label: 'Главная' },
-    { id: 'find', icon: Search, label: 'Найти заказы' },
-    { id: 'orders', icon: MapPin, label: 'Мои адреса' },
-    { id: 'profile', icon: User, label: 'Профиль' },
-  ] as const;
-
   return (
     <div className="min-h-screen lg:flex" style={{ background: c.bg, fontFamily: "'Inter', system-ui, sans-serif" }}>
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col fixed top-0 left-0 h-full w-64 z-50" style={{ background: c.surface, borderRight: `2px solid ${ACCENT}` }}>
-        <div className="p-6" style={{ borderBottom: `1px solid ${c.border}` }}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${ACCENT}20` }}>
-              <Briefcase className="w-5 h-5" style={{ color: ACCENT }} />
-            </div>
-            <div>
-              <div className="font-bold" style={{ color: c.text }}>TrashGo</div>
-              <div className="text-xs" style={{ color: c.muted }}>Исполнитель</div>
-            </div>
+        {/* Profile header — clickable */}
+        <button
+          onClick={() => setActiveTab('profile')}
+          className="w-full flex items-center gap-3 p-5 text-left"
+          style={{ borderBottom: `1px solid ${c.border}`, background: 'none', border: 'none', borderBottom: `1px solid ${c.border}`, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base flex-shrink-0" style={{ background: `${ACCENT}20`, color: ACCENT }}>
+            {(user?.name || 'U').charAt(0).toUpperCase()}
           </div>
-        </div>
+          <div className="min-w-0">
+            <div className="font-semibold text-sm truncate" style={{ color: c.text }}>{user?.name || 'Профиль'}</div>
+            <div className="text-xs" style={{ color: c.muted }}>Исполнитель</div>
+          </div>
+        </button>
 
-        <div className="px-4 py-3" style={{ borderBottom: `1px solid ${c.border}` }}>
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {/* Shift toggle */}
           <button
             onClick={() => setIsOnShift(!isOnShift)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-1"
             style={{ background: isOnShift ? `${ACCENT}18` : c.subtle, color: isOnShift ? ACCENT : c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            <span>{isOnShift ? '🟢 Открыт для заказов' : '⚫ Не принимаю заказы'}</span>
+            <span className="text-base">{isOnShift ? '🟢' : '⚫'}</span>
+            {isOnShift ? 'Открыт для заказов' : 'Не принимаю заказы'}
           </button>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-1">
-          {navItems.map(({ id, icon: Icon, label }) => (
+          {[
+            { id: 'active' as const, icon: CheckCircle, label: 'Активные заказы' },
+            { id: 'home' as const, icon: Home, label: 'Главная' },
+            { id: 'find' as const, icon: Search, label: 'Найти заказ' },
+            { id: 'history' as const, icon: Calendar, label: 'История заказов' },
+          ].map(({ id, icon: Icon, label }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
@@ -174,6 +182,14 @@ export default function ContractorDashboard() {
         </nav>
 
         <div className="p-4 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
+          <button
+            onClick={() => toast.info('Как это работает?', { description: 'Найдите заказ, выполните его и получите оплату!', duration: 3000 })}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
+            style={{ background: 'transparent', color: c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            <HelpCircle className="w-5 h-5" />
+            Как это работает?
+          </button>
           <button
             onClick={() => navigate('/customer')}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
@@ -232,42 +248,43 @@ export default function ContractorDashboard() {
             className="lg:hidden fixed top-0 left-0 h-full z-[70] flex flex-col"
             style={{ width: '72vw', maxWidth: '300px', background: c.surface, borderRight: `2px solid ${ACCENT}` }}
           >
-            {/* Drawer header */}
-            <div className="flex items-center justify-between p-4" style={{ borderBottom: `1px solid ${c.border}` }}>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${ACCENT}20` }}>
-                  <Briefcase className="w-4 h-4" style={{ color: ACCENT }} />
-                </div>
-                <div>
-                  <div className="text-sm font-bold" style={{ color: c.text }}>TrashGo</div>
-                  <div className="text-xs" style={{ color: c.muted }}>Исполнитель</div>
-                </div>
+            {/* Drawer header — profile, clickable */}
+            <button
+              onClick={() => { setActiveTab('profile'); setMobileMenuOpen(false); }}
+              className="w-full flex items-center gap-3 p-4 text-left"
+              style={{ borderBottom: `1px solid ${c.border}`, background: 'none', border: 'none', borderBottom: `1px solid ${c.border}`, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base flex-shrink-0" style={{ background: `${ACCENT}20`, color: ACCENT }}>
+                {(user?.name || 'U').charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold truncate" style={{ color: c.text }}>{user?.name || 'Профиль'}</div>
+                <div className="text-xs" style={{ color: c.muted }}>Исполнитель</div>
               </div>
               <button
-                onClick={() => setMobileMenuOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, display: 'flex', padding: '0.25rem' }}
+                onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(false); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, display: 'flex', padding: '0.25rem', flexShrink: 0 }}
               >
                 <X className="w-5 h-5" />
               </button>
-            </div>
-
-            {/* Shift toggle */}
-            <div className="px-3 py-2" style={{ borderBottom: `1px solid ${c.border}` }}>
-              <button
-                onClick={() => setIsOnShift(!isOnShift)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium"
-                style={{ background: isOnShift ? `${ACCENT}18` : c.subtle, color: isOnShift ? ACCENT : c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                <span>{isOnShift ? '🟢 Открыт для заказов' : '⚫ Не принимаю заказы'}</span>
-              </button>
-            </div>
+            </button>
 
             {/* Drawer nav */}
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+              {/* Shift toggle */}
+              <button
+                onClick={() => setIsOnShift(!isOnShift)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-1"
+                style={{ background: isOnShift ? `${ACCENT}18` : c.subtle, color: isOnShift ? ACCENT : c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                <span className="text-base">{isOnShift ? '🟢' : '⚫'}</span>
+                {isOnShift ? 'Открыт для заказов' : 'Не принимаю заказы'}
+              </button>
               {[
+                { id: 'active' as const, icon: CheckCircle, label: 'Активные заказы' },
                 { id: 'home' as const, icon: Home, label: 'Главная' },
-                { id: 'find' as const, icon: Search, label: 'Найти заказы' },
-                { id: 'orders' as const, icon: MapPin, label: 'Мои адреса' },
+                { id: 'find' as const, icon: Search, label: 'Найти заказ' },
+                { id: 'history' as const, icon: Calendar, label: 'История заказов' },
               ].map(({ id, icon: Icon, label }) => (
                 <button
                   key={id}
@@ -288,16 +305,12 @@ export default function ContractorDashboard() {
             {/* Drawer footer */}
             <div className="p-3 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
               <button
-                onClick={() => { setActiveTab('profile'); setMobileMenuOpen(false); }}
+                onClick={() => { toast.info('Как это работает?', { description: 'Найдите заказ, выполните его и получите оплату!', duration: 3000 }); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
-                style={{
-                  background: activeTab === 'profile' ? `${ACCENT}18` : 'transparent',
-                  color: activeTab === 'profile' ? ACCENT : c.muted,
-                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                }}
+                style={{ background: 'transparent', color: c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
               >
-                <User className="w-5 h-5" />
-                Профиль
+                <HelpCircle className="w-5 h-5" />
+                Как это работает?
               </button>
               <button
                 onClick={() => { navigate('/customer'); setMobileMenuOpen(false); }}
@@ -308,7 +321,7 @@ export default function ContractorDashboard() {
                 Режим заказчика
               </button>
               <button
-                onClick={() => toggleTheme()}
+                onClick={() => { toggleTheme(); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
                 style={{ background: 'transparent', color: c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
               >
@@ -324,8 +337,8 @@ export default function ContractorDashboard() {
       <div className="flex-1 lg:ml-64">
         <div className="container mx-auto px-3 py-3 pb-24 lg:px-8 lg:py-6 lg:pb-6">
 
-          {/* HOME TAB */}
-          {activeTab === 'home' && (
+          {/* ACTIVE TAB */}
+          {activeTab === 'active' && (
             <div className="max-w-4xl mx-auto space-y-4">
               <LevelSystem data={levelData} variant="contractor" compact={true} />
 
@@ -560,109 +573,78 @@ export default function ContractorDashboard() {
                 );
               })()}
 
-              {/* My addresses */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-base font-semibold" style={{ color: c.text }}>Мои адреса</h2>
-                  <button className="text-xs flex items-center gap-1 h-7 px-2" style={{ background: 'none', border: 'none', color: c.muted, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setActiveTab('find')}>
-                    <Plus className="w-3.5 h-3.5" /> Найти
+            </div>
+          )}
+
+          {/* HOME TAB — overview */}
+          {activeTab === 'home' && (
+            <div className="max-w-4xl mx-auto space-y-4">
+              <LevelSystem data={levelData} variant="contractor" compact={true} />
+              <div style={card}>
+                <div className="text-base font-semibold mb-3" style={{ color: c.text }}>Добро пожаловать, {user?.name?.split(' ')[0] || 'Исполнитель'}!</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl p-3 text-center" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
+                    <div className="text-2xl font-bold" style={{ color: ACCENT }}>{myJobs.filter(j => j.status === 'accepted' || j.status === 'in_progress' || j.status === 'pending_confirmation').length}</div>
+                    <div className="text-xs mt-0.5" style={{ color: c.muted }}>активных заказов</div>
+                  </div>
+                  <div className="rounded-xl p-3 text-center" style={{ background: c.subtle, border: `1px solid ${c.border}` }}>
+                    <div className="text-2xl font-bold" style={{ color: '#4CAF50' }}>{(user?.balance ?? 0).toLocaleString('ru-RU')}₽</div>
+                    <div className="text-xs mt-0.5" style={{ color: c.muted }}>баланс</div>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setActiveTab('find')}>
+                    Найти заказ
+                  </button>
+                  <button className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: c.subtle, color: c.textSub, border: `1px solid ${c.border}`, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setActiveTab('active')}>
+                    Мои заказы
                   </button>
                 </div>
-                {myAddresses.length === 0 ? (
-                  <div className="text-center py-8" style={card}>
-                    <MapPin className="w-8 h-8 mx-auto mb-3" style={{ color: c.border }} />
-                    <div className="text-sm font-medium mb-1" style={{ color: c.text }}>Нет активных адресов</div>
-                    <div className="text-xs mb-3" style={{ color: c.muted }}>Найдите заказы и возьмите первый адрес</div>
-                    <button className="px-4 py-2 rounded-lg text-xs font-medium" style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setActiveTab('find')}>
-                      Найти заказы
-                    </button>
-                  </div>
-                ) : (
-                <div className="space-y-2">
-                  {myAddresses.map((address) => (
-                    <div key={address.id} style={{ ...card, padding: '0.75rem' }}>
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <MapPin className="w-3.5 h-3.5" style={{ color: c.muted }} />
-                            <span className="text-sm font-semibold" style={{ color: c.text }}>{address.address}</span>
-                          </div>
-                          <div className="text-xs mb-1.5" style={{ color: c.muted }}>{address.building} • {address.customer}</div>
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: `${ACCENT}18`, border: `1px solid ${ACCENT}30`, color: ACCENT }}>
-                              <Package className="w-3 h-3" />{address.addressCount} адр
-                            </span>
-                            <div className="flex items-center gap-1">
-                              {address.days.map((dayId) => (
-                                <span key={dayId} className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: '#A78BFA' + '20', color: '#A78BFA' }}>{getDayLabel(dayId)}</span>
-                              ))}
-                              <span className="text-xs" style={{ color: c.muted }}>{address.time}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs" style={{ color: c.muted }}>
-                            <span>{address.floor}</span>
-                            <span>•</span>
-                            <span>{address.hasLift ? '🛗' : '🚶'}</span>
-                          </div>
-                        </div>
-                        <div className="text-right ml-3">
-                          <div className="text-2xl font-bold" style={{ color: c.text }}>{address.price}₽</div>
-                          <div className="text-xs" style={{ color: c.muted }}>{address.addressCount}×50</div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button className="flex-1 h-7 text-xs rounded-lg" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info('Чат в разработке', { duration: 2000 })}>
-                          <MessageCircle className="w-3 h-3 inline mr-1" />Чат
-                        </button>
-                        <button className="flex-1 h-7 text-xs rounded-lg" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info(`Клиент: ${address.customer}`, { description: 'Контакт виден в день вывоза', duration: 2500 })}>
-                          <Phone className="w-3 h-3 inline mr-1" />Звонок
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                )}
               </div>
+            </div>
+          )}
 
-              {/* History */}
+          {/* HISTORY TAB */}
+          {activeTab === 'history' && (
+            <div className="max-w-4xl mx-auto space-y-3">
+              <h1 className="text-xl font-semibold" style={{ color: c.text }}>История заказов</h1>
               {(() => {
                 const completedJobs = myJobs.filter(j => j.status === 'completed');
-                return (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h2 className="text-base font-semibold" style={{ color: c.text }}>История заказов</h2>
-                      {completedJobs.length > 0 && (
-                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#4CAF5018', color: '#4CAF50' }}>{completedJobs.length} выполнено</span>
-                      )}
-                    </div>
-                    {completedJobs.length === 0 ? (
-                      <div className="text-center py-8" style={card}>
-                        <CheckCircle className="w-8 h-8 mx-auto mb-2" style={{ color: c.border }} />
-                        <div className="text-sm" style={{ color: c.muted }}>Выполненные заказы появятся здесь</div>
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {completedJobs.map((job) => {
-                          const dt = job.scheduledAt ? new Date(job.scheduledAt) : null;
-                          const dateStr = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
-                          const timeStr = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
-                          return (
-                            <div key={job.id} className="flex items-center justify-between" style={{ ...card, padding: '0.75rem' }}>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-1.5 mb-0.5">
-                                  <CheckCircle className="w-3.5 h-3.5" style={{ color: '#4CAF50' }} />
-                                  <span className="text-sm font-medium" style={{ color: c.text }}>{job.address}</span>
-                                </div>
-                                <div className="text-xs" style={{ color: c.muted }}>
-                                  {job.asap ? '⚡ ASAP' : `${dateStr} · ${timeStr}`} · {job.volume} мешк.
-                                </div>
-                              </div>
-                              <div className="text-base font-bold ml-3" style={{ color: '#4CAF50' }}>+{job.price}₽</div>
+                const cancelledJobs = myJobs.filter(j => j.status === 'cancelled');
+                const allDone = [...completedJobs, ...cancelledJobs];
+                return allDone.length === 0 ? (
+                  <div className="text-center py-12" style={card}>
+                    <CheckCircle className="w-12 h-12 mx-auto mb-3" style={{ color: c.border }} />
+                    <div className="font-medium mb-1" style={{ color: c.text }}>История пуста</div>
+                    <div className="text-sm" style={{ color: c.muted }}>Выполненные заказы появятся здесь</div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {allDone.map((job) => {
+                      const dt = job.scheduledAt ? new Date(job.scheduledAt) : null;
+                      const dateStr = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
+                      const timeStr = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+                      const isDone = job.status === 'completed';
+                      return (
+                        <div key={job.id} className="flex items-center justify-between" style={{ ...card, padding: '0.875rem' }}>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              {isDone
+                                ? <CheckCircle className="w-3.5 h-3.5" style={{ color: '#4CAF50' }} />
+                                : <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>✕</span>
+                              }
+                              <span className="text-sm font-medium" style={{ color: c.text }}>{job.address}</span>
                             </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            <div className="text-xs" style={{ color: c.muted }}>
+                              {job.asap ? '⚡ ASAP' : `${dateStr} · ${timeStr}`} · {job.volume} мешк.
+                            </div>
+                          </div>
+                          <div className="text-base font-bold ml-3" style={{ color: isDone ? '#4CAF50' : '#9ca3af' }}>
+                            {isDone ? `+${job.price}₽` : 'Отменён'}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })()}
@@ -670,32 +652,38 @@ export default function ContractorDashboard() {
           )}
 
           {/* PROFILE TAB */}
-          {activeTab === 'profile' && (
+          {activeTab === 'profile' && (() => {
+            const statusLabel = (user?.level ?? 1) >= 6 ? 'Мастер' : (user?.level ?? 1) >= 4 ? 'Профи' : (user?.level ?? 1) >= 2 ? 'Опытный' : 'Новичок';
+            const completedJobsCount = myJobs.filter(j => j.status === 'completed').length;
+            const balance = user?.balance ?? 0;
+            return (
             <div className="max-w-4xl mx-auto space-y-3">
               {/* Profile Header */}
               <div style={card}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: `${ACCENT}18` }}>
-                      <User className="w-7 h-7" style={{ color: ACCENT }} />
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-2xl" style={{ background: `${ACCENT}20`, color: ACCENT }}>
+                      {(user?.name || 'U').charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <h1 className="text-lg font-semibold" style={{ color: c.text }}>{user?.name || '—'}</h1>
-                      <div className="text-sm" style={{ color: c.muted }}>{user?.phone || '—'}</div>
+                      <div className="text-xs font-medium px-2 py-0.5 rounded-full inline-block mt-0.5" style={{ background: `${ACCENT}18`, color: ACCENT }}>{statusLabel}</div>
+                      <div className="text-sm mt-1" style={{ color: c.muted }}>{user?.phone || '—'}</div>
                     </div>
                   </div>
                   <button className="h-8 px-3 rounded-lg text-xs" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info('Редактирование профиля', { description: 'Функция в разработке' })}>
                     <Edit className="w-3.5 h-3.5 inline mr-1" />Изменить
                   </button>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   {[
-                    { v: <><Star className="w-3.5 h-3.5 inline" style={{ color: '#FBBF24', fill: '#FBBF24' }} /> —</>, l: 'рейтинг' },
-                    { v: totalAddresses, l: 'адресов' },
-                    { v: 0, l: 'выполнено' },
+                    { v: <><Star className="w-3.5 h-3.5 inline mb-0.5" style={{ color: '#FBBF24', fill: '#FBBF24' }} /> —</>, l: 'рейтинг' },
+                    { v: completedJobsCount, l: 'заказов' },
+                    { v: achievements.filter(a => a.unlocked).length, l: 'достижений' },
+                    { v: '🏆', l: 'награды' },
                   ].map((s, i) => (
-                    <div key={i} className="rounded-xl p-3 text-center" style={{ background: c.subtle }}>
-                      <div className="text-xl font-semibold" style={{ color: c.text }}>{s.v}</div>
+                    <div key={i} className="rounded-xl p-2.5 text-center" style={{ background: c.subtle }}>
+                      <div className="text-lg font-semibold" style={{ color: c.text }}>{s.v}</div>
                       <div className="text-xs" style={{ color: c.muted }}>{s.l}</div>
                     </div>
                   ))}
@@ -704,26 +692,29 @@ export default function ContractorDashboard() {
 
               {/* Earnings */}
               <div style={card}>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Wallet className="w-4 h-4" style={{ color: c.muted }} />
                     <h2 className="text-sm font-semibold" style={{ color: c.text }}>Заработок</h2>
                   </div>
-                  <button className="text-xs flex items-center gap-1" style={{ background: 'none', border: 'none', color: c.muted, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info('История выплат')}>
-                    История <TrendingUp className="w-3.5 h-3.5 inline" />
-                  </button>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl p-4" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-xl p-3" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
+                    <div className="text-xs mb-1" style={{ color: c.muted }}>За день</div>
+                    <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>0₽</div>
+                  </div>
+                  <div className="rounded-xl p-3" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
                     <div className="text-xs mb-1" style={{ color: c.muted }}>За неделю</div>
-                    <div className="text-2xl font-bold" style={{ color: '#4CAF50' }}>0₽</div>
-                    <div className="text-xs mt-0.5" style={{ color: c.muted }}>0 адресов</div>
+                    <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>0₽</div>
                   </div>
-                  <div className="rounded-xl p-4" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
+                  <div className="rounded-xl p-3" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
                     <div className="text-xs mb-1" style={{ color: c.muted }}>За месяц</div>
-                    <div className="text-2xl font-bold" style={{ color: '#4CAF50' }}>0₽</div>
-                    <div className="text-xs mt-0.5" style={{ color: c.muted }}>0 адресов</div>
+                    <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>0₽</div>
                   </div>
+                </div>
+                <div className="mt-3 p-3 rounded-xl flex items-center justify-between" style={{ background: '#4CAF5012', border: '1px solid #4CAF5020' }}>
+                  <div className="text-sm" style={{ color: c.text }}>Баланс</div>
+                  <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>{balance.toLocaleString('ru-RU')}₽</div>
                 </div>
               </div>
 
@@ -732,13 +723,11 @@ export default function ContractorDashboard() {
 
               {/* Work Info */}
               <div style={card}>
-                <h2 className="text-base font-semibold mb-3" style={{ color: c.text }}>Рабочая информация</h2>
+                <h2 className="text-base font-semibold mb-3" style={{ color: c.text }}>Дополнительная информация</h2>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { l: 'Район работы', v: 'Вахитовский' },
-                    { l: 'Транспорт', v: '🚗 Машина' },
-                    { l: 'График', v: 'ПН-СБ' },
-                    { l: 'Время', v: '17:00-21:00' },
+                    { l: 'Район работы', v: user?.district || '—' },
+                    { l: 'Способ передвижения', v: '🚗 Машина' },
                   ].map((item, i) => (
                     <div key={i} className="rounded-lg p-3" style={{ background: c.subtle }}>
                       <div className="text-xs mb-1" style={{ color: c.muted }}>{item.l}</div>
@@ -811,7 +800,8 @@ export default function ContractorDashboard() {
                 Выйти из аккаунта
               </button>
             </div>
-          )}
+            );
+          })()}
 
           {/* FIND ORDERS TAB */}
           {activeTab === 'find' && (
@@ -822,8 +812,17 @@ export default function ContractorDashboard() {
               </div>
 
               {ordersLoading ? (
-                <div style={{ ...card, textAlign: 'center', padding: '2.5rem 1.25rem' }}>
-                  <div className="text-sm" style={{ color: c.muted }}>Загрузка заказов...</div>
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} style={{ ...card, padding: '1rem' }}>
+                      <div className="animate-pulse space-y-3">
+                        <div className="h-4 rounded-lg w-1/2" style={{ background: c.border }} />
+                        <div className="h-3 rounded-lg w-3/4" style={{ background: c.border }} />
+                        <div className="h-3 rounded-lg w-1/3" style={{ background: c.border }} />
+                        <div className="h-10 rounded-lg w-full" style={{ background: c.border }} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : availableOrders.length === 0 ? (
                 <div style={{ ...card, textAlign: 'center', padding: '2.5rem 1.25rem' }}>
@@ -901,51 +900,6 @@ export default function ContractorDashboard() {
             </div>
           )}
 
-          {/* ORDERS TAB (my addresses) */}
-          {activeTab === 'orders' && (
-            <div className="max-w-2xl mx-auto space-y-3">
-              <h1 className="text-xl font-semibold" style={{ color: c.text }}>Мои адреса</h1>
-              <div className="space-y-3">
-                {myAddresses.map((address) => (
-                  <div key={address.id} style={card}>
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <MapPin className="w-4 h-4" style={{ color: c.muted }} />
-                          <span className="font-semibold" style={{ color: c.text }}>{address.address}</span>
-                        </div>
-                        <div className="text-sm mb-2" style={{ color: c.muted }}>{address.building} • {address.customer}</div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: `${ACCENT}18`, border: `1px solid ${ACCENT}20`, color: ACCENT }}>
-                            <Package className="w-3 h-3" />{address.addressCount} адр
-                          </span>
-                          <div className="flex gap-1">
-                            {address.days.map((dayId) => (
-                              <span key={dayId} className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: '#A78BFA' + '20', color: '#A78BFA' }}>{getDayLabel(dayId)}</span>
-                            ))}
-                          </div>
-                          <span className="text-xs" style={{ color: c.muted }}>{address.time}</span>
-                        </div>
-                        <div className="text-xs" style={{ color: c.muted }}>{address.floor} • {address.hasLift ? '🛗 Есть лифт' : '🚶 Без лифта'}</div>
-                      </div>
-                      <div className="text-right ml-4">
-                        <div className="text-2xl font-bold" style={{ color: c.text }}>{address.price}₽</div>
-                        <div className="text-xs" style={{ color: c.muted }}>следующий: {address.nextOrder}</div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button className="flex-1 py-2 text-sm rounded-lg" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info('Чат в разработке', { duration: 2000 })}>
-                        <MessageCircle className="w-3.5 h-3.5 inline mr-1" />Чат
-                      </button>
-                      <button className="flex-1 py-2 text-sm rounded-lg" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info(`Клиент: ${address.customer}`, { duration: 2500 })}>
-                        <Phone className="w-3.5 h-3.5 inline mr-1" />Звонок
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -1022,6 +976,19 @@ export default function ContractorDashboard() {
                 </div>
               )}
 
+              {/* Map button */}
+              <button
+                className="w-full h-10 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
+                style={{ background: c.subtle, color: c.textSub, border: `1px solid ${c.border}`, cursor: 'pointer', fontFamily: 'inherit' }}
+                onClick={() => {
+                  const addr = encodeURIComponent(selectedOrder.address);
+                  window.open(`https://yandex.ru/maps/?rtext=~${addr}&rtt=auto`, '_blank');
+                }}
+              >
+                <MapPin className="w-4 h-4" style={{ color: '#F97316' }} />
+                Маршрут на Яндекс.Картах
+              </button>
+
               {/* Accept button */}
               <button
                 className="w-full h-12 rounded-xl text-sm font-semibold"
@@ -1035,8 +1002,8 @@ export default function ContractorDashboard() {
                     setAvailableOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
                     setMyJobs((prev) => [accepted, ...prev]);
                     setSelectedOrder(null);
-                    setActiveTab('home');
-                    toast.success('Заказ принят!', { description: 'Он появился в разделе «Мои заказы»', duration: 3000 });
+                    setActiveTab('active');
+                    toast.success('Заказ принят!', { description: 'Он появился в разделе «Активные заказы»', duration: 3000 });
                   } catch (err: any) {
                     toast.error(err?.message || 'Не удалось принять заказ');
                   } finally {
@@ -1062,13 +1029,21 @@ export default function ContractorDashboard() {
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40" style={{ background: c.surface, borderTop: `1px solid ${c.border}` }}>
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-around h-16">
-            <button onClick={() => setActiveTab('home')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'home' ? c.text : c.muted }}>
+            <button onClick={() => setActiveTab('active')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'active' ? ACCENT : c.muted }}>
+              <CheckCircle className="w-6 h-6" />
+              <span className="text-xs">Активные</span>
+            </button>
+            <button onClick={() => setActiveTab('home')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'home' ? ACCENT : c.muted }}>
               <Home className="w-6 h-6" />
               <span className="text-xs">Главная</span>
             </button>
             <button onClick={() => setActiveTab('find')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'find' ? ACCENT : c.muted }}>
               <Search className="w-6 h-6" />
               <span className="text-xs">Найти</span>
+            </button>
+            <button onClick={() => setActiveTab('history')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'history' ? ACCENT : c.muted }}>
+              <Calendar className="w-6 h-6" />
+              <span className="text-xs">История</span>
             </button>
           </div>
         </div>
