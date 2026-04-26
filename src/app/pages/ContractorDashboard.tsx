@@ -48,6 +48,7 @@ export default function ContractorDashboard() {
   const [editInfoOpen, setEditInfoOpen] = useState(false);
   const [editInfoForm, setEditInfoForm] = useState({ district: '', transportMode: 'car' });
   const [editInfoSaving, setEditInfoSaving] = useState(false);
+  const prevJobStatusesRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     if (activeTab !== 'find') return;
@@ -66,7 +67,19 @@ export default function ContractorDashboard() {
     if (activeTab !== 'active' && activeTab !== 'home' && activeTab !== 'history' && activeTab !== 'profile') return;
     const load = () => {
       ordersApi.myJobs().then((res: any) => {
-        setMyJobs(res?.data ?? []);
+        const jobs: Order[] = res?.data ?? [];
+        // Detect pending_confirmation → completed transitions
+        jobs.forEach(job => {
+          const prev = prevJobStatusesRef.current[job.id];
+          if (prev === 'pending_confirmation' && job.status === 'completed') {
+            toast.success('✅ Выполнение заявки подтверждено', {
+              description: `Заказ по адресу ${job.address} подтверждён заказчиком`,
+              duration: 6000,
+            });
+          }
+        });
+        prevJobStatusesRef.current = Object.fromEntries(jobs.map(j => [j.id, j.status]));
+        setMyJobs(jobs);
       }).catch(() => {});
     };
     load();
