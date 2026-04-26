@@ -27,6 +27,7 @@ export interface Order {
   asap: boolean;
   scheduledAt: string | null;
   createdAt: string;
+  updatedAt: string;
   ratingByCustomer: number | null;
   ratingByContractor: number | null;
 }

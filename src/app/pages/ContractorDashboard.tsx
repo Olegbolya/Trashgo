@@ -45,6 +45,9 @@ export default function ContractorDashboard() {
   const [showMap, setShowMap] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [ratingOrder, setRatingOrder] = useState<{ id: string; customerName: string } | null>(null);
+  const [editInfoOpen, setEditInfoOpen] = useState(false);
+  const [editInfoForm, setEditInfoForm] = useState({ district: '', transportMode: 'car' });
+  const [editInfoSaving, setEditInfoSaving] = useState(false);
 
   useEffect(() => {
     if (activeTab !== 'find') return;
@@ -60,7 +63,7 @@ export default function ContractorDashboard() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (activeTab !== 'active' && activeTab !== 'home' && activeTab !== 'history') return;
+    if (activeTab !== 'active' && activeTab !== 'home' && activeTab !== 'history' && activeTab !== 'profile') return;
     const load = () => {
       ordersApi.myJobs().then((res: any) => {
         setMyJobs(res?.data ?? []);
@@ -101,26 +104,44 @@ export default function ContractorDashboard() {
     input:   isDark ? '#1f2937' : '#ffffff',
   };
 
-  const levelData: LevelData = {
-    level: user?.level ?? 1,
-    xp: user?.xp ?? 0,
-    nextLevelXp: 100,
-    title: 'Новый исполнитель',
-    rank: '🌱 Новичок',
-    achievements: 0,
-    totalOrders: 0,
-  };
+  // XP level thresholds (min total XP to reach each level)
+  const XP_THRESHOLDS = [0, 100, 200, 400, 700, 1000];
+  const currentXp = user?.xp ?? 0;
+  const currentLevel = user?.level ?? 1;
+  const nextLevelXp = XP_THRESHOLDS[Math.min(currentLevel, XP_THRESHOLDS.length - 1)] || 1000;
+
+  // Earnings: filter completed jobs by date using updatedAt
+  const completedJobs = myJobs.filter(j => j.status === 'completed');
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - 7);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const earningsDay = completedJobs.filter(j => new Date((j as any).updatedAt ?? j.createdAt) >= todayStart).reduce((s, j) => s + j.price, 0);
+  const earningsWeek = completedJobs.filter(j => new Date((j as any).updatedAt ?? j.createdAt) >= weekStart).reduce((s, j) => s + j.price, 0);
+  const earningsMonth = completedJobs.filter(j => new Date((j as any).updatedAt ?? j.createdAt) >= monthStart).reduce((s, j) => s + j.price, 0);
+
+  const completedJobsCount = completedJobs.length;
 
   const achievements: Achievement[] = [
-    { id: 'first_pickup', icon: '🎯', title: 'Первый вывоз', description: 'Выполните свой первый заказ', unlocked: false, reward: '+10 XP' },
-    { id: 'speed_master', icon: '⚡', title: 'Мастер скорости', description: 'Вывезите 100 адресов', unlocked: false, progress: 0, maxProgress: 100, reward: '+50 XP' },
-    { id: 'reliable_contractor', icon: '⭐', title: 'Надежный исполнитель', description: 'Рейтинг 4.5+ после 20 заказов', unlocked: false, progress: 0, maxProgress: 20, reward: 'Значок надежности' },
-    { id: 'subscription_pro', icon: '🔄', title: 'Мастер подписок', description: 'Получите 5 постоянных адресов', unlocked: false, progress: 0, maxProgress: 5, reward: 'Приоритет в поиске' },
-    { id: 'early_bird', icon: '🌅', title: 'Ранняя пташка', description: 'Начните вывоз до 7:00', unlocked: false, progress: 0, maxProgress: 1 },
-    { id: 'marathon_runner', icon: '🏃', title: 'Марафонец', description: 'Работайте 30 дней подряд', unlocked: false, progress: 0, maxProgress: 30 },
-    { id: 'top_rated', icon: '🌟', title: 'Лучший рейтинг', description: 'Получите рейтинг 5.0', unlocked: false, progress: 0, maxProgress: 5.0 },
-    { id: 'big_earner', icon: '💰', title: 'Большой заработок', description: 'Заработайте 50000₽ за месяц', unlocked: false, progress: 0, maxProgress: 50000 },
+    { id: 'first_pickup', icon: '🎯', title: 'Первый вывоз', description: 'Выполните свой первый заказ', unlocked: completedJobsCount >= 1, reward: '+10 XP' },
+    { id: 'five_orders', icon: '⚡', title: 'Пять вывозов', description: 'Выполните 5 заказов', unlocked: completedJobsCount >= 5, progress: Math.min(completedJobsCount, 5), maxProgress: 5, reward: '+25 XP' },
+    { id: 'ten_orders', icon: '🔥', title: 'Десять вывозов', description: 'Выполните 10 заказов', unlocked: completedJobsCount >= 10, progress: Math.min(completedJobsCount, 10), maxProgress: 10, reward: '+50 XP' },
+    { id: 'level_3', icon: '⭐', title: 'Уровень 3', description: 'Достигните 3-го уровня', unlocked: currentLevel >= 3, reward: 'Значок надёжности' },
+    { id: 'earner', icon: '💰', title: 'Заработок', description: 'Заработайте первые 1000₽', unlocked: (user?.balance ?? 0) >= 1000, reward: '+15 XP' },
+    { id: 'marathon_runner', icon: '🏃', title: 'Марафонец', description: 'Выполните 30 заказов', unlocked: completedJobsCount >= 30, progress: Math.min(completedJobsCount, 30), maxProgress: 30 },
+    { id: 'top_rated', icon: '🌟', title: 'Мастер скорости', description: 'Выполните 50 заказов', unlocked: completedJobsCount >= 50, progress: Math.min(completedJobsCount, 50), maxProgress: 50 },
+    { id: 'big_earner', icon: '🏆', title: 'Большой заработок', description: 'Заработайте 10000₽ за месяц', unlocked: earningsMonth >= 10000, progress: Math.min(earningsMonth, 10000), maxProgress: 10000, reward: 'Звание «Мастер»' },
   ];
+
+  const levelData: LevelData = {
+    level: currentLevel,
+    xp: currentXp,
+    nextLevelXp,
+    title: 'Исполнитель TrashGo',
+    rank: '🌱 Новичок',
+    achievements: achievements.filter(a => a.unlocked).length,
+    totalOrders: completedJobsCount,
+  };
 
   const handleStartPickup = (order: any) => {
     toast.success('🚀 Вынос начат!', { description: `Клиентам по адресу ${order.address} отправлены уведомления`, duration: 3000 });
@@ -680,8 +701,7 @@ export default function ContractorDashboard() {
 
           {/* PROFILE TAB */}
           {activeTab === 'profile' && (() => {
-            const statusLabel = (user?.level ?? 1) >= 6 ? 'Мастер' : (user?.level ?? 1) >= 4 ? 'Профи' : (user?.level ?? 1) >= 2 ? 'Опытный' : 'Новичок';
-            const completedJobsCount = myJobs.filter(j => j.status === 'completed').length;
+            const statusLabel = currentLevel >= 6 ? 'Мастер' : currentLevel >= 4 ? 'Профи' : currentLevel >= 2 ? 'Опытный' : 'Новичок';
             const balance = user?.balance ?? 0;
             return (
             <div className="max-w-4xl mx-auto space-y-3">
@@ -728,15 +748,15 @@ export default function ContractorDashboard() {
                 <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-xl p-3" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
                     <div className="text-xs mb-1" style={{ color: c.muted }}>За день</div>
-                    <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>0₽</div>
+                    <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>{earningsDay.toLocaleString('ru-RU')}₽</div>
                   </div>
                   <div className="rounded-xl p-3" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
                     <div className="text-xs mb-1" style={{ color: c.muted }}>За неделю</div>
-                    <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>0₽</div>
+                    <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>{earningsWeek.toLocaleString('ru-RU')}₽</div>
                   </div>
                   <div className="rounded-xl p-3" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
                     <div className="text-xs mb-1" style={{ color: c.muted }}>За месяц</div>
-                    <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>0₽</div>
+                    <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>{earningsMonth.toLocaleString('ru-RU')}₽</div>
                   </div>
                 </div>
                 <div className="mt-3 p-3 rounded-xl flex items-center justify-between" style={{ background: '#4CAF5012', border: '1px solid #4CAF5020' }}>
@@ -749,20 +769,37 @@ export default function ContractorDashboard() {
               <AchievementsPanel achievements={achievements} variant="contractor" />
 
               {/* Work Info */}
-              <div style={card}>
-                <h2 className="text-base font-semibold mb-3" style={{ color: c.text }}>Дополнительная информация</h2>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { l: 'Район работы', v: user?.district || '—' },
-                    { l: 'Способ передвижения', v: '🚗 Машина' },
-                  ].map((item, i) => (
-                    <div key={i} className="rounded-lg p-3" style={{ background: c.subtle }}>
-                      <div className="text-xs mb-1" style={{ color: c.muted }}>{item.l}</div>
-                      <div className="text-sm font-medium" style={{ color: c.text }}>{item.v}</div>
+              {(() => {
+                const transportLabel: Record<string, string> = {
+                  pedestrian: '🚶 Пеший', scooter: '🛴 Самокат', bicycle: '🚲 Велосипед',
+                  'e-bicycle': '⚡🚲 Электровелосипед', moto: '🏍️ Мото', car: '🚗 Автомобиль',
+                };
+                const tMode = user?.transportMode || 'car';
+                return (
+                  <div style={card}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h2 className="text-base font-semibold" style={{ color: c.text }}>Дополнительная информация</h2>
+                      <button
+                        onClick={() => { setEditInfoForm({ district: user?.district || '', transportMode: tMode }); setEditInfoOpen(true); }}
+                        style={{ background: c.subtle, border: `1px solid ${c.border}`, color: c.textSub, borderRadius: '0.5rem', padding: '0.25rem 0.75rem', fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        <Edit className="w-3 h-3 inline mr-1" />Изменить
+                      </button>
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { l: 'Район работы', v: user?.district || '—' },
+                        { l: 'Способ передвижения', v: transportLabel[tMode] || '🚗 Автомобиль' },
+                      ].map((item, i) => (
+                        <div key={i} className="rounded-lg p-3" style={{ background: c.subtle }}>
+                          <div className="text-xs mb-1" style={{ color: c.muted }}>{item.l}</div>
+                          <div className="text-sm font-medium" style={{ color: c.text }}>{item.v}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Menu items */}
               <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
@@ -1123,6 +1160,85 @@ export default function ContractorDashboard() {
           }}
           onSkip={() => setRatingOrder(null)}
         />
+      )}
+
+      {/* Edit work info modal */}
+      {editInfoOpen && (
+        <div className="fixed inset-0 z-[90] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setEditInfoOpen(false)}>
+          <div
+            className="w-full lg:max-w-sm rounded-t-2xl lg:rounded-2xl"
+            style={{ background: c.surface }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-base font-bold" style={{ color: c.text }}>Дополнительная информация</div>
+                <button onClick={() => setEditInfoOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '1.1rem' }}>✕</button>
+              </div>
+
+              {/* District */}
+              <div className="mb-4">
+                <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Район работы</div>
+                <input
+                  value={editInfoForm.district}
+                  onChange={e => setEditInfoForm(f => ({ ...f, district: e.target.value }))}
+                  placeholder="Например: Вахитовский"
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                />
+              </div>
+
+              {/* Transport mode */}
+              <div className="mb-5">
+                <div className="text-xs font-medium mb-2" style={{ color: c.muted }}>Способ передвижения</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: 'pedestrian', label: 'Пеший', icon: '🚶' },
+                    { value: 'scooter', label: 'Самокат', icon: '🛴' },
+                    { value: 'bicycle', label: 'Велосипед', icon: '🚲' },
+                    { value: 'e-bicycle', label: 'Электро­вело', icon: '⚡🚲' },
+                    { value: 'moto', label: 'Мото', icon: '🏍️' },
+                    { value: 'car', label: 'Авто', icon: '🚗' },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setEditInfoForm(f => ({ ...f, transportMode: opt.value }))}
+                      style={{
+                        padding: '0.625rem 0.25rem', borderRadius: '0.75rem', textAlign: 'center',
+                        border: `1.5px solid ${editInfoForm.transportMode === opt.value ? ACCENT : c.border}`,
+                        background: editInfoForm.transportMode === opt.value ? `${ACCENT}15` : c.subtle,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                      }}
+                    >
+                      <div style={{ fontSize: '1.25rem', marginBottom: '0.2rem' }}>{opt.icon}</div>
+                      <div style={{ fontSize: '0.7rem', color: editInfoForm.transportMode === opt.value ? ACCENT : c.textSub, fontWeight: editInfoForm.transportMode === opt.value ? 600 : 400 }}>{opt.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                disabled={editInfoSaving}
+                onClick={async () => {
+                  setEditInfoSaving(true);
+                  try {
+                    const updated = await authApi.updateProfile({ district: editInfoForm.district, transportMode: editInfoForm.transportMode });
+                    updateUser(updated);
+                    setEditInfoOpen(false);
+                    toast.success('Данные обновлены');
+                  } catch {
+                    toast.error('Не удалось сохранить');
+                  } finally {
+                    setEditInfoSaving(false);
+                  }
+                }}
+                className="w-full h-11 rounded-xl text-sm font-semibold"
+                style={{ background: ACCENT, color: 'white', border: 'none', cursor: editInfoSaving ? 'not-allowed' : 'pointer', opacity: editInfoSaving ? 0.6 : 1, fontFamily: 'inherit' }}
+              >
+                {editInfoSaving ? 'Сохраняем...' : 'Сохранить'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

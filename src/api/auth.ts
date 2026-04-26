@@ -54,4 +54,9 @@ export const authApi = {
     const res = await api.post<{ data: { token: string; refreshToken: string } }>('/auth/refresh', { refreshToken });
     return res.data;
   },
+
+  async updateProfile(data: { name?: string; district?: string; transportMode?: string }): Promise<User> {
+    const res = await api.patch<{ data: User }>('/users/me', data);
+    return res.data;
+  },
 };

@@ -6,6 +6,7 @@ export interface User {
   name: string;
   role: UserRole;
   district: string;
+  transportMode?: string;
   xp: number;
   level: number;
   balance: number;
