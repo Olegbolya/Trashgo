@@ -922,8 +922,8 @@ export default function ContractorDashboard() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4" style={{ borderBottom: `1px solid ${c.border}` }}>
-              <button onClick={() => { setSelectedOrder(null); setShowMap(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.25rem', fontSize: '0.875rem' }}>
+            <div className="flex items-center justify-between p-4" style={{ borderBottom: `1px solid ${c.border}`, position: 'sticky', top: 0, background: c.surface, zIndex: 1 }}>
+              <button onClick={() => { setSelectedOrder(null); setShowMap(false); }} style={{ background: c.subtle, border: 'none', cursor: 'pointer', color: c.textSub, display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.4rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.875rem', fontFamily: 'inherit', fontWeight: 500 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 Назад
               </button>
