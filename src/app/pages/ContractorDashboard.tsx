@@ -1096,6 +1096,10 @@ export default function ContractorDashboard() {
               <Calendar className="w-6 h-6" />
               <span className="text-xs">История</span>
             </button>
+            <button onClick={() => setActiveTab('profile')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'profile' ? ACCENT : c.muted }}>
+              <User className="w-6 h-6" />
+              <span className="text-xs">Профиль</span>
+            </button>
           </div>
         </div>
       </nav>

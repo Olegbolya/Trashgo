@@ -63,7 +63,7 @@ export default function CustomerDashboard() {
     date: string; time: string; asap: boolean; volume: number; price: number;
     description: string; photoUrls: string[]; completionPhotoUrls: string[];
     status: 'waiting' | 'active' | 'pending' | 'cancelled' | 'completed';
-    responses: number; createdAt: string;
+    responses: number; createdAt: string; ratingByCustomer: number | null;
   };
 
   function apiOrderToMyOrder(o: Order, inMemoryPhotos?: string[]): MyOrder {
@@ -89,6 +89,7 @@ export default function CustomerDashboard() {
       status,
       responses: 0,
       createdAt: new Date(o.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }),
+      ratingByCustomer: o.ratingByCustomer ?? null,
     };
   }
 
@@ -563,17 +564,33 @@ export default function CustomerDashboard() {
                 ) : (
                   <div className="space-y-2">
                     {historyOrders.map((order) => (
-                      <div key={order.id} className="flex items-center justify-between" style={{ ...card, padding: '1rem', cursor: 'pointer' }} onClick={() => setSelectedOrder(order)}>
-                        <div>
-                          <div className="text-sm font-medium" style={{ color: c.text }}>{order.address}</div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <div className="text-xs" style={{ color: c.muted }}>{order.createdAt} · {order.volume} мешк.</div>
-                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: order.status === 'completed' ? `${ACCENT}18` : '#9ca3af18', color: order.status === 'completed' ? ACCENT : '#9ca3af' }}>
-                              {order.status === 'completed' ? '✓ Выполнен' : 'Отменён'}
-                            </span>
+                      <div key={order.id} style={{ ...card, padding: '1rem' }}>
+                        <div className="flex items-center justify-between" style={{ cursor: 'pointer' }} onClick={() => setSelectedOrder(order)}>
+                          <div>
+                            <div className="text-sm font-medium" style={{ color: c.text }}>{order.address}</div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <div className="text-xs" style={{ color: c.muted }}>{order.createdAt} · {order.volume} мешк.</div>
+                              <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: order.status === 'completed' ? `${ACCENT}18` : '#9ca3af18', color: order.status === 'completed' ? ACCENT : '#9ca3af' }}>
+                                {order.status === 'completed' ? '✓ Выполнен' : 'Отменён'}
+                              </span>
+                            </div>
                           </div>
+                          <div className="text-sm font-medium" style={{ color: c.text }}>{order.price}₽</div>
                         </div>
-                        <div className="text-sm font-medium" style={{ color: c.text }}>{order.price}₽</div>
+                        {order.status === 'completed' && !order.ratingByCustomer && (
+                          <button
+                            className="w-full mt-2 h-8 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5"
+                            style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}30`, color: ACCENT, cursor: 'pointer', fontFamily: 'inherit' }}
+                            onClick={() => setRatingOrder({ id: order.id, contractorName: 'Исполнитель' })}
+                          >
+                            ⭐ Оценить исполнителя
+                          </button>
+                        )}
+                        {order.status === 'completed' && order.ratingByCustomer && (
+                          <div className="mt-2 text-xs text-center" style={{ color: c.muted }}>
+                            {'★'.repeat(order.ratingByCustomer)}{'☆'.repeat(5 - order.ratingByCustomer)} Вы оценили
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1428,6 +1445,7 @@ export default function CustomerDashboard() {
                         setMyOrders((prev) => prev.map(o => o.id === orderId ? { ...o, status: 'completed' as const } : o));
                         setSelectedOrder(null);
                         toast.success('Заказ подтверждён!', { description: 'Оплата исполнителю начислена', duration: 3000 });
+                        setRatingOrder({ id: orderId, contractorName: orderContact?.contractorName || 'Исполнитель' });
                       } catch (e: any) {
                         toast.error(e?.message || 'Ошибка подтверждения');
                       } finally {
@@ -1511,13 +1529,21 @@ export default function CustomerDashboard() {
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40" style={{ background: c.surface, borderTop: `1px solid ${c.border}` }}>
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-around h-16">
-            <button onClick={() => setActiveTab('home')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'home' ? c.text : c.muted }}>
+            <button onClick={() => setActiveTab('home')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'home' ? ACCENT : c.muted }}>
               <Home className="w-6 h-6" />
               <span className="text-xs">Главная</span>
             </button>
             <button onClick={() => setActiveTab('create')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'create' ? ACCENT : c.muted }}>
               <Plus className="w-6 h-6" />
               <span className="text-xs">Создать</span>
+            </button>
+            <button onClick={() => setActiveTab('calendar')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'calendar' ? ACCENT : c.muted }}>
+              <Clock className="w-6 h-6" />
+              <span className="text-xs">История</span>
+            </button>
+            <button onClick={() => setActiveTab('profile')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'profile' ? ACCENT : c.muted }}>
+              <User className="w-6 h-6" />
+              <span className="text-xs">Профиль</span>
             </button>
           </div>
         </div>
