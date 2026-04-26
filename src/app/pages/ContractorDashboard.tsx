@@ -11,6 +11,8 @@ import { ordersApi } from '../../api/orders';
 import { authApi } from '../../api/auth';
 import type { Order, ChatMessage } from '../../types/order';
 import { MapView } from '../components/MapView';
+import { HowItWorksModal } from '../components/HowItWorksModal';
+import { RatingModal } from '../components/RatingModal';
 
 const ACCENT = '#2196F3';
 
@@ -41,6 +43,8 @@ export default function ContractorDashboard() {
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const [hiddenOrderIds, setHiddenOrderIds] = useState<Set<string>>(new Set());
   const [showMap, setShowMap] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [ratingOrder, setRatingOrder] = useState<{ id: string; customerName: string } | null>(null);
 
   useEffect(() => {
     if (activeTab !== 'find') return;
@@ -190,7 +194,7 @@ export default function ContractorDashboard() {
 
         <div className="p-4 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
           <button
-            onClick={() => toast.info('Как это работает?', { description: 'Найдите заказ, выполните его и получите оплату!', duration: 3000 })}
+            onClick={() => setShowHowItWorks(true)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
             style={{ background: 'transparent', color: c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
           >
@@ -312,7 +316,7 @@ export default function ContractorDashboard() {
             {/* Drawer footer */}
             <div className="p-3 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
               <button
-                onClick={() => { toast.info('Как это работает?', { description: 'Найдите заказ, выполните его и получите оплату!', duration: 3000 }); setMobileMenuOpen(false); }}
+                onClick={() => { setShowHowItWorks(true); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
                 style={{ background: 'transparent', color: c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
               >
@@ -633,22 +637,38 @@ export default function ContractorDashboard() {
                       const timeStr = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
                       const isDone = job.status === 'completed';
                       return (
-                        <div key={job.id} className="flex items-center justify-between" style={{ ...card, padding: '0.875rem' }}>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-1.5 mb-0.5">
-                              {isDone
-                                ? <CheckCircle className="w-3.5 h-3.5" style={{ color: '#4CAF50' }} />
-                                : <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>✕</span>
-                              }
-                              <span className="text-sm font-medium" style={{ color: c.text }}>{job.address}</span>
+                        <div key={job.id} style={{ ...card, padding: '0.875rem' }}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                {isDone
+                                  ? <CheckCircle className="w-3.5 h-3.5" style={{ color: '#4CAF50' }} />
+                                  : <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>✕</span>
+                                }
+                                <span className="text-sm font-medium" style={{ color: c.text }}>{job.address}</span>
+                              </div>
+                              <div className="text-xs" style={{ color: c.muted }}>
+                                {job.asap ? '⚡ ASAP' : `${dateStr} · ${timeStr}`} · {job.volume} мешк.
+                              </div>
                             </div>
-                            <div className="text-xs" style={{ color: c.muted }}>
-                              {job.asap ? '⚡ ASAP' : `${dateStr} · ${timeStr}`} · {job.volume} мешк.
+                            <div className="text-base font-bold ml-3" style={{ color: isDone ? '#4CAF50' : '#9ca3af' }}>
+                              {isDone ? `+${job.price}₽` : 'Отменён'}
                             </div>
                           </div>
-                          <div className="text-base font-bold ml-3" style={{ color: isDone ? '#4CAF50' : '#9ca3af' }}>
-                            {isDone ? `+${job.price}₽` : 'Отменён'}
-                          </div>
+                          {isDone && !(job as any).ratingByContractor && (
+                            <button
+                              className="w-full mt-2 h-8 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5"
+                              style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}30`, color: ACCENT, cursor: 'pointer', fontFamily: 'inherit' }}
+                              onClick={() => setRatingOrder({ id: job.id, customerName: 'Заказчик' })}
+                            >
+                              ⭐ Оценить заказчика
+                            </button>
+                          )}
+                          {isDone && (job as any).ratingByContractor && (
+                            <div className="mt-2 text-xs text-center" style={{ color: c.muted }}>
+                              {'★'.repeat((job as any).ratingByContractor)}{'☆'.repeat(5 - (job as any).ratingByContractor)} Вы оценили
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1079,6 +1099,27 @@ export default function ContractorDashboard() {
           </div>
         </div>
       </nav>
+
+      {showHowItWorks && (
+        <HowItWorksModal variant="contractor" isDark={isDark} onClose={() => setShowHowItWorks(false)} />
+      )}
+
+      {ratingOrder && (
+        <RatingModal
+          orderId={ratingOrder.id}
+          targetName={ratingOrder.customerName}
+          role="contractor"
+          isDark={isDark}
+          onSubmit={async (rating) => {
+            try {
+              await ordersApi.rate(ratingOrder.id, rating);
+              toast.success('Спасибо за оценку!', { duration: 2000 });
+            } catch { }
+            setRatingOrder(null);
+          }}
+          onSkip={() => setRatingOrder(null)}
+        />
+      )}
     </div>
   );
 }

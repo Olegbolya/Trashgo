@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import { getDayLabel } from '../lib/utils';
 import { ordersApi } from '../../api/orders';
 import type { Order, ChatMessage } from '../../types/order';
+import { HowItWorksModal } from '../components/HowItWorksModal';
+import { RatingModal } from '../components/RatingModal';
 
 const ACCENT = '#66BB6A';
 
@@ -53,6 +55,8 @@ export default function CustomerDashboard() {
   const [chatSending, setChatSending] = useState(false);
   const [orderContact, setOrderContact] = useState<{ contractorPhone: string; contractorName: string } | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [ratingOrder, setRatingOrder] = useState<{ id: string; contractorName: string } | null>(null);
 
   type MyOrder = {
     id: string; address: string; entrance: string; floor: string; apartment: string;
@@ -253,7 +257,7 @@ export default function CustomerDashboard() {
 
         <div className="p-4 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
           <button
-            onClick={() => toast.info('Как это работает?', { description: 'Создайте заказ — исполнители сами придут к вам!', duration: 3000 })}
+            onClick={() => setShowHowItWorks(true)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
             style={{ background: 'transparent', color: c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
           >
@@ -375,7 +379,7 @@ export default function CustomerDashboard() {
             {/* Drawer footer */}
             <div className="p-3 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
               <button
-                onClick={() => { toast.info('Как это работает?', { description: 'Создайте заказ — исполнители сами придут к вам!', duration: 3000 }); setMobileMenuOpen(false); }}
+                onClick={() => { setShowHowItWorks(true); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
                 style={{ background: 'transparent', color: c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
               >
@@ -1231,6 +1235,7 @@ export default function CustomerDashboard() {
                     setMyOrders((prev) => prev.map(o => o.id === orderId ? { ...o, status: 'completed' as const } : o));
                     setSelectedOrder(null);
                     toast.success('Заказ подтверждён!', { description: 'Оплата исполнителю начислена', duration: 3000 });
+                    setRatingOrder({ id: orderId, contractorName: orderContact?.contractorName || 'Исполнитель' });
                   } catch (err: any) {
                     toast.error(err?.message || 'Ошибка подтверждения');
                   } finally {
@@ -1517,6 +1522,27 @@ export default function CustomerDashboard() {
           </div>
         </div>
       </nav>
+
+      {showHowItWorks && (
+        <HowItWorksModal variant="customer" isDark={isDark} onClose={() => setShowHowItWorks(false)} />
+      )}
+
+      {ratingOrder && (
+        <RatingModal
+          orderId={ratingOrder.id}
+          targetName={ratingOrder.contractorName}
+          role="customer"
+          isDark={isDark}
+          onSubmit={async (rating) => {
+            try {
+              await ordersApi.rate(ratingOrder.id, rating);
+              toast.success('Спасибо за оценку!', { duration: 2000 });
+            } catch { }
+            setRatingOrder(null);
+          }}
+          onSkip={() => setRatingOrder(null)}
+        />
+      )}
     </div>
   );
 }

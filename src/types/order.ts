@@ -27,6 +27,8 @@ export interface Order {
   asap: boolean;
   scheduledAt: string | null;
   createdAt: string;
+  ratingByCustomer: number | null;
+  ratingByContractor: number | null;
 }
 
 export interface CreateOrderInput {

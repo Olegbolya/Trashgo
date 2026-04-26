@@ -56,4 +56,8 @@ export const ordersApi = {
   sendMessage(id: string, text: string) {
     return api.post<ChatMessage>(`/orders/${id}/messages`, { text });
   },
+
+  rate(id: string, rating: number) {
+    return api.post<{ ok: boolean }>(`/orders/${id}/rate`, { rating });
+  },
 };
