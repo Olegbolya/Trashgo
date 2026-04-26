@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   address: string;
@@ -6,8 +6,10 @@ interface Props {
 }
 
 export function MapView({ address, isDark }: Props) {
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   const geocodedRef = useRef(false);
 
   useEffect(() => {
@@ -26,6 +28,50 @@ export function MapView({ address, isDark }: Props) {
       })
       .catch(() => setStatus('error'));
   }, [address]);
+
+  useEffect(() => {
+    if (!coords || !containerRef.current || mapRef.current) return;
+
+    const { lat, lon } = coords;
+
+    // Inject Leaflet CSS from CDN once
+    if (!document.querySelector('link[data-leaflet-css]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      link.setAttribute('data-leaflet-css', '1');
+      document.head.appendChild(link);
+    }
+
+    import('leaflet').then(({ default: L }) => {
+      if (!containerRef.current || mapRef.current) return;
+
+      const map = L.map(containerRef.current, { zoomControl: true }).setView([lat, lon], 15);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+        maxZoom: 19,
+      }).addTo(map);
+
+      // Div-based marker — no image files needed
+      const icon = L.divIcon({
+        html: '<div style="width:18px;height:18px;background:#2196F3;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.5)"></div>',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
+        className: '',
+      });
+
+      L.marker([lat, lon], { icon }).addTo(map);
+      mapRef.current = map;
+    });
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [coords]);
 
   const bg = isDark ? '#1f2937' : '#f3f4f6';
   const surface = isDark ? '#1e2433' : '#ffffff';
@@ -46,16 +92,14 @@ export function MapView({ address, isDark }: Props) {
         <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
           <a
             href={`https://www.google.com/maps/search/${encodeURIComponent(address)}`}
-            target="_blank"
-            rel="noreferrer"
+            target="_blank" rel="noreferrer"
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '2.25rem', borderRadius: '0.5rem', background: '#4285F4', color: 'white', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}
           >
             📍 Google Maps
           </a>
           <a
             href={`https://2gis.ru/search/${encodeURIComponent(address)}`}
-            target="_blank"
-            rel="noreferrer"
+            target="_blank" rel="noreferrer"
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '2.25rem', borderRadius: '0.5rem', background: '#1E9B5A', color: 'white', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}
           >
             🗺️ 2GIS
@@ -66,34 +110,23 @@ export function MapView({ address, isDark }: Props) {
   }
 
   const { lat, lon } = coords;
-  const delta = 0.008;
-  const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${lon - delta},${lat - delta},${lon + delta},${lat + delta}&layer=mapnik&marker=${lat},${lon}`;
   const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
   const twoGisUrl = `https://2gis.ru/directions/pedestrian/geo%2F${lon}%2C${lat}`;
 
   return (
     <div style={{ borderRadius: '0.75rem', overflow: 'hidden', border: `1px solid ${border}` }}>
-      <iframe
-        src={mapSrc}
-        width="100%"
-        height="240"
-        style={{ border: 'none', display: 'block' }}
-        title="Карта"
-        loading="lazy"
-      />
+      <div ref={containerRef} style={{ height: '240px', width: '100%' }} />
       <div style={{ display: 'flex', gap: '0.5rem', padding: '0.625rem', background: surface }}>
         <a
           href={gmapsUrl}
-          target="_blank"
-          rel="noreferrer"
+          target="_blank" rel="noreferrer"
           style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', height: '2.25rem', borderRadius: '0.5rem', background: '#4285F4', color: 'white', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}
         >
           📍 Google Maps
         </a>
         <a
           href={twoGisUrl}
-          target="_blank"
-          rel="noreferrer"
+          target="_blank" rel="noreferrer"
           style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', height: '2.25rem', borderRadius: '0.5rem', background: '#1E9B5A', color: 'white', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}
         >
           🗺️ 2GIS
