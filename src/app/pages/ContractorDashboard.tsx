@@ -89,12 +89,13 @@ export default function ContractorDashboard() {
     return () => clearInterval(interval);
   }, [activeTab]);
 
-  // Refresh user data (balance) when opening profile
+  // Refresh user data (XP, level, balance) periodically
   const { updateUser } = useAuthStore();
   useEffect(() => {
-    if (activeTab !== 'profile') return;
     authApi.me().then((u) => updateUser(u)).catch(() => {});
-  }, [activeTab]);
+    const interval = setInterval(() => authApi.me().then((u) => updateUser(u)).catch(() => {}), 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Poll chat messages while a chat is open
   useEffect(() => {

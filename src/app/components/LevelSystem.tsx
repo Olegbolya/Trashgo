@@ -16,9 +16,13 @@ interface LevelSystemProps {
   compact?: boolean;
 }
 
+const XP_THRESHOLDS = [0, 100, 200, 400, 700, 1000];
+
 export function LevelSystem({ data, variant = 'customer', compact = false }: LevelSystemProps) {
   const { level, xp, nextLevelXp, title, achievements, totalOrders } = data;
-  const progress = (xp / nextLevelXp) * 100;
+  const prevLevelXp = XP_THRESHOLDS[Math.max(0, level - 1)] ?? 0;
+  const levelRange = nextLevelXp - prevLevelXp;
+  const progress = levelRange > 0 ? Math.min(100, ((xp - prevLevelXp) / levelRange) * 100) : 100;
 
   const accentClass = variant === 'contractor' ? 'text-green-600' : 'text-gray-900';
   const bgClass = variant === 'contractor' ? 'bg-green-50 border-green-200' : 'bg-gray-100 border-gray-200';
