@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { Home, MapPin, User, Plus, Package, CheckCircle, Clock, RefreshCw, Edit, LogOut, Bell, CreditCard, UserPlus, HelpCircle, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Star, Phone, MessageCircle, Menu, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -28,9 +28,13 @@ function parseAddressParts(full: string): { address: string; entrance: string; f
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'home' | 'calendar' | 'profile' | 'create'>('home');
+  const VALID_TABS_C = ['home', 'calendar', 'profile', 'create'] as const;
+  type CTabType = typeof VALID_TABS_C[number];
+  const activeTab: CTabType = (VALID_TABS_C.includes(searchParams.get('tab') as CTabType) ? searchParams.get('tab') : 'home') as CTabType;
+  const setActiveTab = (tab: CTabType) => setSearchParams({ tab });
   const [currentWeek, setCurrentWeek] = useState(0);
   const [createForm, setCreateForm] = useState({ address: '', date: '', time: '', asap: false, volume: 1, price: 50, entrance: '', floor: '', apartment: '', description: '' });
   const [createPhotos, setCreatePhotos] = useState<File[]>([]);

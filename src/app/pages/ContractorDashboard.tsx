@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { Home, MapPin, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -15,9 +15,13 @@ const ACCENT = '#2196F3';
 
 export default function ContractorDashboard() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'active' | 'home' | 'find' | 'history' | 'profile'>('active');
+  const VALID_TABS = ['active', 'home', 'find', 'history', 'profile'] as const;
+  type TabType = typeof VALID_TABS[number];
+  const activeTab: TabType = (VALID_TABS.includes(searchParams.get('tab') as TabType) ? searchParams.get('tab') : 'active') as TabType;
+  const setActiveTab = (tab: TabType) => setSearchParams({ tab });
   const [isOnShift, setIsOnShift] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
@@ -34,6 +38,9 @@ export default function ContractorDashboard() {
   const [chatSending, setChatSending] = useState(false);
   const [jobContacts, setJobContacts] = useState<Record<string, { phone: string; name: string }>>({});
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const [hiddenOrderIds, setHiddenOrderIds] = useState<Set<string>>(new Set());
+  const [showMap, setShowMap] = useState(false);
+  const [mapUrl, setMapUrl] = useState('');
 
   useEffect(() => {
     if (activeTab !== 'find') return;
@@ -804,7 +811,9 @@ export default function ContractorDashboard() {
           })()}
 
           {/* FIND ORDERS TAB */}
-          {activeTab === 'find' && (
+          {activeTab === 'find' && (() => {
+            const visibleOrders = availableOrders.filter(o => !hiddenOrderIds.has(o.id));
+            return (
             <div className="max-w-2xl mx-auto space-y-3">
               <div className="flex items-center justify-between">
                 <h1 className="text-xl font-semibold" style={{ color: c.text }}>Заказы рядом</h1>
@@ -824,7 +833,7 @@ export default function ContractorDashboard() {
                     </div>
                   ))}
                 </div>
-              ) : availableOrders.length === 0 ? (
+              ) : visibleOrders.length === 0 ? (
                 <div style={{ ...card, textAlign: 'center', padding: '2.5rem 1.25rem' }}>
                   <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📭</div>
                   <div className="font-semibold mb-1" style={{ color: c.text }}>Заказов пока нет</div>
@@ -836,19 +845,19 @@ export default function ContractorDashboard() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="rounded-xl p-3 text-center" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
                         <div className="text-2xl font-bold" style={{ color: ACCENT }}>
-                          {availableOrders.reduce((s, o) => s + o.price, 0)}₽
+                          {visibleOrders.reduce((s, o) => s + o.price, 0)}₽
                         </div>
                         <div className="text-xs mt-0.5" style={{ color: c.muted }}>можно заработать</div>
                       </div>
                       <div className="rounded-xl p-3 text-center" style={{ background: c.subtle, border: `1px solid ${c.border}` }}>
-                        <div className="text-2xl font-bold" style={{ color: c.text }}>{availableOrders.length}</div>
+                        <div className="text-2xl font-bold" style={{ color: c.text }}>{visibleOrders.length}</div>
                         <div className="text-xs mt-0.5" style={{ color: c.muted }}>заказов доступно</div>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    {availableOrders.map((order) => {
+                    {visibleOrders.map((order) => {
                       const isAsap = order.asap;
                       const dt = order.scheduledAt ? new Date(order.scheduledAt) : null;
                       const timeStr = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
@@ -898,14 +907,15 @@ export default function ContractorDashboard() {
                 </>
               )}
             </div>
-          )}
+            );
+          })()}
 
         </div>
       </div>
 
       {/* Order detail modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-[80] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setSelectedOrder(null)}>
+        <div className="fixed inset-0 z-[80] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => { setSelectedOrder(null); setShowMap(false); setMapUrl(''); }}>
           <div
             className="w-full lg:max-w-lg rounded-t-2xl lg:rounded-2xl overflow-y-auto"
             style={{ background: c.surface, maxHeight: '90vh' }}
@@ -913,8 +923,12 @@ export default function ContractorDashboard() {
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4" style={{ borderBottom: `1px solid ${c.border}` }}>
-              <h2 className="text-lg font-bold" style={{ color: c.text }}>Детали заказа</h2>
-              <button onClick={() => setSelectedOrder(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted }}>
+              <button onClick={() => { setSelectedOrder(null); setShowMap(false); setMapUrl(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.25rem', fontSize: '0.875rem' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                Назад
+              </button>
+              <h2 className="text-base font-bold" style={{ color: c.text }}>Детали заказа</h2>
+              <button onClick={() => { setSelectedOrder(null); setShowMap(false); setMapUrl(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -976,18 +990,50 @@ export default function ContractorDashboard() {
                 </div>
               )}
 
-              {/* Map button */}
+              {/* Map — toggle embedded iframe */}
               <button
                 className="w-full h-10 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
-                style={{ background: c.subtle, color: c.textSub, border: `1px solid ${c.border}`, cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ background: showMap ? `${ACCENT}18` : c.subtle, color: showMap ? ACCENT : c.textSub, border: `1px solid ${showMap ? ACCENT : c.border}`, cursor: 'pointer', fontFamily: 'inherit' }}
                 onClick={() => {
+                  if (showMap) { setShowMap(false); setMapUrl(''); return; }
+                  setShowMap(true);
                   const addr = encodeURIComponent(selectedOrder.address);
-                  window.open(`https://yandex.ru/maps/?rtext=~${addr}&rtt=auto`, '_blank');
+                  navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                      const from = `${pos.coords.latitude}%2C${pos.coords.longitude}`;
+                      setMapUrl(`https://yandex.ru/maps/?rtext=${from}~${addr}&rtt=auto&l=map&mode=embed`);
+                    },
+                    () => {
+                      setMapUrl(`https://yandex.ru/maps/?rtext=~${addr}&rtt=auto&l=map&mode=embed`);
+                    },
+                    { timeout: 8000, enableHighAccuracy: false }
+                  );
                 }}
               >
-                <MapPin className="w-4 h-4" style={{ color: '#F97316' }} />
-                Маршрут на Яндекс.Картах
+                <MapPin className="w-4 h-4" style={{ color: showMap ? ACCENT : '#F97316' }} />
+                {showMap ? 'Скрыть карту' : 'Маршрут на карте'}
               </button>
+
+              {/* Embedded Yandex Maps */}
+              {showMap && (
+                <div style={{ borderRadius: '0.75rem', overflow: 'hidden', border: `1px solid ${c.border}`, height: '280px', position: 'relative' }}>
+                  {!mapUrl ? (
+                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: c.subtle }}>
+                      <div className="text-sm animate-pulse" style={{ color: c.muted }}>Определяем местоположение...</div>
+                    </div>
+                  ) : (
+                    <iframe
+                      src={mapUrl}
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      allowFullScreen
+                      style={{ display: 'block' }}
+                      title="Яндекс Карты — маршрут"
+                    />
+                  )}
+                </div>
+              )}
 
               {/* Accept button */}
               <button
@@ -1002,6 +1048,8 @@ export default function ContractorDashboard() {
                     setAvailableOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
                     setMyJobs((prev) => [accepted, ...prev]);
                     setSelectedOrder(null);
+                    setShowMap(false);
+                    setMapUrl('');
                     setActiveTab('active');
                     toast.success('Заказ принят!', { description: 'Он появился в разделе «Активные заказы»', duration: 3000 });
                   } catch (err: any) {
@@ -1012,6 +1060,21 @@ export default function ContractorDashboard() {
                 }}
               >
                 {acceptingId === selectedOrder.id ? 'Принимаем...' : 'Взять заказ'}
+              </button>
+
+              {/* Hide order button */}
+              <button
+                className="w-full py-2.5 text-sm"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontFamily: 'inherit' }}
+                onClick={() => {
+                  setHiddenOrderIds(prev => new Set([...prev, selectedOrder.id]));
+                  setSelectedOrder(null);
+                  setShowMap(false);
+                  setMapUrl('');
+                  toast.info('Заявка скрыта', { description: 'Она не будет отображаться в списке', duration: 2000 });
+                }}
+              >
+                Больше не показывать эту заявку
               </button>
             </div>
           </div>
