@@ -10,6 +10,7 @@ import { getDayLabel } from '../lib/utils';
 import { ordersApi } from '../../api/orders';
 import { authApi } from '../../api/auth';
 import type { Order, ChatMessage } from '../../types/order';
+import { MapView } from '../components/MapView';
 
 const ACCENT = '#2196F3';
 
@@ -40,7 +41,6 @@ export default function ContractorDashboard() {
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const [hiddenOrderIds, setHiddenOrderIds] = useState<Set<string>>(new Set());
   const [showMap, setShowMap] = useState(false);
-  const [mapUrl, setMapUrl] = useState('');
 
   useEffect(() => {
     if (activeTab !== 'find') return;
@@ -915,7 +915,7 @@ export default function ContractorDashboard() {
 
       {/* Order detail modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-[80] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => { setSelectedOrder(null); setShowMap(false); setMapUrl(''); }}>
+        <div className="fixed inset-0 z-[80] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => { setSelectedOrder(null); setShowMap(false); }}>
           <div
             className="w-full lg:max-w-lg rounded-t-2xl lg:rounded-2xl overflow-y-auto"
             style={{ background: c.surface, maxHeight: '90vh' }}
@@ -923,12 +923,12 @@ export default function ContractorDashboard() {
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4" style={{ borderBottom: `1px solid ${c.border}` }}>
-              <button onClick={() => { setSelectedOrder(null); setShowMap(false); setMapUrl(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.25rem', fontSize: '0.875rem' }}>
+              <button onClick={() => { setSelectedOrder(null); setShowMap(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.25rem', fontSize: '0.875rem' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 Назад
               </button>
               <h2 className="text-base font-bold" style={{ color: c.text }}>Детали заказа</h2>
-              <button onClick={() => { setSelectedOrder(null); setShowMap(false); setMapUrl(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted }}>
+              <button onClick={() => { setSelectedOrder(null); setShowMap(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -990,50 +990,18 @@ export default function ContractorDashboard() {
                 </div>
               )}
 
-              {/* Map — toggle embedded iframe */}
+              {/* Map — toggle */}
               <button
                 className="w-full h-10 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
                 style={{ background: showMap ? `${ACCENT}18` : c.subtle, color: showMap ? ACCENT : c.textSub, border: `1px solid ${showMap ? ACCENT : c.border}`, cursor: 'pointer', fontFamily: 'inherit' }}
-                onClick={() => {
-                  if (showMap) { setShowMap(false); setMapUrl(''); return; }
-                  setShowMap(true);
-                  const addr = encodeURIComponent(selectedOrder.address);
-                  navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                      const from = `${pos.coords.latitude}%2C${pos.coords.longitude}`;
-                      setMapUrl(`https://yandex.ru/maps/?rtext=${from}~${addr}&rtt=auto&l=map&mode=embed`);
-                    },
-                    () => {
-                      setMapUrl(`https://yandex.ru/maps/?rtext=~${addr}&rtt=auto&l=map&mode=embed`);
-                    },
-                    { timeout: 8000, enableHighAccuracy: false }
-                  );
-                }}
+                onClick={() => setShowMap(v => !v)}
               >
                 <MapPin className="w-4 h-4" style={{ color: showMap ? ACCENT : '#F97316' }} />
                 {showMap ? 'Скрыть карту' : 'Маршрут на карте'}
               </button>
 
-              {/* Embedded Yandex Maps */}
-              {showMap && (
-                <div style={{ borderRadius: '0.75rem', overflow: 'hidden', border: `1px solid ${c.border}`, height: '280px', position: 'relative' }}>
-                  {!mapUrl ? (
-                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: c.subtle }}>
-                      <div className="text-sm animate-pulse" style={{ color: c.muted }}>Определяем местоположение...</div>
-                    </div>
-                  ) : (
-                    <iframe
-                      src={mapUrl}
-                      width="100%"
-                      height="100%"
-                      frameBorder="0"
-                      allowFullScreen
-                      style={{ display: 'block' }}
-                      title="Яндекс Карты — маршрут"
-                    />
-                  )}
-                </div>
-              )}
+              {/* Embedded map (Leaflet + OpenStreetMap) */}
+              {showMap && <MapView address={selectedOrder.address} isDark={isDark} />}
 
               {/* Accept button */}
               <button
@@ -1049,7 +1017,7 @@ export default function ContractorDashboard() {
                     setMyJobs((prev) => [accepted, ...prev]);
                     setSelectedOrder(null);
                     setShowMap(false);
-                    setMapUrl('');
+                    
                     setActiveTab('active');
                     toast.success('Заказ принят!', { description: 'Он появился в разделе «Активные заказы»', duration: 3000 });
                   } catch (err: any) {
@@ -1070,7 +1038,7 @@ export default function ContractorDashboard() {
                   setHiddenOrderIds(prev => new Set([...prev, selectedOrder.id]));
                   setSelectedOrder(null);
                   setShowMap(false);
-                  setMapUrl('');
+                  
                   toast.info('Заявка скрыта', { description: 'Она не будет отображаться в списке', duration: 2000 });
                 }}
               >
