@@ -85,6 +85,12 @@ export default function Home() {
   };
 
   useEffect(() => {
+    if (isAuthenticated && user) {
+      navigate(user.role === 'customer' ? '/customer' : '/contractor', { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
+
+  useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
