@@ -48,6 +48,7 @@ export default function ContractorDashboard() {
   const [editInfoOpen, setEditInfoOpen] = useState(false);
   const [editInfoForm, setEditInfoForm] = useState({ district: '', transportMode: 'car' });
   const [editInfoSaving, setEditInfoSaving] = useState(false);
+  const [myJobsLoading, setMyJobsLoading] = useState(false);
   const prevJobStatusesRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
@@ -65,6 +66,7 @@ export default function ContractorDashboard() {
 
   useEffect(() => {
     if (activeTab !== 'active' && activeTab !== 'home' && activeTab !== 'history' && activeTab !== 'profile') return;
+    setMyJobsLoading(true);
     const load = () => {
       ordersApi.myJobs().then((res: any) => {
         const jobs: Order[] = res?.data ?? [];
@@ -80,7 +82,7 @@ export default function ContractorDashboard() {
         });
         prevJobStatusesRef.current = Object.fromEntries(jobs.map(j => [j.id, j.status]));
         setMyJobs(jobs);
-      }).catch(() => {});
+      }).catch(() => {}).finally(() => setMyJobsLoading(false));
     };
     load();
     const interval = setInterval(load, 10000);
@@ -657,7 +659,13 @@ export default function ContractorDashboard() {
                 const completedJobs = myJobs.filter(j => j.status === 'completed');
                 const cancelledJobs = myJobs.filter(j => j.status === 'cancelled');
                 const allDone = [...completedJobs, ...cancelledJobs];
-                return allDone.length === 0 ? (
+                return myJobsLoading ? (
+                  <div className="text-center py-12" style={card}>
+                    <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-t-transparent animate-spin" style={{ borderColor: `${c.border} ${c.border} ${c.border} ${ACCENT}` }} />
+                    <div className="font-medium mb-1" style={{ color: c.text }}>Загружаем информацию...</div>
+                    <div className="text-sm" style={{ color: c.muted }}>Пожалуйста, подождите</div>
+                  </div>
+                ) : allDone.length === 0 ? (
                   <div className="text-center py-12" style={card}>
                     <CheckCircle className="w-12 h-12 mx-auto mb-3" style={{ color: c.border }} />
                     <div className="font-medium mb-1" style={{ color: c.text }}>История пуста</div>

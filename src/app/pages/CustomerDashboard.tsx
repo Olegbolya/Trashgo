@@ -553,7 +553,13 @@ export default function CustomerDashboard() {
             <div className="max-w-4xl mx-auto space-y-6">
               <div>
                 <h2 className="text-lg font-semibold mb-4" style={{ color: c.text }}>История заказов</h2>
-                {historyOrders.length === 0 ? (
+                {ordersLoading ? (
+                  <div className="text-center py-12" style={{ ...card }}>
+                    <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-t-transparent animate-spin" style={{ borderColor: `${c.border} ${c.border} ${c.border} ${ACCENT}` }} />
+                    <div className="font-medium mb-1" style={{ color: c.text }}>Загружаем информацию...</div>
+                    <div className="text-sm" style={{ color: c.muted }}>Пожалуйста, подождите</div>
+                  </div>
+                ) : historyOrders.length === 0 ? (
                   <div className="text-center py-12" style={{ ...card }}>
                     <Package className="w-12 h-12 mx-auto mb-4" style={{ color: c.border }} />
                     <div className="mb-4" style={{ color: c.muted }}>Завершённых заказов пока нет</div>
