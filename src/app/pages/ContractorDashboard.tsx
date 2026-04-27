@@ -25,7 +25,6 @@ export default function ContractorDashboard() {
   type TabType = typeof VALID_TABS[number];
   const activeTab: TabType = (VALID_TABS.includes(searchParams.get('tab') as TabType) ? searchParams.get('tab') : 'active') as TabType;
   const setActiveTab = (tab: TabType) => setSearchParams({ tab });
-  const [isOnShift, setIsOnShift] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [myJobs, setMyJobs] = useState<Order[]>([]);
@@ -44,6 +43,15 @@ export default function ContractorDashboard() {
   const [hiddenOrderIds, setHiddenOrderIds] = useState<Set<string>>(new Set());
   const [showMap, setShowMap] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [filterTimeFrom, setFilterTimeFrom] = useState('');
+  const [filterTimeTo, setFilterTimeTo] = useState('');
+  const [filterDistrict, setFilterDistrict] = useState('');
+  const [filterDistanceKm, setFilterDistanceKm] = useState(10);
+  const [historyDetailOrder, setHistoryDetailOrder] = useState<Order | null>(null);
+  const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
   const [ratingOrder, setRatingOrder] = useState<{ id: string; customerName: string } | null>(null);
   const [editInfoOpen, setEditInfoOpen] = useState(false);
   const [editInfoForm, setEditInfoForm] = useState({ district: '', transportMode: 'car' });
@@ -213,15 +221,6 @@ export default function ContractorDashboard() {
         </button>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {/* Shift toggle */}
-          <button
-            onClick={() => setIsOnShift(!isOnShift)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-1"
-            style={{ background: isOnShift ? `${ACCENT}18` : c.subtle, color: isOnShift ? ACCENT : c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-          >
-            <span className="text-base">{isOnShift ? '🟢' : '⚫'}</span>
-            {isOnShift ? 'Открыт для заказов' : 'Не принимаю заказы'}
-          </button>
           {[
             { id: 'active' as const, icon: CheckCircle, label: 'Активные заказы' },
             { id: 'home' as const, icon: Home, label: 'Главная' },
@@ -288,13 +287,9 @@ export default function ContractorDashboard() {
               </div>
               <div className="text-sm font-semibold" style={{ color: c.text }}>TrashGo</div>
             </div>
-            <button
-              onClick={() => setIsOnShift(!isOnShift)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium"
-              style={{ background: isOnShift ? `${ACCENT}18` : c.subtle, color: isOnShift ? ACCENT : c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              {isOnShift ? 'Открыт' : 'Закрыт'}
-            </button>
+            <div className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: `${ACCENT}18`, color: ACCENT }}>
+              Исполнитель
+            </div>
           </div>
         </div>
       </header>
@@ -334,15 +329,6 @@ export default function ContractorDashboard() {
 
             {/* Drawer nav */}
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-              {/* Shift toggle */}
-              <button
-                onClick={() => setIsOnShift(!isOnShift)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-1"
-                style={{ background: isOnShift ? `${ACCENT}18` : c.subtle, color: isOnShift ? ACCENT : c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                <span className="text-base">{isOnShift ? '🟢' : '⚫'}</span>
-                {isOnShift ? 'Открыт для заказов' : 'Не принимаю заказы'}
-              </button>
               {[
                 { id: 'active' as const, icon: CheckCircle, label: 'Активные заказы' },
                 { id: 'home' as const, icon: Home, label: 'Главная' },
@@ -695,7 +681,18 @@ export default function ContractorDashboard() {
                       const timeStr = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
                       const isDone = job.status === 'completed';
                       return (
-                        <div key={job.id} style={{ ...card, padding: '0.875rem' }}>
+                        <div key={job.id} style={{ ...card, padding: '0.875rem', cursor: 'pointer' }}
+                          onClick={async () => {
+                            setHistoryDetailLoading(true);
+                            setHistoryDetailOrder(job);
+                            try {
+                              const res = await ordersApi.getById(job.id) as any;
+                              const detail = res?.data ?? res;
+                              if (detail?.id) setHistoryDetailOrder(detail);
+                            } catch {}
+                            setHistoryDetailLoading(false);
+                          }}
+                        >
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-1.5 mb-0.5">
@@ -708,16 +705,22 @@ export default function ContractorDashboard() {
                               <div className="text-xs" style={{ color: c.muted }}>
                                 {job.asap ? '⚡ ASAP' : `${dateStr} · ${timeStr}`} · {job.volume} мешк.
                               </div>
+                              {(job as any).customerName && (
+                                <div className="text-xs mt-0.5" style={{ color: c.muted }}>👤 {(job as any).customerName}</div>
+                              )}
                             </div>
-                            <div className="text-base font-bold ml-3" style={{ color: isDone ? '#4CAF50' : '#9ca3af' }}>
-                              {isDone ? `+${job.price}₽` : 'Отменён'}
+                            <div className="flex flex-col items-end gap-1">
+                              <div className="text-base font-bold" style={{ color: isDone ? '#4CAF50' : '#9ca3af' }}>
+                                {isDone ? `+${job.price}₽` : 'Отменён'}
+                              </div>
+                              <ChevronRight className="w-4 h-4" style={{ color: c.muted }} />
                             </div>
                           </div>
                           {isDone && !(job as any).ratingByContractor && (
                             <button
                               className="w-full mt-2 h-8 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5"
                               style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}30`, color: ACCENT, cursor: 'pointer', fontFamily: 'inherit' }}
-                              onClick={() => setRatingOrder({ id: job.id, customerName: 'Заказчик' })}
+                              onClick={(e) => { e.stopPropagation(); setRatingOrder({ id: job.id, customerName: 'Заказчик' }); }}
                             >
                               ⭐ Оценить заказчика
                             </button>
@@ -733,6 +736,58 @@ export default function ContractorDashboard() {
                   </div>
                 );
               })()}
+            </div>
+          )}
+
+          {/* History detail modal */}
+          {historyDetailOrder && (
+            <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}
+              onClick={() => setHistoryDetailOrder(null)}>
+              <div className="w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl p-5 space-y-4" style={{ background: c.surface, maxHeight: '90vh', overflowY: 'auto' }}
+                onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold" style={{ color: c.text }}>Детали заказа</h2>
+                  <button onClick={() => setHistoryDetailOrder(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted }}>
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                {historyDetailLoading && <div className="text-sm text-center py-4" style={{ color: c.muted }}>Загружаем...</div>}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    {historyDetailOrder.status === 'completed'
+                      ? <CheckCircle className="w-5 h-5" style={{ color: '#4CAF50' }} />
+                      : <span style={{ color: '#9ca3af' }}>✕</span>}
+                    <span className="font-medium" style={{ color: c.text }}>
+                      {historyDetailOrder.status === 'completed' ? 'Выполнен' : 'Отменён'}
+                    </span>
+                  </div>
+                  <div className="rounded-xl p-3 space-y-2" style={{ background: c.subtle }}>
+                    <div className="flex gap-2 text-sm"><span style={{ color: c.muted }}>Адрес:</span><span style={{ color: c.text }}>{historyDetailOrder.address}</span></div>
+                    <div className="flex gap-2 text-sm"><span style={{ color: c.muted }}>Район:</span><span style={{ color: c.text }}>{historyDetailOrder.district}</span></div>
+                    <div className="flex gap-2 text-sm"><span style={{ color: c.muted }}>Объём:</span><span style={{ color: c.text }}>{historyDetailOrder.volume} мешков</span></div>
+                    <div className="flex gap-2 text-sm"><span style={{ color: c.muted }}>Цена:</span><span className="font-semibold" style={{ color: '#4CAF50' }}>{historyDetailOrder.price}₽</span></div>
+                    {historyDetailOrder.scheduledAt && (
+                      <div className="flex gap-2 text-sm"><span style={{ color: c.muted }}>Время:</span><span style={{ color: c.text }}>
+                        {new Date(historyDetailOrder.scheduledAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </span></div>
+                    )}
+                    {historyDetailOrder.asap && <div className="text-sm font-medium" style={{ color: ACCENT }}>⚡ ASAP заказ</div>}
+                    {(historyDetailOrder as any).customerName && (
+                      <div className="flex gap-2 text-sm"><span style={{ color: c.muted }}>Заказчик:</span><span style={{ color: c.text }}>{(historyDetailOrder as any).customerName}</span></div>
+                    )}
+                    {historyDetailOrder.description && (
+                      <div className="flex gap-2 text-sm"><span style={{ color: c.muted }}>Описание:</span><span style={{ color: c.text }}>{historyDetailOrder.description}</span></div>
+                    )}
+                  </div>
+                  {historyDetailOrder.status === 'completed' && !(historyDetailOrder as any).ratingByContractor && (
+                    <button
+                      className="w-full h-10 rounded-xl text-sm font-medium"
+                      style={{ background: `${ACCENT}18`, border: `1px solid ${ACCENT}30`, color: ACCENT, cursor: 'pointer', fontFamily: 'inherit' }}
+                      onClick={() => { setHistoryDetailOrder(null); setRatingOrder({ id: historyDetailOrder.id, customerName: (historyDetailOrder as any).customerName || 'Заказчик' }); }}
+                    >⭐ Оценить заказчика</button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -906,13 +961,100 @@ export default function ContractorDashboard() {
 
           {/* FIND ORDERS TAB */}
           {activeTab === 'find' && (() => {
-            const visibleOrders = availableOrders.filter(o => !hiddenOrderIds.has(o.id));
+            const hasActiveFilters = filterDateFrom || filterDateTo || filterTimeFrom || filterTimeTo || filterDistrict;
+            const visibleOrders = availableOrders.filter(o => {
+              if (hiddenOrderIds.has(o.id)) return false;
+              if (filterDistrict && !o.district.toLowerCase().includes(filterDistrict.toLowerCase())) return false;
+              if (o.asap) return true; // ASAP orders always pass date/time filters
+              const dt = o.scheduledAt ? new Date(o.scheduledAt) : null;
+              if (dt) {
+                const dateStr = dt.toISOString().slice(0, 10);
+                if (filterDateFrom && dateStr < filterDateFrom) return false;
+                if (filterDateTo && dateStr > filterDateTo) return false;
+                const timeStr = dt.toTimeString().slice(0, 5);
+                if (filterTimeFrom && timeStr < filterTimeFrom) return false;
+                if (filterTimeTo && timeStr > filterTimeTo) return false;
+              }
+              return true;
+            });
             return (
             <div className="max-w-2xl mx-auto space-y-3">
               <div className="flex items-center justify-between">
                 <h1 className="text-xl font-semibold" style={{ color: c.text }}>Заказы рядом</h1>
-                <div className="text-sm" style={{ color: c.muted }}>{user?.district || 'Все районы'}</div>
+                <button
+                  onClick={() => setShowFilters(v => !v)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+                  style={{ background: hasActiveFilters ? `${ACCENT}18` : c.subtle, color: hasActiveFilters ? ACCENT : c.textSub, border: `1px solid ${hasActiveFilters ? ACCENT + '40' : c.border}`, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  <span>⚙</span> Фильтры{hasActiveFilters ? ' ●' : ''}
+                </button>
               </div>
+
+              {showFilters && (
+                <div style={{ ...card, padding: '1rem' }} className="space-y-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium" style={{ color: c.text }}>Фильтры поиска</span>
+                    {hasActiveFilters && (
+                      <button
+                        onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterTimeFrom(''); setFilterTimeTo(''); setFilterDistrict(''); }}
+                        className="text-xs"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontFamily: 'inherit' }}
+                      >Сбросить</button>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs mb-1.5" style={{ color: c.muted }}>Дата</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <div className="text-xs mb-1" style={{ color: c.muted }}>От</div>
+                        <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg text-sm"
+                          style={{ border: `1px solid ${c.border}`, background: c.subtle, color: c.text, fontFamily: 'inherit', outline: 'none' }} />
+                      </div>
+                      <div>
+                        <div className="text-xs mb-1" style={{ color: c.muted }}>До</div>
+                        <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg text-sm"
+                          style={{ border: `1px solid ${c.border}`, background: c.subtle, color: c.text, fontFamily: 'inherit', outline: 'none' }} />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs mb-1.5" style={{ color: c.muted }}>Время</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <div className="text-xs mb-1" style={{ color: c.muted }}>От</div>
+                        <input type="time" value={filterTimeFrom} onChange={e => setFilterTimeFrom(e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg text-sm"
+                          style={{ border: `1px solid ${c.border}`, background: c.subtle, color: c.text, fontFamily: 'inherit', outline: 'none' }} />
+                      </div>
+                      <div>
+                        <div className="text-xs mb-1" style={{ color: c.muted }}>До</div>
+                        <input type="time" value={filterTimeTo} onChange={e => setFilterTimeTo(e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg text-sm"
+                          style={{ border: `1px solid ${c.border}`, background: c.subtle, color: c.text, fontFamily: 'inherit', outline: 'none' }} />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs mb-1.5" style={{ color: c.muted }}>Район</div>
+                    <input type="text" placeholder="Введите район..." value={filterDistrict} onChange={e => setFilterDistrict(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-lg text-sm"
+                      style={{ border: `1px solid ${c.border}`, background: c.subtle, color: c.text, fontFamily: 'inherit', outline: 'none' }} />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1.5" style={{ color: c.muted }}>
+                      <span>Дальность от точки</span>
+                      <span className="font-medium" style={{ color: c.text }}>{filterDistanceKm} км</span>
+                    </div>
+                    <input type="range" min={1} max={50} value={filterDistanceKm} onChange={e => setFilterDistanceKm(Number(e.target.value))}
+                      className="w-full" style={{ accentColor: ACCENT }} />
+                    <div className="flex justify-between text-xs mt-0.5" style={{ color: c.muted }}>
+                      <span>1 км</span><span>50 км</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {ordersLoading ? (
                 <div className="space-y-3">
