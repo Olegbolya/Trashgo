@@ -161,16 +161,34 @@ export default function ContractorDashboard() {
 
   const completedJobsCount = completedJobs.length;
 
-  const achievements: Achievement[] = [
-    { id: 'first_pickup', icon: '🎯', title: 'Первый вывоз', description: 'Выполните свой первый заказ', unlocked: completedJobsCount >= 1, reward: '+10 XP' },
-    { id: 'five_orders', icon: '⚡', title: 'Пять вывозов', description: 'Выполните 5 заказов', unlocked: completedJobsCount >= 5, progress: Math.min(completedJobsCount, 5), maxProgress: 5, reward: '+25 XP' },
-    { id: 'ten_orders', icon: '🔥', title: 'Десять вывозов', description: 'Выполните 10 заказов', unlocked: completedJobsCount >= 10, progress: Math.min(completedJobsCount, 10), maxProgress: 10, reward: '+50 XP' },
-    { id: 'level_3', icon: '⭐', title: 'Уровень 3', description: 'Достигните 3-го уровня', unlocked: currentLevel >= 3, reward: 'Значок надёжности' },
-    { id: 'earner', icon: '💰', title: 'Заработок', description: 'Заработайте первые 1000₽', unlocked: (user?.balance ?? 0) >= 1000, reward: '+15 XP' },
-    { id: 'marathon_runner', icon: '🏃', title: 'Марафонец', description: 'Выполните 30 заказов', unlocked: completedJobsCount >= 30, progress: Math.min(completedJobsCount, 30), maxProgress: 30 },
-    { id: 'top_rated', icon: '🌟', title: 'Мастер скорости', description: 'Выполните 50 заказов', unlocked: completedJobsCount >= 50, progress: Math.min(completedJobsCount, 50), maxProgress: 50 },
-    { id: 'big_earner', icon: '🏆', title: 'Большой заработок', description: 'Заработайте 10000₽ за месяц', unlocked: earningsMonth >= 10000, progress: Math.min(earningsMonth, 10000), maxProgress: 10000, reward: 'Звание «Мастер»' },
+  const asapJobsCount = myJobs.filter(j => j.status === 'completed' && j.asap).length;
+
+  // Sequential completion chain
+  const jobChain: Achievement[] = [
+    { id: 'first_pickup',  icon: '🎯', title: 'Первый вывоз',   description: 'Выполните свой первый заказ',          unlocked: completedJobsCount >= 1,   progress: Math.min(completedJobsCount, 1),   maxProgress: 1,   reward: '+10 XP' },
+    { id: 'jobs_5',        icon: '⭐', title: 'Пятёрка',        description: 'Выполните 5 заказов',                  unlocked: completedJobsCount >= 5,   progress: Math.min(completedJobsCount, 5),   maxProgress: 5,   reward: '+25 XP' },
+    { id: 'jobs_10',       icon: '🔟', title: 'Десятка',        description: 'Выполните 10 заказов',                 unlocked: completedJobsCount >= 10,  progress: Math.min(completedJobsCount, 10),  maxProgress: 10,  reward: '+50 XP' },
+    { id: 'jobs_25',       icon: '💫', title: 'Ветеран',        description: 'Выполните 25 заказов',                 unlocked: completedJobsCount >= 25,  progress: Math.min(completedJobsCount, 25),  maxProgress: 25,  reward: '+75 XP' },
+    { id: 'jobs_50',       icon: '🔥', title: 'Полсотни',       description: 'Выполните 50 заказов',                 unlocked: completedJobsCount >= 50,  progress: Math.min(completedJobsCount, 50),  maxProgress: 50,  reward: '+100 XP' },
+    { id: 'jobs_100',      icon: '🏆', title: 'Сотня',          description: 'Выполните 100 заказов',                unlocked: completedJobsCount >= 100, progress: Math.min(completedJobsCount, 100), maxProgress: 100, reward: '+200 XP' },
+    { id: 'jobs_250',      icon: '👑', title: 'Мастер вывоза',  description: 'Выполните 250 заказов',                unlocked: completedJobsCount >= 250, progress: Math.min(completedJobsCount, 250), maxProgress: 250, reward: '+500 XP' },
+    { id: 'jobs_500',      icon: '🌠', title: 'Легенда',        description: 'Выполните 500 заказов',                unlocked: completedJobsCount >= 500, progress: Math.min(completedJobsCount, 500), maxProgress: 500, reward: '+1000 XP' },
   ];
+  const visibleJobChain = jobChain.filter((a, i) => i === 0 || jobChain[i - 1].unlocked || a.unlocked);
+
+  const extraAchievements: Achievement[] = [
+    { id: 'earner_1k',    icon: '💰', title: 'Первый заработок', description: 'Заработайте 1000₽',                  unlocked: (user?.balance ?? 0) >= 1000,   reward: '+15 XP' },
+    { id: 'earner_10k',   icon: '💵', title: 'Десятка тысяч',   description: 'Заработайте 10 000₽',                 unlocked: (user?.balance ?? 0) >= 10000,  progress: Math.min(user?.balance ?? 0, 10000), maxProgress: 10000, reward: '+50 XP' },
+    { id: 'month_10k',    icon: '📈', title: 'Месячный рекорд', description: 'Заработайте 10 000₽ за месяц',        unlocked: earningsMonth >= 10000,          progress: Math.min(earningsMonth, 10000), maxProgress: 10000, reward: 'Звание «Мастер»' },
+    { id: 'asap_1',       icon: '⚡', title: 'Срочный вывоз',   description: 'Выполните срочный заказ',             unlocked: asapJobsCount >= 1,             reward: '+5 XP' },
+    { id: 'asap_10',      icon: '⚡⚡', title: 'Мистер ASAP',  description: 'Выполните 10 срочных заказов',         unlocked: asapJobsCount >= 10,            progress: Math.min(asapJobsCount, 10), maxProgress: 10, reward: '+30 XP' },
+    { id: 'level_3',      icon: '🌱', title: 'Уровень 3',       description: 'Достигните 3-го уровня',              unlocked: currentLevel >= 3,              reward: 'Значок надёжности' },
+    { id: 'level_5',      icon: '🌿', title: 'Уровень 5',       description: 'Достигните 5-го уровня',              unlocked: currentLevel >= 5,              progress: currentLevel, maxProgress: 5, reward: '+100 XP' },
+    { id: 'level_10',     icon: '🌳', title: 'Уровень 10',      description: 'Достигните 10-го уровня',             unlocked: currentLevel >= 10,             progress: currentLevel, maxProgress: 10, reward: 'Значок «Эксперт»' },
+    { id: 'top_rating',   icon: '🌟', title: 'Отличный рейтинг', description: 'Получите средний рейтинг 4.5+',      unlocked: (user?.avgRating ?? 0) >= 4.5,  reward: 'Значок «Проверенный»' },
+  ];
+
+  const achievements: Achievement[] = [...visibleJobChain, ...extraAchievements];
 
   const levelData: LevelData = {
     level: currentLevel,
@@ -628,6 +646,21 @@ export default function ContractorDashboard() {
           {/* HOME TAB — overview */}
           {activeTab === 'home' && (
             <div className="max-w-4xl mx-auto space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-lg font-bold" style={{ color: c.text }}>{user?.name || 'Привет!'}</div>
+                  {user?.avgRating != null ? (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Star className="w-3.5 h-3.5" style={{ color: '#FBBF24', fill: '#FBBF24' }} />
+                      <span className="text-sm font-medium" style={{ color: c.text }}>{user.avgRating.toFixed(1)}</span>
+                      <span className="text-xs" style={{ color: c.muted }}>({user.ratingCount} оценок)</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs mt-0.5" style={{ color: c.muted }}>Рейтинг появится после первой оценки</div>
+                  )}
+                </div>
+                <div className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ background: `${ACCENT}18`, color: ACCENT }}>Исполнитель</div>
+              </div>
               <LevelSystem data={levelData} variant="contractor" compact={true} />
               <div style={card}>
                 <div className="text-base font-semibold mb-3" style={{ color: c.text }}>Добро пожаловать, {user?.name?.split(' ')[0] || 'Исполнитель'}!</div>

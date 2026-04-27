@@ -218,13 +218,35 @@ export default function CustomerDashboard() {
     totalOrders: myOrders.length,
   };
 
-  const achievements: Achievement[] = [
-    { id: 'first_order', icon: '🎯', title: 'Первый заказ', description: 'Создайте свой первый заказ', unlocked: myOrders.length >= 1, reward: '+10 XP' },
-    { id: 'regular_customer', icon: '⭐', title: 'Постоянный клиент', description: 'Совершите 10 заказов', unlocked: myOrders.length >= 10, progress: myOrders.length, maxProgress: 10, reward: '-5% скидка' },
-    { id: 'early_bird', icon: '🌅', title: 'Ранняя пташка', description: 'Заказ до 8:00 утра', unlocked: false, progress: 0, maxProgress: 1 },
-    { id: 'referral_king', icon: '👥', title: 'Король рефералов', description: 'Пригласите 5 соседей', unlocked: false, progress: 0, maxProgress: 5 },
-    { id: 'loyal_customer', icon: '💎', title: 'VIP клиент', description: 'Используйте платформу 30 дней подряд', unlocked: false, progress: 0, maxProgress: 30 },
+  const completedOrders = myOrders.filter(o => o.status === 'completed').length;
+  const asapOrders = myOrders.filter(o => o.asap).length;
+
+  // Sequential order chain — each next achievement appears only after previous unlocked
+  const orderChain: Achievement[] = [
+    { id: 'first_order',   icon: '🎯', title: 'Первый заказ',    description: 'Создайте свой первый заказ',          unlocked: myOrders.length >= 1,   progress: Math.min(myOrders.length, 1),   maxProgress: 1,   reward: '+10 XP' },
+    { id: 'orders_5',      icon: '⭐', title: 'Пятёрка',         description: 'Создайте 5 заказов',                  unlocked: myOrders.length >= 5,   progress: Math.min(myOrders.length, 5),   maxProgress: 5,   reward: '+25 XP' },
+    { id: 'orders_10',     icon: '🔟', title: 'Десятка',         description: 'Создайте 10 заказов',                 unlocked: myOrders.length >= 10,  progress: Math.min(myOrders.length, 10),  maxProgress: 10,  reward: '+50 XP' },
+    { id: 'orders_25',     icon: '💫', title: 'Ветеран',         description: 'Создайте 25 заказов',                 unlocked: myOrders.length >= 25,  progress: Math.min(myOrders.length, 25),  maxProgress: 25,  reward: '+75 XP' },
+    { id: 'orders_50',     icon: '🔥', title: 'Полсотни',        description: 'Создайте 50 заказов',                 unlocked: myOrders.length >= 50,  progress: Math.min(myOrders.length, 50),  maxProgress: 50,  reward: '+100 XP' },
+    { id: 'orders_100',    icon: '🏆', title: 'Сотня',           description: 'Создайте 100 заказов',                unlocked: myOrders.length >= 100, progress: Math.min(myOrders.length, 100), maxProgress: 100, reward: '+200 XP' },
+    { id: 'orders_250',    icon: '👑', title: 'Легенда',         description: 'Создайте 250 заказов',                unlocked: myOrders.length >= 250, progress: Math.min(myOrders.length, 250), maxProgress: 250, reward: '+500 XP' },
   ];
+  // Show chain achievement only if it's the first, unlocked, or the previous one is unlocked
+  const visibleOrderChain = orderChain.filter((a, i) => i === 0 || orderChain[i - 1].unlocked || a.unlocked);
+
+  const extraAchievements: Achievement[] = [
+    { id: 'completed_1',   icon: '✅', title: 'Выполнено!',      description: 'Завершите первый заказ',              unlocked: completedOrders >= 1,   reward: '+15 XP' },
+    { id: 'completed_10',  icon: '🌟', title: 'Проверенный',     description: 'Завершите 10 заказов',                unlocked: completedOrders >= 10,  progress: Math.min(completedOrders, 10), maxProgress: 10, reward: '+50 XP' },
+    { id: 'asap_1',        icon: '⚡', title: 'Срочный клиент',  description: 'Оформите срочный заказ',              unlocked: asapOrders >= 1,        reward: '+5 XP' },
+    { id: 'asap_5',        icon: '⚡⚡', title: 'Всегда срочно', description: 'Оформите 5 срочных заказов',          unlocked: asapOrders >= 5,        progress: Math.min(asapOrders, 5), maxProgress: 5, reward: '+20 XP' },
+    { id: 'referral_1',    icon: '👥', title: 'Первый реферал',  description: 'Пригласите соседа',                   unlocked: false,                  reward: '+10 XP' },
+    { id: 'referral_5',    icon: '🤝', title: 'Король рефералов', description: 'Пригласите 5 соседей',              unlocked: false,                  progress: 0, maxProgress: 5 },
+    { id: 'level_2',       icon: '🌱', title: 'Новый уровень',   description: 'Достигните 2-го уровня',             unlocked: (user?.level ?? 1) >= 2, reward: 'Значок клиента' },
+    { id: 'level_5',       icon: '🌿', title: 'Уровень 5',       description: 'Достигните 5-го уровня',             unlocked: (user?.level ?? 1) >= 5, progress: user?.level ?? 1, maxProgress: 5, reward: '+100 XP' },
+    { id: 'level_10',      icon: '🌳', title: 'Уровень 10',      description: 'Достигните 10-го уровня',            unlocked: (user?.level ?? 1) >= 10, progress: user?.level ?? 1, maxProgress: 10, reward: 'Значок «Эксперт»' },
+  ];
+
+  const achievements: Achievement[] = [...visibleOrderChain, ...extraAchievements];
 
   const stats = {
     totalOrders: myOrders.length,
@@ -460,6 +482,21 @@ export default function CustomerDashboard() {
           {/* HOME TAB */}
           {activeTab === 'home' && (
             <div className="max-w-4xl mx-auto space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-lg font-bold" style={{ color: c.text }}>{user?.name || 'Привет!'}</div>
+                  {user?.avgRating != null ? (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Star className="w-3.5 h-3.5" style={{ color: '#FBBF24', fill: '#FBBF24' }} />
+                      <span className="text-sm font-medium" style={{ color: c.text }}>{user.avgRating.toFixed(1)}</span>
+                      <span className="text-xs" style={{ color: c.muted }}>({user.ratingCount} оценок)</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs mt-0.5" style={{ color: c.muted }}>Рейтинг появится после первой оценки</div>
+                  )}
+                </div>
+                <div className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ background: `${ACCENT}18`, color: ACCENT }}>Заказчик</div>
+              </div>
               <LevelSystem data={levelData} variant="customer" compact={true} />
 
               {/* My orders */}
