@@ -10,6 +10,8 @@ export interface User {
   xp: number;
   level: number;
   balance: number;
+  avgRating: number | null;
+  ratingCount: number;
   createdAt: string;
 }
 
