@@ -1190,11 +1190,12 @@ export default function ContractorDashboard() {
           onSubmit={async (rating) => {
             try {
               await ordersApi.rate(ratingOrder.id, rating);
-              // Optimistic update — no need to wait for next poll
               setMyJobs(prev => prev.map(j => j.id === ratingOrder.id ? { ...j, ratingByContractor: rating } as any : j));
               toast.success('Спасибо за оценку!', { duration: 2000 });
-            } catch { }
-            setRatingOrder(null);
+              setRatingOrder(null);
+            } catch (err: any) {
+              toast.error(err?.message || 'Не удалось отправить оценку. Попробуйте ещё раз.');
+            }
           }}
           onSkip={() => setRatingOrder(null)}
         />
