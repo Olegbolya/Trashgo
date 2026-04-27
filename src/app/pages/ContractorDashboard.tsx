@@ -54,7 +54,7 @@ export default function ContractorDashboard() {
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
   const [ratingOrder, setRatingOrder] = useState<{ id: string; customerName: string } | null>(null);
   const [editInfoOpen, setEditInfoOpen] = useState(false);
-  const [editInfoForm, setEditInfoForm] = useState({ district: '', transportMode: 'car' });
+  const [editInfoForm, setEditInfoForm] = useState({ transportMode: 'car' });
   const [editInfoSaving, setEditInfoSaving] = useState(false);
   const [myJobsLoading, setMyJobsLoading] = useState(false);
   const prevJobStatusesRef = useRef<Record<string, string>>({});
@@ -872,22 +872,15 @@ export default function ContractorDashboard() {
                     <div className="flex items-center justify-between mb-3">
                       <h2 className="text-base font-semibold" style={{ color: c.text }}>Дополнительная информация</h2>
                       <button
-                        onClick={() => { setEditInfoForm({ district: user?.district || '', transportMode: tMode }); setEditInfoOpen(true); }}
+                        onClick={() => { setEditInfoForm({ transportMode: tMode }); setEditInfoOpen(true); }}
                         style={{ background: c.subtle, border: `1px solid ${c.border}`, color: c.textSub, borderRadius: '0.5rem', padding: '0.25rem 0.75rem', fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'inherit' }}
                       >
                         <Edit className="w-3 h-3 inline mr-1" />Изменить
                       </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { l: 'Район работы', v: user?.district || '—' },
-                        { l: 'Способ передвижения', v: transportLabel[tMode] || '🚗 Автомобиль' },
-                      ].map((item, i) => (
-                        <div key={i} className="rounded-lg p-3" style={{ background: c.subtle }}>
-                          <div className="text-xs mb-1" style={{ color: c.muted }}>{item.l}</div>
-                          <div className="text-sm font-medium" style={{ color: c.text }}>{item.v}</div>
-                        </div>
-                      ))}
+                    <div className="rounded-lg p-3" style={{ background: c.subtle }}>
+                      <div className="text-xs mb-1" style={{ color: c.muted }}>Способ передвижения</div>
+                      <div className="text-sm font-medium" style={{ color: c.text }}>{transportLabel[tMode] || '🚗 Автомобиль'}</div>
                     </div>
                   </div>
                 );
@@ -1358,17 +1351,6 @@ export default function ContractorDashboard() {
                 <button onClick={() => setEditInfoOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '1.1rem' }}>✕</button>
               </div>
 
-              {/* District */}
-              <div className="mb-4">
-                <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Район работы</div>
-                <input
-                  value={editInfoForm.district}
-                  onChange={e => setEditInfoForm(f => ({ ...f, district: e.target.value }))}
-                  placeholder="Например: Вахитовский"
-                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
-                />
-              </div>
-
               {/* Transport mode */}
               <div className="mb-5">
                 <div className="text-xs font-medium mb-2" style={{ color: c.muted }}>Способ передвижения</div>
@@ -1403,7 +1385,7 @@ export default function ContractorDashboard() {
                 onClick={async () => {
                   setEditInfoSaving(true);
                   try {
-                    const updated = await authApi.updateProfile({ district: editInfoForm.district, transportMode: editInfoForm.transportMode });
+                    const updated = await authApi.updateProfile({ transportMode: editInfoForm.transportMode });
                     updateUser(updated);
                     setEditInfoOpen(false);
                     toast.success('Данные обновлены');
