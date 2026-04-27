@@ -203,10 +203,15 @@ export default function CustomerDashboard() {
     input:   isDark ? '#1f2937' : '#ffffff',
   };
 
+  const XP_THRESHOLDS = [0, 100, 200, 400, 700, 1000];
+  const currentXp = user?.xp ?? 0;
+  const currentLevel = user?.level ?? 1;
+  const nextLevelXp = XP_THRESHOLDS[Math.min(currentLevel, XP_THRESHOLDS.length - 1)] || 1000;
+
   const levelData: LevelData = {
-    level: user?.level ?? 1,
-    xp: user?.xp ?? 0,
-    nextLevelXp: 100,
+    level: currentLevel,
+    xp: currentXp,
+    nextLevelXp,
     title: 'Новый клиент',
     rank: '🌱 Новичок',
     achievements: 0,
