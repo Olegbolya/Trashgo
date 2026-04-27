@@ -56,6 +56,9 @@ export default function ContractorDashboard() {
   const [editInfoOpen, setEditInfoOpen] = useState(false);
   const [editInfoForm, setEditInfoForm] = useState({ transportMode: 'car' });
   const [editInfoSaving, setEditInfoSaving] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [editProfileForm, setEditProfileForm] = useState({ name: '' });
+  const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [myJobsLoading, setMyJobsLoading] = useState(false);
   const prevJobStatusesRef = useRef<Record<string, string>>({});
   const prevXpRef = useRef<number | null>(null);
@@ -843,7 +846,11 @@ export default function ContractorDashboard() {
                       <div className="text-sm mt-1" style={{ color: c.muted }}>{user?.phone || '—'}</div>
                     </div>
                   </div>
-                  <button className="h-8 px-3 rounded-lg text-xs" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info('Редактирование профиля', { description: 'Функция в разработке' })}>
+                  <button
+                    className="h-8 px-3 rounded-lg text-xs"
+                    style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
+                    onClick={() => { setEditProfileForm({ name: user?.name || '' }); setEditProfileOpen(true); }}
+                  >
                     <Edit className="w-3.5 h-3.5 inline mr-1" />Изменить
                   </button>
                 </div>
@@ -1432,6 +1439,48 @@ export default function ContractorDashboard() {
                 style={{ background: ACCENT, color: 'white', border: 'none', cursor: editInfoSaving ? 'not-allowed' : 'pointer', opacity: editInfoSaving ? 0.6 : 1, fontFamily: 'inherit' }}
               >
                 {editInfoSaving ? 'Сохраняем...' : 'Сохранить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editProfileOpen && (
+        <div className="fixed inset-0 z-[90] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setEditProfileOpen(false)}>
+          <div className="w-full lg:max-w-sm rounded-t-2xl lg:rounded-2xl" style={{ background: c.surface }} onClick={e => e.stopPropagation()}>
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-base font-bold" style={{ color: c.text }}>Редактирование профиля</div>
+                <button onClick={() => setEditProfileOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '1.1rem' }}>✕</button>
+              </div>
+              <div className="mb-5">
+                <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Имя</div>
+                <input
+                  value={editProfileForm.name}
+                  onChange={e => setEditProfileForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="Ваше имя"
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                />
+              </div>
+              <button
+                disabled={editProfileSaving || !editProfileForm.name.trim()}
+                onClick={async () => {
+                  setEditProfileSaving(true);
+                  try {
+                    const updated = await authApi.updateProfile({ name: editProfileForm.name.trim() });
+                    updateUser(updated);
+                    setEditProfileOpen(false);
+                    toast.success('Профиль обновлён');
+                  } catch {
+                    toast.error('Не удалось сохранить');
+                  } finally {
+                    setEditProfileSaving(false);
+                  }
+                }}
+                className="w-full h-11 rounded-xl text-sm font-semibold"
+                style={{ background: ACCENT, color: 'white', border: 'none', cursor: (editProfileSaving || !editProfileForm.name.trim()) ? 'not-allowed' : 'pointer', opacity: (editProfileSaving || !editProfileForm.name.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}
+              >
+                {editProfileSaving ? 'Сохраняем...' : 'Сохранить'}
               </button>
             </div>
           </div>
