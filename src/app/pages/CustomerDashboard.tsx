@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
+import { authApi } from '../../api/auth';
 import { Home, MapPin, User, Plus, Package, CheckCircle, Clock, RefreshCw, Edit, LogOut, Bell, CreditCard, UserPlus, HelpCircle, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Star, Phone, MessageCircle, Menu, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { LevelSystem, type LevelData } from '../components/LevelSystem';
@@ -32,7 +33,7 @@ export default function CustomerDashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isDark, toggleTheme } = useTheme();
-  const { user, logout } = useAuthStore();
+  const { user, logout, updateUser } = useAuthStore();
   const VALID_TABS_C = ['home', 'calendar', 'profile', 'create'] as const;
   type CTabType = typeof VALID_TABS_C[number];
   const activeTab: CTabType = (VALID_TABS_C.includes(searchParams.get('tab') as CTabType) ? searchParams.get('tab') : 'home') as CTabType;
@@ -49,6 +50,9 @@ export default function CustomerDashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const publishingRef = useRef(false);
+  const prevXpRef = useRef<number | null>(null);
+  const prevLevelRef = useRef<number | null>(null);
+  const prevOrderStatusesRef = useRef<Record<string, string>>({});
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -104,6 +108,23 @@ export default function CustomerDashboard() {
     ordersApi.list().then((res: any) => {
       const orders: Order[] = res?.data ?? [];
       const mapped = orders.map((o) => apiOrderToMyOrder(o));
+
+      // Detect status changes and show real-time toasts (item 12)
+      if (silent && Object.keys(prevOrderStatusesRef.current).length > 0) {
+        mapped.forEach(order => {
+          const prev = prevOrderStatusesRef.current[order.id];
+          if (!prev || prev === order.status) return;
+          if (prev === 'waiting' && order.status === 'active') {
+            toast.success('🎉 Вашу заявку взяли!', { description: 'Исполнитель уже в пути', duration: 5000 });
+          } else if ((prev === 'waiting' || prev === 'active') && order.status === 'pending') {
+            toast.info('📸 Исполнитель выполнил заявку', { description: 'Нажмите «Подтвердить», чтобы завершить', duration: 8000 });
+          } else if (order.status === 'cancelled') {
+            toast.error('❌ Заявка была отменена', { duration: 4000 });
+          }
+        });
+      }
+      prevOrderStatusesRef.current = Object.fromEntries(mapped.map(o => [o.id, o.status]));
+
       setMyOrders(mapped);
       setSelectedOrder(prev => {
         if (!prev) return prev;
@@ -115,6 +136,25 @@ export default function CustomerDashboard() {
 
   useEffect(() => {
     refreshOrders();
+  }, []);
+
+  // Poll user data (XP, level, balance) and detect changes (item 11)
+  useEffect(() => {
+    const poll = () => authApi.me().then((u) => {
+      updateUser(u);
+      if (prevXpRef.current !== null && u.xp > prevXpRef.current) {
+        const gained = u.xp - prevXpRef.current;
+        toast.success(`+${gained} XP`, { description: 'Опыт начислен за выполненный заказ!', duration: 3000 });
+      }
+      if (prevLevelRef.current !== null && u.level > prevLevelRef.current) {
+        toast.success(`🎉 Уровень ${u.level}!`, { description: 'Вы перешли на новый уровень', duration: 5000 });
+      }
+      prevXpRef.current = u.xp;
+      prevLevelRef.current = u.level;
+    }).catch(() => {});
+    poll();
+    const interval = setInterval(poll, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   // Refresh when switching to home tab + poll every 10s while on home tab

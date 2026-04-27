@@ -50,6 +50,8 @@ export default function ContractorDashboard() {
   const [editInfoSaving, setEditInfoSaving] = useState(false);
   const [myJobsLoading, setMyJobsLoading] = useState(false);
   const prevJobStatusesRef = useRef<Record<string, string>>({});
+  const prevXpRef = useRef<number | null>(null);
+  const prevLevelRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (activeTab !== 'find') return;
@@ -89,11 +91,23 @@ export default function ContractorDashboard() {
     return () => clearInterval(interval);
   }, [activeTab]);
 
-  // Refresh user data (XP, level, balance) periodically
+  // Refresh user data (XP, level, balance) and detect changes (item 11)
   const { updateUser } = useAuthStore();
   useEffect(() => {
-    authApi.me().then((u) => updateUser(u)).catch(() => {});
-    const interval = setInterval(() => authApi.me().then((u) => updateUser(u)).catch(() => {}), 15000);
+    const poll = () => authApi.me().then((u) => {
+      updateUser(u);
+      if (prevXpRef.current !== null && u.xp > prevXpRef.current) {
+        const gained = u.xp - prevXpRef.current;
+        toast.success(`+${gained} XP`, { description: 'Опыт начислен!', duration: 3000 });
+      }
+      if (prevLevelRef.current !== null && u.level > prevLevelRef.current) {
+        toast.success(`🎉 Уровень ${u.level}!`, { description: 'Вы перешли на новый уровень', duration: 5000 });
+      }
+      prevXpRef.current = u.xp;
+      prevLevelRef.current = u.level;
+    }).catch(() => {});
+    poll();
+    const interval = setInterval(poll, 15000);
     return () => clearInterval(interval);
   }, []);
 
