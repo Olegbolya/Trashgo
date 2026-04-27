@@ -58,7 +58,8 @@ export default function ContractorDashboard() {
     const load = (initial: boolean) => {
       if (initial) setOrdersLoading(true);
       ordersApi.available().then((res: any) => {
-        setAvailableOrders(res?.data ?? []);
+        const orders: Order[] = res?.data ?? [];
+        setAvailableOrders(orders.filter(o => o.customerId !== user?.id));
       }).catch(() => {}).finally(() => { if (initial) setOrdersLoading(false); });
     };
     load(true);
