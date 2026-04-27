@@ -13,6 +13,8 @@ import type { Order, ChatMessage } from '../../types/order';
 import { MapView } from '../components/MapView';
 import { HowItWorksModal } from '../components/HowItWorksModal';
 import { RatingModal } from '../components/RatingModal';
+import { NotificationBell } from '../components/NotificationBell';
+import { useNotificationsStore } from '../../stores/notifications.store';
 
 const ACCENT = '#2196F3';
 
@@ -21,6 +23,7 @@ export default function ContractorDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuthStore();
+  const { addNotification } = useNotificationsStore();
   const VALID_TABS = ['active', 'home', 'find', 'history', 'profile'] as const;
   type TabType = typeof VALID_TABS[number];
   const activeTab: TabType = (VALID_TABS.includes(searchParams.get('tab') as TabType) ? searchParams.get('tab') : 'active') as TabType;
@@ -92,6 +95,7 @@ export default function ContractorDashboard() {
               description: `Заказ по адресу ${job.address} подтверждён заказчиком`,
               duration: 6000,
             });
+            addNotification({ type: 'order_status', title: 'Заявка подтверждена!', message: `Заказчик подтвердил выполнение: ${job.address}`, orderId: job.id });
           }
         });
         prevJobStatusesRef.current = Object.fromEntries(jobs.map(j => [j.id, j.status]));
@@ -124,16 +128,40 @@ export default function ContractorDashboard() {
   }, []);
 
   // Poll chat messages while a chat is open
+  const prevChatCountsRef = useRef<Record<string, number>>({});
   useEffect(() => {
     if (!chatJobId) return;
     const fetch = () => ordersApi.getMessages(chatJobId).then((res: any) => {
-      setChatMessages(res?.data ?? []);
+      const msgs = res?.data ?? [];
+      setChatMessages(msgs);
+      prevChatCountsRef.current[chatJobId] = msgs.length;
       setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     }).catch(() => {});
     fetch();
     const interval = setInterval(fetch, 5000);
     return () => clearInterval(interval);
   }, [chatJobId]);
+
+  // Detect new chat messages on active jobs when chat is closed
+  useEffect(() => {
+    const activeJobs = myJobs.filter(j => j.status === 'accepted' || j.status === 'in_progress' || j.status === 'pending_confirmation');
+    if (!activeJobs.length || chatJobId) return;
+    const poll = () => {
+      activeJobs.forEach(job => {
+        ordersApi.getMessages(job.id).then((res: any) => {
+          const msgs: any[] = res?.data ?? [];
+          const prev = prevChatCountsRef.current[job.id] ?? msgs.length;
+          if (msgs.length > prev) {
+            const last = msgs[msgs.length - 1];
+            addNotification({ type: 'chat', title: 'Новое сообщение', message: last?.text ? `${last.senderName}: ${last.text}` : 'Новое сообщение в чате', orderId: job.id });
+          }
+          prevChatCountsRef.current[job.id] = msgs.length;
+        }).catch(() => {});
+      });
+    };
+    const interval = setInterval(poll, 15000);
+    return () => clearInterval(interval);
+  }, [myJobs, chatJobId]);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -227,19 +255,24 @@ export default function ContractorDashboard() {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col fixed top-0 left-0 h-full w-64 z-50" style={{ background: c.surface, borderRight: `2px solid ${ACCENT}` }}>
         {/* Profile header — clickable */}
-        <button
-          onClick={() => setActiveTab('profile')}
-          className="w-full flex items-center gap-3 p-5 text-left"
-          style={{ borderBottom: `1px solid ${c.border}`, background: 'none', border: 'none', borderBottom: `1px solid ${c.border}`, cursor: 'pointer', fontFamily: 'inherit' }}
-        >
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base flex-shrink-0" style={{ background: `${ACCENT}20`, color: ACCENT }}>
-            {(user?.name || 'U').charAt(0).toUpperCase()}
+        <div className="flex items-center" style={{ borderBottom: `1px solid ${c.border}` }}>
+          <button
+            onClick={() => setActiveTab('profile')}
+            className="flex-1 flex items-center gap-3 p-5 text-left"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base flex-shrink-0" style={{ background: `${ACCENT}20`, color: ACCENT }}>
+              {(user?.name || 'U').charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <div className="font-semibold text-sm truncate" style={{ color: c.text }}>{user?.name || 'Профиль'}</div>
+              <div className="text-xs" style={{ color: c.muted }}>Исполнитель</div>
+            </div>
+          </button>
+          <div className="pr-3">
+            <NotificationBell accentColor={ACCENT} />
           </div>
-          <div className="min-w-0">
-            <div className="font-semibold text-sm truncate" style={{ color: c.text }}>{user?.name || 'Профиль'}</div>
-            <div className="text-xs" style={{ color: c.muted }}>Исполнитель</div>
-          </div>
-        </button>
+        </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {[
@@ -308,8 +341,11 @@ export default function ContractorDashboard() {
               </div>
               <div className="text-sm font-semibold" style={{ color: c.text }}>TrashGo</div>
             </div>
-            <div className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: `${ACCENT}18`, color: ACCENT }}>
-              Исполнитель
+            <div className="flex items-center gap-1">
+              <NotificationBell accentColor={ACCENT} />
+              <div className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: `${ACCENT}18`, color: ACCENT }}>
+                Исполнитель
+              </div>
             </div>
           </div>
         </div>
