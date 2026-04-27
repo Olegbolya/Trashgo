@@ -9,6 +9,7 @@ import { AchievementsPanel, type Achievement } from '../components/AchievementsP
 import { toast } from 'sonner';
 import { getDayLabel } from '../lib/utils';
 import { ordersApi } from '../../api/orders';
+import { referralsApi } from '../../api/referrals';
 import type { Order, ChatMessage } from '../../types/order';
 import { HowItWorksModal } from '../components/HowItWorksModal';
 import { RatingModal } from '../components/RatingModal';
@@ -64,6 +65,7 @@ export default function CustomerDashboard() {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '' });
   const [editProfileSaving, setEditProfileSaving] = useState(false);
+  const [referralCount, setReferralCount] = useState(0);
 
   type MyOrder = {
     id: string; address: string; entrance: string; floor: string; apartment: string;
@@ -183,6 +185,11 @@ export default function CustomerDashboard() {
     }
   }, [selectedOrder?.id]);
 
+  // Load referral count
+  useEffect(() => {
+    referralsApi.getMyReferral().then((d) => setReferralCount(d.count)).catch(() => {});
+  }, []);
+
   // Poll chat messages every 5s while chat is open
   useEffect(() => {
     if (!chatOpen || !selectedOrder) return;
@@ -242,8 +249,8 @@ export default function CustomerDashboard() {
     { id: 'completed_10',  icon: '🌟', title: 'Проверенный',     description: 'Завершите 10 заказов',                unlocked: completedOrders >= 10,  progress: Math.min(completedOrders, 10), maxProgress: 10, reward: '+50 XP' },
     { id: 'asap_1',        icon: '⚡', title: 'Срочный клиент',  description: 'Оформите срочный заказ',              unlocked: asapOrders >= 1,        reward: '+5 XP' },
     { id: 'asap_5',        icon: '⚡⚡', title: 'Всегда срочно', description: 'Оформите 5 срочных заказов',          unlocked: asapOrders >= 5,        progress: Math.min(asapOrders, 5), maxProgress: 5, reward: '+20 XP' },
-    { id: 'referral_1',    icon: '👥', title: 'Первый реферал',  description: 'Пригласите соседа',                   unlocked: false,                  reward: '+10 XP' },
-    { id: 'referral_5',    icon: '🤝', title: 'Король рефералов', description: 'Пригласите 5 соседей',              unlocked: false,                  progress: 0, maxProgress: 5 },
+    { id: 'referral_1',    icon: '👥', title: 'Первый реферал',  description: 'Пригласите соседа',                   unlocked: referralCount >= 1,     reward: '+10 XP' },
+    { id: 'referral_5',    icon: '🤝', title: 'Король рефералов', description: 'Пригласите 5 соседей',              unlocked: referralCount >= 5,     progress: Math.min(referralCount, 5), maxProgress: 5 },
     { id: 'level_2',       icon: '🌱', title: 'Новый уровень',   description: 'Достигните 2-го уровня',             unlocked: (user?.level ?? 1) >= 2, reward: 'Значок клиента' },
     { id: 'level_5',       icon: '🌿', title: 'Уровень 5',       description: 'Достигните 5-го уровня',             unlocked: (user?.level ?? 1) >= 5, progress: user?.level ?? 1, maxProgress: 5, reward: '+100 XP' },
     { id: 'level_10',      icon: '🌳', title: 'Уровень 10',      description: 'Достигните 10-го уровня',            unlocked: (user?.level ?? 1) >= 10, progress: user?.level ?? 1, maxProgress: 10, reward: 'Значок «Эксперт»' },
@@ -255,7 +262,7 @@ export default function CustomerDashboard() {
     totalOrders: myOrders.length,
     activeOrders: myOrders.filter(o => o.status === 'waiting' || o.status === 'active' || o.status === 'pending').length,
     completedOrders: myOrders.filter(o => o.status === 'completed').length,
-    referrals: 0,
+    referrals: referralCount,
   };
 
   const today = new Date();

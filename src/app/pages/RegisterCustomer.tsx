@@ -49,7 +49,9 @@ export default function RegisterCustomer() {
       formData.apartment ? `кв. ${formData.apartment}` : '',
     ].filter(Boolean).join(', ');
     try {
-      const res = await authApi.register({ phone, code: verifiedCode, name: formData.name, role: 'customer', district });
+      const refCode = sessionStorage.getItem('pendingRefCode') ?? undefined;
+      const res = await authApi.register({ phone, code: verifiedCode, name: formData.name, role: 'customer', district, refCode });
+      if (refCode) sessionStorage.removeItem('pendingRefCode');
       setAuth(res.user, res.token, res.refreshToken);
       navigate('/customer');
     } catch (err: any) {

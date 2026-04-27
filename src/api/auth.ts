@@ -21,6 +21,7 @@ interface RegisterInput {
   name: string;
   role: UserRole;
   district: string;
+  refCode?: string;
 }
 
 interface RegisterResponse {

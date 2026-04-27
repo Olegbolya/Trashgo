@@ -24,6 +24,7 @@ const OrderConfirmed = lazy(() => import("./pages/OrderConfirmed"));
 const OrderDetail = lazy(() => import("./pages/OrderDetail"));
 const InviteNeighbor = lazy(() => import("./pages/InviteNeighbor"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
+const RefRedirect = lazy(() => import("./pages/RefRedirect"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function PageLoader() {
@@ -74,6 +75,7 @@ export const router = createBrowserRouter([
   { path: "/register-customer", element: page(RegisterCustomer) },
   { path: "/register-contractor", element: page(RegisterContractor) },
   { path: "/how-it-works", element: page(HowItWorks) },
+  { path: "/ref/:code", element: page(RefRedirect) },
 
   // Protected — auth required (both dashboards accessible for role switching)
   { path: "/dashboard", element: guarded(UnifiedDashboard) },
