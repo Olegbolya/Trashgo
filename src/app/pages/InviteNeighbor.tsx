@@ -1,15 +1,26 @@
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Users, TrendingDown, Copy, Share2, CheckCircle, MapPin, Gift, Sparkles, Phone, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Users, TrendingDown, Copy, Share2, CheckCircle, MapPin, Gift, Sparkles, Phone, MessageCircle, Briefcase, ChevronRight } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useTheme } from '../context/ThemeContext';
 import { referralsApi, type ReferralInfo } from '../../api/referrals';
 
 export default function InviteNeighbor() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [copied, setCopied] = useState(false);
   const [referralInfo, setReferralInfo] = useState<ReferralInfo | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const c = {
+    bg:      isDark ? '#111827' : '#f9fafb',
+    surface: isDark ? '#1e2433' : '#ffffff',
+    border:  isDark ? '#374151' : '#e5e7eb',
+    text:    isDark ? '#f9fafb' : '#111827',
+    muted:   isDark ? '#9ca3af' : '#6b7280',
+    subtle:  isDark ? '#1f2937' : '#f3f4f6',
+  };
 
   useEffect(() => {
     referralsApi.getMyReferral()
@@ -67,18 +78,21 @@ export default function InviteNeighbor() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-14">
+    <div className="min-h-screen pb-14" style={{ background: c.bg }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <header className="sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}` }}>
         <div className="container mx-auto px-3">
           <div className="flex items-center justify-between h-12">
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+              className="flex items-center gap-2"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted }}
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm font-medium">Назад</span>
             </button>
+            <div className="text-sm font-semibold" style={{ color: c.text }}>Реферальная программа</div>
+            <div className="w-16" />
           </div>
         </div>
       </header>
@@ -172,29 +186,29 @@ export default function InviteNeighbor() {
             </div>
 
             {/* Neighbors List */}
-            <div className="bg-white rounded-2xl p-4 border border-gray-200">
+            <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
               <div className="flex items-start gap-3 mb-4">
                 <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
                   <MapPin className="w-5 h-5 text-purple-600" />
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-gray-900 mb-1">Приглашённые соседи</div>
-                  <div className="text-xs text-gray-500">{currentNeighbors} участников</div>
+                  <div className="text-xs" style={{ color: c.muted }}>{currentNeighbors} участников</div>
                 </div>
               </div>
 
               {referralInfo && referralInfo.referrals.length > 0 ? (
                 <div className="space-y-2 mb-4">
-                  <div className="text-xs font-semibold text-gray-500 uppercase">Ваши соседи</div>
+                  <div className="text-xs font-semibold uppercase" style={{ color: c.muted }}>Ваши соседи</div>
                   {referralInfo.referrals.map((neighbor, i) => (
-                    <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                    <div key={i} className="flex items-center justify-between rounded-lg p-3" style={{ background: c.subtle }}>
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
                           {neighbor.name.charAt(0)}
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{neighbor.name}</div>
-                          <div className="text-xs text-gray-500">{formatJoinedAt(neighbor.joinedAt)}</div>
+                          <div className="text-sm font-medium" style={{ color: c.text }}>{neighbor.name}</div>
+                          <div className="text-xs" style={{ color: c.muted }}>{formatJoinedAt(neighbor.joinedAt)}</div>
                         </div>
                       </div>
                       <CheckCircle className="w-4 h-4 text-green-500" />
@@ -215,11 +229,11 @@ export default function InviteNeighbor() {
             </div>
 
             {/* Referral Link */}
-            <div className="bg-white rounded-2xl p-4 border border-gray-200">
-              <h2 className="text-base font-semibold text-gray-900 mb-3">Реферальная ссылка</h2>
-              <div className="bg-gray-50 rounded-lg p-3 mb-3 border border-gray-200">
-                <div className="text-xs text-gray-500 mb-2">Ваша ссылка</div>
-                <div className="text-sm font-mono text-gray-900 break-all">{referralLink || '...'}</div>
+            <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+              <h2 className="text-base font-semibold mb-3" style={{ color: c.text }}>Реферальная ссылка</h2>
+              <div className="rounded-lg p-3 mb-3" style={{ background: c.subtle, border: `1px solid ${c.border}` }}>
+                <div className="text-xs mb-2" style={{ color: c.muted }}>Ваша ссылка</div>
+                <div className="text-sm font-mono break-all" style={{ color: c.text }}>{referralLink || '...'}</div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <Button onClick={copyLink} variant="outline" className="w-full" disabled={!referralLink}>
@@ -237,8 +251,8 @@ export default function InviteNeighbor() {
             </div>
 
             {/* How it works */}
-            <div className="bg-white rounded-2xl p-4 border border-gray-200">
-              <h2 className="text-base font-semibold text-gray-900 mb-4">Как это работает?</h2>
+            <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+              <h2 className="text-base font-semibold mb-4" style={{ color: c.text }}>Как это работает?</h2>
               <div className="space-y-4">
                 {[
                   { n: 1, title: 'Пригласите соседей', desc: 'Отправьте ссылку соседям из вашего подъезда' },
@@ -248,8 +262,8 @@ export default function InviteNeighbor() {
                   <div key={n} className="flex gap-3">
                     <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 text-purple-600 font-bold text-sm">{n}</div>
                     <div>
-                      <div className="text-sm font-medium text-gray-900 mb-1">{title}</div>
-                      <div className="text-xs text-gray-600">{desc}</div>
+                      <div className="text-sm font-medium mb-1" style={{ color: c.text }}>{title}</div>
+                      <div className="text-xs" style={{ color: c.muted }}>{desc}</div>
                     </div>
                   </div>
                 ))}
@@ -265,8 +279,8 @@ export default function InviteNeighbor() {
             </div>
 
             {/* Discount Table */}
-            <div className="bg-white rounded-2xl p-4 border border-gray-200">
-              <h2 className="text-base font-semibold text-gray-900 mb-3">Таблица скидок</h2>
+            <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+              <h2 className="text-base font-semibold mb-3" style={{ color: c.text }}>Таблица скидок</h2>
               <div className="space-y-1.5">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((count) => {
                   const discount = calculateDiscount(count);
@@ -275,10 +289,10 @@ export default function InviteNeighbor() {
                   return (
                     <div
                       key={count}
-                      className={`flex items-center justify-between p-2.5 rounded-lg ${isCurrent ? 'bg-purple-100 border-2 border-purple-400' : 'bg-gray-50 border border-gray-200'}`}
+                      className={`flex items-center justify-between p-2.5 rounded-lg ${isCurrent ? 'border-2 border-purple-400' : 'border'}`} style={{ background: isCurrent ? (isDark ? '#4C1D9520' : '#EDE9FE') : c.subtle, borderColor: isCurrent ? '#A78BFA' : c.border }}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${isCurrent ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style={{ background: isCurrent ? '#7C3AED' : c.surface, color: isCurrent ? 'white' : c.text, border: isCurrent ? 'none' : `1px solid ${c.border}` }}>
                           {count}
                         </div>
                         <div>
@@ -323,6 +337,21 @@ export default function InviteNeighbor() {
                   </Button>
                 </div>
               </div>
+            </div>
+            {/* Contractor referral banner */}
+            <div
+              className="rounded-2xl p-4 flex items-center gap-4 cursor-pointer"
+              style={{ background: c.surface, border: `1px solid ${c.border}` }}
+              onClick={() => navigate('/contractor-referral')}
+            >
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#2196F318' }}>
+                <Briefcase className="w-6 h-6" style={{ color: '#2196F3' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold" style={{ color: c.text }}>Вы исполнитель?</div>
+                <div className="text-xs mt-0.5" style={{ color: c.muted }}>Для исполнителей действует отдельная программа — приведи напарника и получай бонусы</div>
+              </div>
+              <ChevronRight className="w-5 h-5 flex-shrink-0" style={{ color: c.muted }} />
             </div>
           </div>
         </div>

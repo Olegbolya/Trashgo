@@ -69,6 +69,9 @@ export default function CustomerDashboard() {
   const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '' });
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [referralCount, setReferralCount] = useState(0);
+  const [addAddressOpen, setAddAddressOpen] = useState(false);
+  const [newAddress, setNewAddress] = useState('');
+  const [addressSaving, setAddressSaving] = useState(false);
 
   type MyOrder = {
     id: string; address: string; entrance: string; floor: string; apartment: string;
@@ -785,20 +788,41 @@ export default function CustomerDashboard() {
               {/* Address */}
               <div style={card}>
                 <h2 className="text-base font-semibold mb-3" style={{ color: c.text }}>Адреса вывоза</h2>
-                <div className="space-y-3">
-                  <div className="rounded-lg p-3" style={{ background: c.subtle }}>
-                    <div className="flex items-start gap-2">
-                      <MapPin className="w-4 h-4 mt-0.5" style={{ color: c.muted }} />
-                      <div>
-                        <div className="text-sm font-medium" style={{ color: c.text }}>ул. Баумана, 58</div>
-                        <div className="text-xs" style={{ color: c.muted }}>Подъезд 2, Этаж 5, Кв. 42</div>
-                        <div className="mt-2 inline-flex items-center gap-1 px-2 py-1 rounded text-xs" style={{ background: '#A78BFA' + '18', color: '#A78BFA', border: `1px solid ${'#A78BFA' + '30'}` }}>
-                          <RefreshCw className="w-3 h-3" /> Подписка активна
-                        </div>
+                <div className="space-y-2">
+                  {/* Primary address from registration */}
+                  {user?.district && (
+                    <div className="rounded-lg p-3 flex items-start gap-2" style={{ background: c.subtle }}>
+                      <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: ACCENT }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium" style={{ color: c.text }}>{user.district}</div>
+                        <div className="text-xs mt-0.5" style={{ color: c.muted }}>Основной адрес</div>
                       </div>
                     </div>
-                  </div>
-                  <button className="w-full py-2 text-sm rounded-lg" style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => toast.info('Добавление адреса', { duration: 2000 })}>
+                  )}
+                  {/* Extra addresses */}
+                  {(user?.addresses ?? []).map((addr, i) => (
+                    <div key={i} className="rounded-lg p-3 flex items-start gap-2" style={{ background: c.subtle }}>
+                      <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: c.muted }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm" style={{ color: c.text }}>{addr}</div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const updated = (user.addresses ?? []).filter((_, j) => j !== i);
+                          const res = await authApi.updateProfile({ addresses: updated });
+                          updateUser(res);
+                        }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, padding: '2px', flexShrink: 0 }}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    className="w-full py-2 text-sm rounded-lg"
+                    style={{ border: `1px dashed ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
+                    onClick={() => { setNewAddress(''); setAddAddressOpen(true); }}
+                  >
                     + Добавить адрес
                   </button>
                 </div>
@@ -1760,6 +1784,51 @@ export default function CustomerDashboard() {
                 style={{ background: ACCENT, color: 'white', border: 'none', cursor: (editProfileSaving || !editProfileForm.name.trim()) ? 'not-allowed' : 'pointer', opacity: (editProfileSaving || !editProfileForm.name.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}
               >
                 {editProfileSaving ? 'Сохраняем...' : 'Сохранить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add address modal */}
+      {addAddressOpen && (
+        <div className="fixed inset-0 z-[90] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setAddAddressOpen(false)}>
+          <div className="w-full lg:max-w-sm rounded-t-2xl lg:rounded-2xl" style={{ background: c.surface }} onClick={e => e.stopPropagation()}>
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-base font-bold" style={{ color: c.text }}>Новый адрес</div>
+                <button onClick={() => setAddAddressOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '1.1rem' }}>✕</button>
+              </div>
+              <div className="mb-5">
+                <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Адрес вывоза мусора</div>
+                <input
+                  value={newAddress}
+                  onChange={e => setNewAddress(e.target.value)}
+                  placeholder="ул. Ленина, 45, кв. 12"
+                  autoFocus
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                />
+              </div>
+              <button
+                disabled={addressSaving || !newAddress.trim()}
+                onClick={async () => {
+                  setAddressSaving(true);
+                  try {
+                    const current = user?.addresses ?? [];
+                    const res = await authApi.updateProfile({ addresses: [...current, newAddress.trim()] });
+                    updateUser(res);
+                    setAddAddressOpen(false);
+                    toast.success('Адрес добавлен');
+                  } catch {
+                    toast.error('Не удалось добавить адрес');
+                  } finally {
+                    setAddressSaving(false);
+                  }
+                }}
+                className="w-full h-11 rounded-xl text-sm font-semibold"
+                style={{ background: ACCENT, color: 'white', border: 'none', cursor: (addressSaving || !newAddress.trim()) ? 'not-allowed' : 'pointer', opacity: (addressSaving || !newAddress.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}
+              >
+                {addressSaving ? 'Сохраняем...' : 'Добавить'}
               </button>
             </div>
           </div>

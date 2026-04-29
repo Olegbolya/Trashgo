@@ -12,6 +12,7 @@ export interface User {
   balance: number;
   avgRating: number | null;
   ratingCount: number;
+  addresses: string[];
   createdAt: string;
 }
 

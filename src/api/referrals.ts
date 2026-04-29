@@ -4,12 +4,16 @@ export interface ReferralInfo {
   code: string;
   link: string;
   count: number;
-  referrals: { name: string; joinedAt: string }[];
+  referrals: { name: string; role?: string; joinedAt: string }[];
 }
 
 export const referralsApi = {
   async getMyReferral(): Promise<ReferralInfo> {
-    const res = await api.get<{ data: ReferralInfo }>('/referrals/my');
+    const res = await api.get<{ data: ReferralInfo }>('/referrals/my?target=customer');
+    return res.data;
+  },
+  async getMyContractorReferral(): Promise<ReferralInfo> {
+    const res = await api.get<{ data: ReferralInfo }>('/referrals/my?target=contractor');
     return res.data;
   },
 };
