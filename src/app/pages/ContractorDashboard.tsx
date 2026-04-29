@@ -60,7 +60,7 @@ export default function ContractorDashboard() {
   const [editInfoForm, setEditInfoForm] = useState({ transportMode: 'car' });
   const [editInfoSaving, setEditInfoSaving] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
-  const [editProfileForm, setEditProfileForm] = useState({ name: '' });
+  const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '' });
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [myJobsLoading, setMyJobsLoading] = useState(false);
   const prevJobStatusesRef = useRef<Record<string, string>>({});
@@ -880,12 +880,13 @@ export default function ContractorDashboard() {
                       <h1 className="text-lg font-semibold" style={{ color: c.text }}>{user?.name || '—'}</h1>
                       <div className="text-xs font-medium px-2 py-0.5 rounded-full inline-block mt-0.5" style={{ background: `${ACCENT}18`, color: ACCENT }}>{statusLabel}</div>
                       <div className="text-sm mt-1" style={{ color: c.muted }}>{user?.phone || '—'}</div>
+                      {user?.district && <div className="text-xs mt-0.5" style={{ color: c.muted }}>📍 {user.district}</div>}
                     </div>
                   </div>
                   <button
                     className="h-8 px-3 rounded-lg text-xs"
                     style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
-                    onClick={() => { setEditProfileForm({ name: user?.name || '' }); setEditProfileOpen(true); }}
+                    onClick={() => { setEditProfileForm({ name: user?.name || '', district: user?.district || '' }); setEditProfileOpen(true); }}
                   >
                     <Edit className="w-3.5 h-3.5 inline mr-1" />Изменить
                   </button>
@@ -1489,7 +1490,7 @@ export default function ContractorDashboard() {
                 <div className="text-base font-bold" style={{ color: c.text }}>Редактирование профиля</div>
                 <button onClick={() => setEditProfileOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '1.1rem' }}>✕</button>
               </div>
-              <div className="mb-5">
+              <div className="mb-4">
                 <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Имя</div>
                 <input
                   value={editProfileForm.name}
@@ -1498,12 +1499,21 @@ export default function ContractorDashboard() {
                   style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                 />
               </div>
+              <div className="mb-5">
+                <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Район работы</div>
+                <input
+                  value={editProfileForm.district}
+                  onChange={e => setEditProfileForm(f => ({ ...f, district: e.target.value }))}
+                  placeholder="Например: Вахитовский"
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                />
+              </div>
               <button
                 disabled={editProfileSaving || !editProfileForm.name.trim()}
                 onClick={async () => {
                   setEditProfileSaving(true);
                   try {
-                    const updated = await authApi.updateProfile({ name: editProfileForm.name.trim() });
+                    const updated = await authApi.updateProfile({ name: editProfileForm.name.trim(), district: editProfileForm.district.trim() });
                     updateUser(updated);
                     setEditProfileOpen(false);
                     toast.success('Профиль обновлён');

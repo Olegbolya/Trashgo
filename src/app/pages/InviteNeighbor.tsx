@@ -99,13 +99,13 @@ export default function InviteNeighbor() {
 
       {loading ? (
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="w-8 h-8 border-2 border-gray-300 border-t-purple-600 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: '#22c55e' }} />
         </div>
       ) : (
         <div className="container mx-auto px-3 py-3">
           <div className="max-w-4xl mx-auto space-y-3">
             {/* Hero - Current Discount */}
-            <div className="bg-gradient-to-br from-purple-500 via-violet-500 to-indigo-600 rounded-2xl p-6 text-white relative overflow-hidden">
+            <div className="rounded-2xl p-6 text-white relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a, #15803d)' }}>
               <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20"></div>
               <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-16 -mb-16"></div>
 
@@ -188,11 +188,11 @@ export default function InviteNeighbor() {
             {/* Neighbors List */}
             <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
               <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-5 h-5 text-purple-600" />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#22c55e18' }}>
+                  <MapPin className="w-5 h-5" style={{ color: '#16a34a' }} />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-900 mb-1">Приглашённые соседи</div>
+                  <div className="text-sm font-semibold mb-1" style={{ color: c.text }}>Приглашённые соседи</div>
                   <div className="text-xs" style={{ color: c.muted }}>{currentNeighbors} участников</div>
                 </div>
               </div>
@@ -203,7 +203,7 @@ export default function InviteNeighbor() {
                   {referralInfo.referrals.map((neighbor, i) => (
                     <div key={i} className="flex items-center justify-between rounded-lg p-3" style={{ background: c.subtle }}>
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}>
                           {neighbor.name.charAt(0)}
                         </div>
                         <div>
@@ -221,8 +221,8 @@ export default function InviteNeighbor() {
                 </div>
               )}
 
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                <div className="text-xs text-purple-700">
+              <div className="rounded-lg p-3" style={{ background: '#22c55e12', border: '1px solid #22c55e30' }}>
+                <div className="text-xs" style={{ color: isDark ? '#86efac' : '#15803d' }}>
                   🎯 <strong>Цель:</strong> Ещё {Math.max(0, 10 - currentNeighbors)} соседей до максимальной скидки 20%
                 </div>
               </div>
@@ -243,7 +243,7 @@ export default function InviteNeighbor() {
                     <><Copy className="w-4 h-4 mr-2" />Копировать</>
                   )}
                 </Button>
-                <Button onClick={shareLink} className="w-full bg-purple-600 hover:bg-purple-700 text-white" disabled={!referralLink}>
+                <Button onClick={shareLink} className="w-full text-white" style={{ background: '#16a34a' }} disabled={!referralLink}>
                   <Share2 className="w-4 h-4 mr-2" />
                   Поделиться
                 </Button>
@@ -260,7 +260,7 @@ export default function InviteNeighbor() {
                   { n: 3, title: 'Скидка растет для всех!', desc: 'Каждый сосед = +2% скидки (максимум 20%)' },
                 ].map(({ n, title, desc }) => (
                   <div key={n} className="flex gap-3">
-                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 text-purple-600 font-bold text-sm">{n}</div>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm text-white" style={{ background: '#16a34a' }}>{n}</div>
                     <div>
                       <div className="text-sm font-medium mb-1" style={{ color: c.text }}>{title}</div>
                       <div className="text-xs" style={{ color: c.muted }}>{desc}</div>
@@ -268,10 +268,10 @@ export default function InviteNeighbor() {
                   </div>
                 ))}
               </div>
-              <div className="mt-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-3">
+              <div className="mt-4 rounded-lg p-3" style={{ background: '#22c55e12', border: '1px solid #22c55e30' }}>
                 <div className="flex items-start gap-2">
-                  <Gift className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-xs text-purple-900">
+                  <Gift className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#16a34a' }} />
+                  <div className="text-xs" style={{ color: isDark ? '#86efac' : '#14532d' }}>
                     <strong>Бонус:</strong> Первый приглашённый сосед дает вам дополнительно -5₽ на следующий заказ!
                   </div>
                 </div>
@@ -289,22 +289,22 @@ export default function InviteNeighbor() {
                   return (
                     <div
                       key={count}
-                      className={`flex items-center justify-between p-2.5 rounded-lg ${isCurrent ? 'border-2 border-purple-400' : 'border'}`} style={{ background: isCurrent ? (isDark ? '#4C1D9520' : '#EDE9FE') : c.subtle, borderColor: isCurrent ? '#A78BFA' : c.border }}
+                      className="flex items-center justify-between p-2.5 rounded-lg" style={{ background: isCurrent ? '#22c55e15' : c.subtle, border: `${isCurrent ? '2px' : '1px'} solid ${isCurrent ? '#22c55e60' : c.border}` }}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style={{ background: isCurrent ? '#7C3AED' : c.surface, color: isCurrent ? 'white' : c.text, border: isCurrent ? 'none' : `1px solid ${c.border}` }}>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style={{ background: isCurrent ? '#16a34a' : c.surface, color: isCurrent ? 'white' : c.text, border: isCurrent ? 'none' : `1px solid ${c.border}` }}>
                           {count}
                         </div>
                         <div>
-                          <div className={`text-sm font-medium ${isCurrent ? 'text-purple-900' : 'text-gray-900'}`}>
+                          <div className="text-sm font-medium" style={{ color: isCurrent ? (isDark ? '#86efac' : '#14532d') : c.text }}>
                             {count} {count === 1 ? 'сосед' : count < 5 ? 'соседа' : 'соседей'}
                           </div>
-                          {isCurrent && <div className="text-xs text-purple-600 font-medium">Ваш уровень</div>}
+                          {isCurrent && <div className="text-xs font-medium" style={{ color: '#16a34a' }}>Ваш уровень</div>}
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className={`text-base font-bold ${isCurrent ? 'text-purple-900' : 'text-gray-900'}`}>{price.toFixed(0)}₽</div>
-                        <div className={`text-xs ${isCurrent ? 'text-purple-600' : 'text-gray-500'}`}>-{discount}%</div>
+                        <div className="text-base font-bold" style={{ color: isCurrent ? (isDark ? '#86efac' : '#14532d') : c.text }}>{price.toFixed(0)}₽</div>
+                        <div className="text-xs" style={{ color: isCurrent ? '#16a34a' : c.muted }}>-{discount}%</div>
                       </div>
                     </div>
                   );
@@ -313,7 +313,7 @@ export default function InviteNeighbor() {
             </div>
 
             {/* CTA */}
-            <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl p-5 text-white relative overflow-hidden">
+            <div className="rounded-2xl p-5 text-white relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}>
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
               <div className="relative">
                 <div className="text-lg font-bold mb-2">Расскажите соседям!</div>
