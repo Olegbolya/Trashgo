@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router';
-import { ChevronLeft, HelpCircle, Trash2 } from 'lucide-react';
+import { ChevronLeft, HelpCircle, MessageCircle, Trash2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 interface LayoutProps {
@@ -28,6 +28,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const navItems = [
     { path: '/how-it-works', icon: HelpCircle, label: 'Как это работает?' },
+    { path: '/help',         icon: MessageCircle, label: 'Помощь и поддержка' },
   ];
 
   return (

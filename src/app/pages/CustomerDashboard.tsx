@@ -848,7 +848,7 @@ export default function CustomerDashboard() {
                   { icon: Bell, label: 'Уведомления', sub: 'Настройка push и email', action: () => toast.info('Настройки уведомлений') },
                   { icon: CreditCard, label: 'Способ оплаты', sub: 'Карты и банковские счета', action: () => toast.info('Способы оплаты') },
                   { icon: UserPlus, label: 'Пригласить соседей', sub: 'Чем больше вас — тем дешевле каждому', action: () => navigate('/invite-neighbor') },
-                  { icon: HelpCircle, label: 'Помощь и поддержка', sub: 'FAQ и связь с поддержкой', action: () => toast.info('Помощь и поддержка') },
+                  { icon: HelpCircle, label: 'Помощь и поддержка', sub: 'FAQ и связь с поддержкой', action: () => navigate('/help') },
                 ].map((item, i, arr) => (
                   <button key={i} className="w-full flex items-center justify-between p-4" style={{ background: 'transparent', border: 'none', borderBottom: i < arr.length - 1 ? `1px solid ${c.border}` : 'none', cursor: 'pointer', fontFamily: 'inherit' }} onClick={item.action}>
                     <div className="flex items-center gap-3">
