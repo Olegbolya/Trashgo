@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router';
 import { Bell, X, Trash2, CheckCheck, MessageCircle, Package, Zap } from 'lucide-react';
 import { useNotificationsStore, type AppNotification } from '../../stores/notifications.store';
 import { useTheme } from '../context/ThemeContext';
@@ -25,6 +26,7 @@ interface Props {
 
 export function NotificationBell({ accentColor }: Props) {
   const { isDark } = useTheme();
+  const navigate = useNavigate();
   const { notifications, markAllRead, clearAll } = useNotificationsStore();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -123,14 +125,14 @@ export function NotificationBell({ accentColor }: Props) {
           </div>
 
           {/* List */}
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 gap-2" style={{ color: c.muted }}>
                 <Bell className="w-8 h-8 opacity-30" />
                 <span className="text-sm">Нет уведомлений</span>
               </div>
             ) : (
-              notifications.map((n) => (
+              notifications.slice(0, 5).map((n) => (
                 <div
                   key={n.id}
                   className="flex items-start gap-3 px-4 py-3 transition-colors"
@@ -157,6 +159,15 @@ export function NotificationBell({ accentColor }: Props) {
               ))
             )}
           </div>
+
+          {/* Footer link */}
+          <button
+            onClick={() => { setOpen(false); navigate('/notifications'); }}
+            className="w-full py-2.5 text-xs font-semibold text-center"
+            style={{ background: 'none', border: 'none', borderTop: `1px solid ${c.border}`, cursor: 'pointer', color: accentColor, fontFamily: 'inherit' }}
+          >
+            Все уведомления →
+          </button>
         </div>
       )}
     </div>

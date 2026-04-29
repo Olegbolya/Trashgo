@@ -14,6 +14,7 @@ export interface AppNotification {
 interface NotificationsStore {
   notifications: AppNotification[];
   addNotification: (n: Omit<AppNotification, 'id' | 'timestamp' | 'read'>) => void;
+  markRead: (id: string) => void;
   markAllRead: () => void;
   clearAll: () => void;
 }
@@ -28,6 +29,10 @@ export const useNotificationsStore = create<NotificationsStore>()(
             { ...n, id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, timestamp: Date.now(), read: false },
             ...state.notifications,
           ].slice(0, 50),
+        })),
+      markRead: (id) =>
+        set((state) => ({
+          notifications: state.notifications.map((n) => n.id === id ? { ...n, read: true } : n),
         })),
       markAllRead: () =>
         set((state) => ({
