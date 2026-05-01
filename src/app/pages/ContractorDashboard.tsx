@@ -904,16 +904,16 @@ export default function ContractorDashboard() {
                     <Edit className="w-3.5 h-3.5 inline mr-1" />Изменить
                   </button>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
-                    { v: <><Star className="w-3.5 h-3.5 inline mb-0.5" style={{ color: '#FBBF24', fill: '#FBBF24' }} /> {user?.avgRating != null ? `${user.avgRating.toFixed(1)} (${user.ratingCount})` : '—'}</>, l: 'рейтинг' },
+                    { v: <><Star className="w-3.5 h-3.5 inline mb-0.5" style={{ color: '#FBBF24', fill: '#FBBF24' }} /> {user?.avgRating != null ? user.avgRating.toFixed(1) : '—'}</>, l: user?.ratingCount ? `${user.ratingCount} оценок` : 'рейтинг' },
                     { v: completedJobsCount, l: 'заказов' },
                     { v: achievements.filter(a => a.unlocked).length, l: 'достижений' },
                     { v: '🏆', l: 'награды' },
                   ].map((s, i) => (
                     <div key={i} className="rounded-xl p-2.5 text-center" style={{ background: c.subtle }}>
-                      <div className="text-lg font-semibold" style={{ color: c.text }}>{s.v}</div>
-                      <div className="text-xs" style={{ color: c.muted }}>{s.l}</div>
+                      <div className="text-lg font-semibold truncate" style={{ color: c.text }}>{s.v}</div>
+                      <div className="text-xs truncate" style={{ color: c.muted }}>{s.l}</div>
                     </div>
                   ))}
                 </div>
