@@ -84,6 +84,7 @@ export default function CustomerDashboard() {
     description: string; photoUrls: string[]; completionPhotoUrls: string[];
     status: 'waiting' | 'active' | 'pending' | 'cancelled' | 'completed';
     responses: number; createdAt: string; ratingByCustomer: number | null;
+    contractorName?: string;
   };
 
   function apiOrderToMyOrder(o: Order, inMemoryPhotos?: string[]): MyOrder {
@@ -110,6 +111,7 @@ export default function CustomerDashboard() {
       responses: 0,
       createdAt: new Date(o.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }),
       ratingByCustomer: o.ratingByCustomer ?? null,
+      contractorName: o.contractorName ?? '',
     };
   }
 
@@ -728,6 +730,9 @@ export default function CustomerDashboard() {
                                 {order.status === 'completed' ? '✓ Выполнен' : 'Отменён'}
                               </span>
                             </div>
+                            {order.contractorName && (
+                              <div className="text-xs mt-0.5" style={{ color: c.muted }}>👤 {order.contractorName}</div>
+                            )}
                           </div>
                           <div className="text-sm font-medium" style={{ color: c.text }}>{order.price}₽</div>
                         </div>
@@ -735,7 +740,7 @@ export default function CustomerDashboard() {
                           <button
                             className="w-full mt-2 h-8 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5"
                             style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}30`, color: ACCENT, cursor: 'pointer', fontFamily: 'inherit' }}
-                            onClick={() => setRatingOrder({ id: order.id, contractorName: 'Исполнитель' })}
+                            onClick={() => setRatingOrder({ id: order.id, contractorName: order.contractorName || 'Исполнитель' })}
                           >
                             ⭐ Оценить исполнителя
                           </button>
