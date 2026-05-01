@@ -1794,6 +1794,7 @@ export default function CustomerDashboard() {
             try {
               await ordersApi.rate(ratingOrder.id, rating);
               setMyOrders(prev => prev.map(o => o.id === ratingOrder.id ? { ...o, ratingByCustomer: rating } : o));
+              authApi.me().then(u => updateUser(u)).catch(() => {});
               toast.success('Спасибо за оценку!', { duration: 2000 });
               setRatingOrder(null);
             } catch (err: any) {

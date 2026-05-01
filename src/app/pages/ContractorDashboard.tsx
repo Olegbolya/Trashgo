@@ -54,6 +54,7 @@ export default function ContractorDashboard() {
   const [filterTimeTo, setFilterTimeTo] = useState('');
   const [filterDistrict, setFilterDistrict] = useState('');
   const [filterDistanceKm, setFilterDistanceKm] = useState(10);
+  const [sortOrders, setSortOrders] = useState<'newest' | 'price_asc' | 'price_desc' | 'date_asc' | 'date_desc'>('newest');
   const [historyDetailOrder, setHistoryDetailOrder] = useState<Order | null>(null);
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
   const [ratingOrder, setRatingOrder] = useState<{ id: string; customerName: string } | null>(null);
@@ -893,13 +894,12 @@ export default function ContractorDashboard() {
                       <h1 className="text-lg font-semibold" style={{ color: c.text }}>{user?.name || '—'}</h1>
                       <div className="text-xs font-medium px-2 py-0.5 rounded-full inline-block mt-0.5" style={{ background: `${ACCENT}18`, color: ACCENT }}>{statusLabel}</div>
                       <div className="text-sm mt-1" style={{ color: c.muted }}>{user?.phone || '—'}</div>
-                      {user?.district && <div className="text-xs mt-0.5" style={{ color: c.muted }}>📍 {user.district}</div>}
                     </div>
                   </div>
                   <button
                     className="h-8 px-3 rounded-lg text-xs"
                     style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
-                    onClick={() => { setEditProfileForm({ name: user?.name || '', district: user?.district || '' }); setEditProfileOpen(true); }}
+                    onClick={() => { setEditProfileForm({ name: user?.name || '', district: '' }); setEditProfileOpen(true); }}
                   >
                     <Edit className="w-3.5 h-3.5 inline mr-1" />Изменить
                   </button>
@@ -1059,6 +1059,20 @@ export default function ContractorDashboard() {
                 if (filterTimeTo && timeStr > filterTimeTo) return false;
               }
               return true;
+            }).sort((a, b) => {
+              if (sortOrders === 'price_asc') return a.price - b.price;
+              if (sortOrders === 'price_desc') return b.price - a.price;
+              if (sortOrders === 'date_asc') {
+                const da = a.scheduledAt ? new Date(a.scheduledAt).getTime() : 0;
+                const db2 = b.scheduledAt ? new Date(b.scheduledAt).getTime() : 0;
+                return da - db2;
+              }
+              if (sortOrders === 'date_desc') {
+                const da = a.scheduledAt ? new Date(a.scheduledAt).getTime() : 0;
+                const db2 = b.scheduledAt ? new Date(b.scheduledAt).getTime() : 0;
+                return db2 - da;
+              }
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
             });
             return (
             <div className="max-w-2xl mx-auto space-y-3">
@@ -1135,6 +1149,18 @@ export default function ContractorDashboard() {
                     <div className="flex justify-between text-xs mt-0.5" style={{ color: c.muted }}>
                       <span>1 км</span><span>50 км</span>
                     </div>
+                  </div>
+                  <div>
+                    <div className="text-xs mb-1.5" style={{ color: c.muted }}>Сортировка</div>
+                    <select value={sortOrders} onChange={e => setSortOrders(e.target.value as typeof sortOrders)}
+                      className="w-full px-2.5 py-1.5 rounded-lg text-sm"
+                      style={{ border: `1px solid ${c.border}`, background: c.subtle, color: c.text, fontFamily: 'inherit', outline: 'none' }}>
+                      <option value="newest">Сначала новые</option>
+                      <option value="price_asc">Цена: по возрастанию</option>
+                      <option value="price_desc">Цена: по убыванию</option>
+                      <option value="date_asc">Дата: сначала ближние</option>
+                      <option value="date_desc">Дата: сначала дальние</option>
+                    </select>
                   </div>
                 </div>
               )}
@@ -1417,6 +1443,7 @@ export default function ContractorDashboard() {
             try {
               await ordersApi.rate(ratingOrder.id, rating);
               setMyJobs(prev => prev.map(j => j.id === ratingOrder.id ? { ...j, ratingByContractor: rating } as any : j));
+              authApi.me().then(u => updateUser(u)).catch(() => {});
               toast.success('Спасибо за оценку!', { duration: 2000 });
               setRatingOrder(null);
             } catch (err: any) {
@@ -1512,21 +1539,12 @@ export default function ContractorDashboard() {
                   style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                 />
               </div>
-              <div className="mb-5">
-                <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Район работы</div>
-                <input
-                  value={editProfileForm.district}
-                  onChange={e => setEditProfileForm(f => ({ ...f, district: e.target.value }))}
-                  placeholder="Например: Вахитовский"
-                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
-                />
-              </div>
               <button
                 disabled={editProfileSaving || !editProfileForm.name.trim()}
                 onClick={async () => {
                   setEditProfileSaving(true);
                   try {
-                    const updated = await authApi.updateProfile({ name: editProfileForm.name.trim(), district: editProfileForm.district.trim() });
+                    const updated = await authApi.updateProfile({ name: editProfileForm.name.trim() });
                     updateUser(updated);
                     setEditProfileOpen(false);
                     toast.success('Профиль обновлён');

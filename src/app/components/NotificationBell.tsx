@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { Bell, X, Trash2, CheckCheck, MessageCircle, Package, Zap } from 'lucide-react';
 import { useNotificationsStore, type AppNotification } from '../../stores/notifications.store';
 import { useTheme } from '../context/ThemeContext';
+import { useAuthStore } from '../../stores/auth.store';
 
 function timeAgo(ts: number): string {
   const diff = Date.now() - ts;
@@ -27,7 +28,8 @@ interface Props {
 export function NotificationBell({ accentColor }: Props) {
   const { isDark } = useTheme();
   const navigate = useNavigate();
-  const { notifications, markAllRead, clearAll } = useNotificationsStore();
+  const { notifications, markAllRead, clearAll, markRead } = useNotificationsStore();
+  const { user } = useAuthStore();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +49,22 @@ export function NotificationBell({ accentColor }: Props) {
 
   const handleOpen = () => {
     setOpen((v) => !v);
+  };
+
+  const handleNotifClick = (n: AppNotification) => {
+    markRead(n.id);
+    setOpen(false);
+    if (n.type === 'xp') {
+      navigate(user?.role === 'contractor' ? '/contractor?tab=profile' : '/customer?tab=profile');
+    } else if (n.orderId) {
+      if (user?.role === 'contractor') {
+        navigate('/contractor?tab=active');
+      } else {
+        navigate('/customer?tab=calendar');
+      }
+    } else {
+      navigate('/notifications');
+    }
   };
 
   const c = {
@@ -135,10 +153,12 @@ export function NotificationBell({ accentColor }: Props) {
               notifications.slice(0, 5).map((n) => (
                 <div
                   key={n.id}
+                  onClick={() => handleNotifClick(n)}
                   className="flex items-start gap-3 px-4 py-3 transition-colors"
                   style={{
                     borderBottom: `1px solid ${c.border}`,
                     background: n.read ? 'transparent' : `${accentColor}0c`,
+                    cursor: 'pointer',
                   }}
                 >
                   <div
