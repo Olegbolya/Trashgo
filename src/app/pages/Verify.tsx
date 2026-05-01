@@ -88,25 +88,27 @@ export default function Verify() {
           <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span>
         </p>
 
-        {/* Dev hint */}
-        <div style={{
-          background: c.hint,
-          border: `1px solid ${c.border}`,
-          borderRadius: '0.625rem',
-          padding: '0.75rem 1rem',
-          marginBottom: '1.5rem',
-          display: 'flex', alignItems: 'center', gap: '0.625rem',
-        }}>
-          <span style={{ fontSize: '1rem' }}>🔑</span>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: c.muted, marginBottom: '0.125rem' }}>
-              Тестовый режим
-            </div>
-            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: accent, letterSpacing: '0.15em' }}>
-              {devCode ?? '1111'}
+        {/* Dev hint — only shown when server returns devCode (dev mode) */}
+        {devCode && (
+          <div style={{
+            background: c.hint,
+            border: `1px solid ${c.border}`,
+            borderRadius: '0.625rem',
+            padding: '0.75rem 1rem',
+            marginBottom: '1.5rem',
+            display: 'flex', alignItems: 'center', gap: '0.625rem',
+          }}>
+            <span style={{ fontSize: '1rem' }}>🔑</span>
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: c.muted, marginBottom: '0.125rem' }}>
+                Тестовый режим
+              </div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: accent, letterSpacing: '0.15em' }}>
+                {devCode}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <input
