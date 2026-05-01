@@ -69,6 +69,9 @@ export default function CustomerDashboard() {
   const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '' });
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [referralCount, setReferralCount] = useState(0);
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputeSending, setDisputeSending] = useState(false);
   const [addAddressOpen, setAddAddressOpen] = useState(false);
   const [newAddress, setNewAddress] = useState('');
   const [addressSaving, setAddressSaving] = useState(false);
@@ -1621,10 +1624,62 @@ export default function CustomerDashboard() {
                   >
                     {confirmingId === selectedOrder.id ? '⏳ Подтверждаем...' : '✅ Подтвердить выполнение'}
                   </button>
+                  {!disputeOpen ? (
+                    <button
+                      className="w-full py-2.5 rounded-xl text-sm font-medium"
+                      style={{ border: '1px solid #fca5a5', background: 'transparent', color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit' }}
+                      onClick={() => setDisputeOpen(true)}
+                    >
+                      ⚠️ Работа не выполнена
+                    </button>
+                  ) : (
+                    <div className="rounded-xl p-3" style={{ background: '#fef2f2', border: '1px solid #fca5a5' }}>
+                      <div className="text-sm font-medium mb-2" style={{ color: '#ef4444' }}>Опишите проблему</div>
+                      <textarea
+                        value={disputeReason}
+                        onChange={(e) => setDisputeReason(e.target.value)}
+                        placeholder="Что именно пошло не так?"
+                        rows={3}
+                        style={{ width: '100%', borderRadius: '0.5rem', border: '1px solid #fca5a5', padding: '0.5rem', fontSize: '0.875rem', fontFamily: 'inherit', resize: 'none', outline: 'none', background: 'white' }}
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          className="flex-1 py-2 rounded-lg text-sm font-medium"
+                          style={{ background: 'transparent', border: '1px solid #fca5a5', color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit' }}
+                          onClick={() => { setDisputeOpen(false); setDisputeReason(''); }}
+                        >
+                          Отмена
+                        </button>
+                        <button
+                          disabled={!disputeReason.trim() || disputeSending}
+                          className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                          style={{ background: disputeReason.trim() ? '#ef4444' : '#fca5a5', color: 'white', border: 'none', cursor: disputeReason.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
+                          onClick={async () => {
+                            if (!disputeReason.trim() || disputeSending) return;
+                            setDisputeSending(true);
+                            try {
+                              await ordersApi.disputeOrder(selectedOrder.id, disputeReason);
+                              toast.success('Жалоба отправлена', { description: 'Поддержка рассмотрит в течение 7 дней' });
+                              setDisputeOpen(false);
+                              setDisputeReason('');
+                              setSelectedOrder(null);
+                            } catch {
+                              toast.error('Ошибка отправки жалобы');
+                            } finally {
+                              setDisputeSending(false);
+                            }
+                          }}
+                        >
+                          {disputeSending ? 'Отправляем...' : 'Отправить'}
+                        </button>
+                      </div>
+                      <div className="text-xs mt-2 text-center" style={{ color: '#9ca3af' }}>Поддержка рассмотрит в течение 7 дней</div>
+                    </div>
+                  )}
                   <button
                     className="w-full py-2.5 rounded-xl text-sm font-medium"
                     style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
-                    onClick={() => setSelectedOrder(null)}
+                    onClick={() => { setSelectedOrder(null); setDisputeOpen(false); setDisputeReason(''); }}
                   >
                     Закрыть
                   </button>

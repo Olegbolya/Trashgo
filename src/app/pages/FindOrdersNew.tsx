@@ -7,6 +7,7 @@ import { getDayLabel } from '../lib/utils';
 export default function FindOrdersNew() {
   const navigate = useNavigate();
   const [filterType, setFilterType] = useState<'all' | 'one-time' | 'subscription'>('all');
+  const [sortType, setSortType] = useState<'distance' | 'price_asc' | 'price_desc'>('distance');
   const [todayEarnings, setTodayEarnings] = useState(110); // Already earned today
   const [isOnShift, setIsOnShift] = useState(true);
 
@@ -81,10 +82,16 @@ export default function FindOrdersNew() {
     },
   ];
 
+  const parseDistance = (d: string) => parseFloat(d.replace(/[^0-9.]/g, '')) || 999;
+
   const filteredOrders = () => {
-    if (filterType === 'one-time') return oneTimeOrders;
-    if (filterType === 'subscription') return subscriptionOrders;
-    return [...oneTimeOrders, ...subscriptionOrders];
+    let base = filterType === 'one-time' ? oneTimeOrders : filterType === 'subscription' ? subscriptionOrders : [...oneTimeOrders, ...subscriptionOrders];
+    return [...base].sort((a, b) => {
+      if (sortType === 'distance') return parseDistance(a.distance) - parseDistance(b.distance);
+      if (sortType === 'price_asc') return a.price - b.price;
+      if (sortType === 'price_desc') return b.price - a.price;
+      return 0;
+    });
   };
 
   const potentialEarnings = filteredOrders().reduce((sum, order) => {
@@ -228,7 +235,19 @@ export default function FindOrdersNew() {
       {/* Filter tabs */}
       <div className="bg-white border-b border-gray-200 sticky top-[168px] z-30">
         <div className="container mx-auto px-4">
-          <div className="flex gap-2 py-3 overflow-x-auto">
+          <div className="flex gap-2 py-2 overflow-x-auto">
+            <span className="text-xs text-gray-400 self-center whitespace-nowrap mr-1">Сорт:</span>
+            {([
+              { key: 'distance' as const, label: '📍 Расстояние' },
+              { key: 'price_asc' as const, label: '↑ Цена' },
+              { key: 'price_desc' as const, label: '↓ Цена' },
+            ]).map((s) => (
+              <button key={s.key} onClick={() => setSortType(s.key)} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${sortType === s.key ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 pb-3 overflow-x-auto border-t border-gray-100 pt-2">
             <button
               onClick={() => setFilterType('all')}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
@@ -267,8 +286,8 @@ export default function FindOrdersNew() {
       {/* Orders list */}
       <div className="container mx-auto px-4 py-6 pb-24">
         <div className="max-w-4xl mx-auto space-y-4">
-          {/* One-time orders */}
-          {(filterType === 'all' || filterType === 'one-time') && oneTimeOrders.map((order) => (
+          {/* Sorted/filtered orders */}
+          {filteredOrders().filter(o => !('weeklyEarnings' in o)).map((order) => (
             <div key={order.id} className="bg-white border-2 border-gray-200 rounded-2xl overflow-hidden hover:border-gray-400 transition-all">
               <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
@@ -306,7 +325,7 @@ export default function FindOrdersNew() {
           ))}
 
           {/* Subscription orders */}
-          {(filterType === 'all' || filterType === 'subscription') && subscriptionOrders.map((order) => (
+          {filteredOrders().filter(o => 'weeklyEarnings' in o).map((order) => (
             <div key={order.id} className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl overflow-hidden hover:border-green-400 transition-all">
               <div className="p-5">
                 <div className="flex items-start justify-between mb-3">

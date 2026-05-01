@@ -1,4 +1,4 @@
-import { Progress } from './ui/progress';
+import { useTheme } from '../context/ThemeContext';
 
 export interface LevelData {
   level: number;
@@ -19,13 +19,20 @@ interface LevelSystemProps {
 const XP_THRESHOLDS = [0, 100, 200, 400, 700, 1000];
 
 export function LevelSystem({ data, variant = 'customer', compact = false }: LevelSystemProps) {
+  const { isDark } = useTheme();
   const { level, xp, nextLevelXp, title, achievements, totalOrders } = data;
+
+  const accent = variant === 'contractor' ? '#4CAF50' : '#2196F3';
+  const trackBg = isDark ? '#374151' : '#e5e7eb';
+  const surfaceBg = isDark ? '#1e2433' : '#ffffff';
+  const borderColor = isDark ? '#374151' : '#e5e7eb';
+  const textColor = isDark ? '#f9fafb' : '#111827';
+  const mutedColor = isDark ? '#9ca3af' : '#6b7280';
+  const subtleBg = isDark ? '#1f2937' : '#f3f4f6';
+
   const prevLevelXp = XP_THRESHOLDS[Math.max(0, level - 1)] ?? 0;
   const levelRange = nextLevelXp - prevLevelXp;
   const progress = levelRange > 0 ? Math.min(100, ((xp - prevLevelXp) / levelRange) * 100) : 100;
-
-  const accentClass = variant === 'contractor' ? 'text-green-600' : 'text-gray-900';
-  const bgClass = variant === 'contractor' ? 'bg-green-50 border-green-200' : 'bg-gray-100 border-gray-200';
 
   const getRankTitle = () => {
     if (level >= 80) return '🏆 Легенда';
@@ -36,20 +43,39 @@ export function LevelSystem({ data, variant = 'customer', compact = false }: Lev
     return '🌱 Новичок';
   };
 
+  const ProgressBar = ({ height }: { height: number }) => (
+    <div style={{ height, width: '100%', borderRadius: '9999px', overflow: 'hidden', background: trackBg }}>
+      <div
+        style={{
+          height: '100%',
+          width: `${Math.max(progress, 0)}%`,
+          borderRadius: '9999px',
+          background: accent,
+          transition: 'width 0.6s ease',
+        }}
+      />
+    </div>
+  );
+
   if (compact) {
     return (
       <div className="flex items-center gap-3">
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center border-2 ${bgClass} relative flex-shrink-0`}>
-          <span className={`text-base font-bold ${accentClass}`}>{level}</span>
+        <div
+          className="w-11 h-11 rounded-xl flex items-center justify-center border-2 relative flex-shrink-0"
+          style={{ background: `${accent}18`, borderColor: `${accent}40` }}
+        >
+          <span className="text-base font-bold" style={{ color: accent }}>{level}</span>
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-medium text-gray-900">{getRankTitle()}</span>
-            <span className="text-xs text-gray-400">Lvl {level}</span>
+            <span className="text-sm font-medium" style={{ color: textColor }}>{getRankTitle()}</span>
+            <span className="text-xs" style={{ color: mutedColor }}>Lvl {level}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Progress value={progress} className="h-1.5 flex-1" />
-            <span className="text-xs text-gray-400 whitespace-nowrap">{xp}/{nextLevelXp}</span>
+            <div className="flex-1">
+              <ProgressBar height={6} />
+            </div>
+            <span className="text-xs whitespace-nowrap" style={{ color: mutedColor }}>{xp}/{nextLevelXp}</span>
           </div>
         </div>
       </div>
@@ -57,41 +83,42 @@ export function LevelSystem({ data, variant = 'customer', compact = false }: Lev
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5">
+    <div className="rounded-2xl p-5" style={{ background: surfaceBg, border: `1px solid ${borderColor}` }}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border-2 ${bgClass} relative`}>
-            <span className={`text-xl font-bold ${accentClass}`}>{level}</span>
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center border-2 relative"
+            style={{ background: `${accent}18`, borderColor: `${accent}40` }}
+          >
+            <span className="text-xl font-bold" style={{ color: accent }}>{level}</span>
           </div>
           <div>
-            <h2 className="text-base font-semibold text-gray-900">{getRankTitle()}</h2>
-            <div className="text-xs text-gray-500">{title}</div>
+            <h2 className="text-base font-semibold" style={{ color: textColor }}>{getRankTitle()}</h2>
+            <div className="text-xs" style={{ color: mutedColor }}>{title}</div>
           </div>
         </div>
       </div>
 
       <div className="mb-4">
-        <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+        <div className="flex justify-between text-xs mb-1.5" style={{ color: mutedColor }}>
           <span>Опыт</span>
           <span>{xp} / {nextLevelXp} XP</span>
         </div>
-        <Progress value={progress} className="h-2" />
-        <div className="text-xs text-gray-400 mt-1 text-right">{nextLevelXp - xp} XP до следующего уровня</div>
+        <ProgressBar height={8} />
+        <div className="text-xs mt-1 text-right" style={{ color: mutedColor }}>{Math.max(0, nextLevelXp - xp)} XP до следующего уровня</div>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        <div className="bg-gray-50 rounded-xl p-3 text-center">
-          <div className="text-xl font-semibold text-gray-900">{totalOrders}</div>
-          <div className="text-xs text-gray-500">заказов</div>
-        </div>
-        <div className="bg-gray-50 rounded-xl p-3 text-center">
-          <div className="text-xl font-semibold text-gray-900">{achievements}</div>
-          <div className="text-xs text-gray-500">достижений</div>
-        </div>
-        <div className="bg-gray-50 rounded-xl p-3 text-center">
-          <div className="text-xl font-semibold text-gray-900">{Math.floor(level / 10)}</div>
-          <div className="text-xs text-gray-500">наград</div>
-        </div>
+        {[
+          { value: totalOrders, label: 'заказов' },
+          { value: achievements, label: 'достижений' },
+          { value: Math.floor(level / 10), label: 'наград' },
+        ].map((s, i) => (
+          <div key={i} className="rounded-xl p-3 text-center" style={{ background: subtleBg }}>
+            <div className="text-xl font-semibold" style={{ color: textColor }}>{s.value}</div>
+            <div className="text-xs" style={{ color: mutedColor }}>{s.label}</div>
+          </div>
+        ))}
       </div>
     </div>
   );

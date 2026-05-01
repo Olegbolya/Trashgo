@@ -60,4 +60,8 @@ export const ordersApi = {
   rate(id: string, rating: number) {
     return api.post<{ ok: boolean }>(`/orders/${id}/rate`, { rating });
   },
+
+  disputeOrder(id: string, reason: string) {
+    return api.post<{ ok: boolean }>(`/orders/${id}/dispute`, { reason });
+  },
 };

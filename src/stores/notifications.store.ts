@@ -11,18 +11,37 @@ export interface AppNotification {
   read: boolean;
 }
 
+export interface NotificationSettings {
+  pushOrderStatus: boolean;
+  pushChat: boolean;
+  pushXP: boolean;
+  emailEnabled: boolean;
+  emailAddress: string;
+}
+
+const defaultSettings: NotificationSettings = {
+  pushOrderStatus: true,
+  pushChat: true,
+  pushXP: true,
+  emailEnabled: false,
+  emailAddress: '',
+};
+
 interface NotificationsStore {
   notifications: AppNotification[];
+  settings: NotificationSettings;
   addNotification: (n: Omit<AppNotification, 'id' | 'timestamp' | 'read'>) => void;
   markRead: (id: string) => void;
   markAllRead: () => void;
   clearAll: () => void;
+  updateSettings: (s: Partial<NotificationSettings>) => void;
 }
 
 export const useNotificationsStore = create<NotificationsStore>()(
   persist(
     (set) => ({
       notifications: [],
+      settings: defaultSettings,
       addNotification: (n) =>
         set((state) => ({
           notifications: [
@@ -39,6 +58,8 @@ export const useNotificationsStore = create<NotificationsStore>()(
           notifications: state.notifications.map((n) => ({ ...n, read: true })),
         })),
       clearAll: () => set({ notifications: [] }),
+      updateSettings: (s) =>
+        set((state) => ({ settings: { ...state.settings, ...s } })),
     }),
     { name: 'notifications-storage' }
   )

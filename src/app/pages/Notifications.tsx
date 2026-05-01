@@ -1,9 +1,22 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Bell, CheckCheck, Trash2, MessageCircle, Package, Zap, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Bell, CheckCheck, Trash2, MessageCircle, Package, Zap, CheckCircle, Settings, Mail, Smartphone } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNotificationsStore, type AppNotification } from '../../stores/notifications.store';
+import { toast } from 'sonner';
 
 const ACCENT = '#2196F3';
+
+function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      onClick={() => onChange(!value)}
+      style={{ width: '2.75rem', height: '1.5rem', borderRadius: '9999px', border: 'none', background: value ? ACCENT : '#d1d5db', cursor: 'pointer', position: 'relative', transition: 'background 0.2s ease', flexShrink: 0 }}
+    >
+      <span style={{ position: 'absolute', top: '0.125rem', left: value ? 'calc(100% - 1.375rem)' : '0.125rem', width: '1.25rem', height: '1.25rem', borderRadius: '9999px', background: 'white', transition: 'left 0.2s ease', display: 'block' }} />
+    </button>
+  );
+}
 
 function timeAgo(ts: number): string {
   const diff = Date.now() - ts;
@@ -36,7 +49,9 @@ function typeIcon(type: AppNotification['type']) {
 export default function Notifications() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
-  const { notifications, markRead, markAllRead, clearAll } = useNotificationsStore();
+  const { notifications, markRead, markAllRead, clearAll, settings, updateSettings } = useNotificationsStore();
+  const [tab, setTab] = useState<'list' | 'settings'>('list');
+  const [emailInput, setEmailInput] = useState(settings?.emailAddress ?? '');
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -84,20 +99,12 @@ export default function Notifications() {
               )}
             </div>
             <div className="flex items-center gap-1">
-              {notifications.length > 0 && (
+              {tab === 'list' && notifications.length > 0 && (
                 <>
-                  <button
-                    onClick={markAllRead}
-                    title="Прочитать все"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, padding: '4px', borderRadius: '8px' }}
-                  >
+                  <button onClick={markAllRead} title="Прочитать все" style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, padding: '4px', borderRadius: '8px' }}>
                     <CheckCheck className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={clearAll}
-                    title="Очистить всё"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, padding: '4px', borderRadius: '8px' }}
-                  >
+                  <button onClick={clearAll} title="Очистить всё" style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, padding: '4px', borderRadius: '8px' }}>
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </>
@@ -107,8 +114,66 @@ export default function Notifications() {
         </div>
       </header>
 
+      {/* Tab switcher */}
+      <div style={{ background: c.surface, borderBottom: `1px solid ${c.border}` }}>
+        <div className="container mx-auto px-3">
+          <div className="flex gap-1 py-2">
+            {(['list', 'settings'] as const).map((t) => (
+              <button key={t} onClick={() => setTab(t)} style={{ background: tab === t ? `${ACCENT}18` : 'transparent', color: tab === t ? ACCENT : c.muted, border: 'none', borderRadius: '0.5rem', padding: '0.375rem 0.875rem', fontSize: '0.8125rem', fontWeight: tab === t ? 600 : 400, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                {t === 'list' ? <><Bell className="w-3.5 h-3.5" />Лента</> : <><Settings className="w-3.5 h-3.5" />Настройки</>}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="container mx-auto px-3 py-3 max-w-2xl">
-        {notifications.length === 0 ? (
+        {tab === 'settings' && (
+          <div className="space-y-4">
+            <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid ${c.border}` }}>
+                <Smartphone className="w-4 h-4" style={{ color: ACCENT }} />
+                <span className="text-sm font-semibold" style={{ color: c.text }}>Push-уведомления</span>
+              </div>
+              {([
+                { key: 'pushOrderStatus' as const, label: 'Статус заказа', sub: 'Принят, в пути, выполнен' },
+                { key: 'pushChat' as const, label: 'Сообщения', sub: 'Чат с исполнителем или заказчиком' },
+                { key: 'pushXP' as const, label: 'Опыт и достижения', sub: 'Начисление XP и разблокировка' },
+              ]).map((item, i, arr) => (
+                <div key={item.key} className="flex items-center justify-between px-4 py-3" style={{ borderBottom: i < arr.length - 1 ? `1px solid ${c.border}` : 'none' }}>
+                  <div>
+                    <div className="text-sm font-medium" style={{ color: c.text }}>{item.label}</div>
+                    <div className="text-xs" style={{ color: c.muted }}>{item.sub}</div>
+                  </div>
+                  <Toggle value={settings?.[item.key] ?? true} onChange={(v) => updateSettings({ [item.key]: v })} />
+                </div>
+              ))}
+            </div>
+            <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+              <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: settings?.emailEnabled ? `1px solid ${c.border}` : 'none' }}>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" style={{ color: ACCENT }} />
+                  <span className="text-sm font-semibold" style={{ color: c.text }}>Email-уведомления</span>
+                </div>
+                <Toggle value={settings?.emailEnabled ?? false} onChange={(v) => updateSettings({ emailEnabled: v })} />
+              </div>
+              {settings?.emailEnabled && (
+                <div className="px-4 py-3">
+                  <div className="text-xs mb-2" style={{ color: c.muted }}>Email для получения уведомлений</div>
+                  <div className="flex gap-2">
+                    <input type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="example@mail.ru" style={{ flex: 1, height: '2.25rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: c.subtle, color: c.text, padding: '0 0.75rem', fontSize: '0.875rem', fontFamily: 'inherit', outline: 'none' }} />
+                    <button onClick={() => { updateSettings({ emailAddress: emailInput }); toast.success('Email сохранён'); }} style={{ height: '2.25rem', padding: '0 1rem', borderRadius: '0.5rem', background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, fontFamily: 'inherit' }}>Сохранить</button>
+                  </div>
+                  <div className="text-xs mt-2" style={{ color: c.muted }}>Уведомления о завершении заказов будут дублироваться на почту</div>
+                </div>
+              )}
+            </div>
+            <div className="rounded-xl px-4 py-3 text-xs" style={{ background: `${ACCENT}10`, color: c.muted }}>
+              Настройки применяются немедленно и сохраняются на этом устройстве
+            </div>
+          </div>
+        )}
+        {tab === 'list' && (notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
             <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: `${ACCENT}12` }}>
               <Bell className="w-10 h-10" style={{ color: ACCENT, opacity: 0.5 }} />
@@ -175,7 +240,7 @@ export default function Notifications() {
               Хранится последние 50 уведомлений
             </div>
           </div>
-        )}
+        ))}
       </div>
     </div>
   );
