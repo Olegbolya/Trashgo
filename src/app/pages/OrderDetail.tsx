@@ -31,7 +31,7 @@ export default function OrderDetail() {
 
   const handleRespond = () => {
     toast.success('Отклик отправлен!', { description: 'Ожидайте ответа заказчика' });
-    navigate('/dashboard');
+    navigate(-1);
   };
 
   if (isLoading) {
@@ -62,7 +62,7 @@ export default function OrderDetail() {
         <div className="max-w-3xl mx-auto">
           {/* Back button */}
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
           >
             <ArrowLeft className="w-5 h-5" />
