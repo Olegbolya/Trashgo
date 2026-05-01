@@ -251,28 +251,50 @@ export default function InviteNeighbor() {
             </div>
 
             {/* How it works */}
-            <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-              <h2 className="text-base font-semibold mb-4" style={{ color: c.text }}>Как это работает?</h2>
+            <div className="rounded-2xl p-5" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+              <h2 className="text-base font-semibold mb-5" style={{ color: c.text }}>Как это работает?</h2>
               <div className="space-y-4">
                 {[
-                  { n: 1, title: 'Пригласите соседей', desc: 'Отправьте ссылку соседям из вашего подъезда' },
-                  { n: 2, title: 'Они регистрируются', desc: 'Сосед создает заказ через вашу ссылку' },
-                  { n: 3, title: 'Скидка растет для всех!', desc: 'Каждый сосед = +2% скидки (максимум 20%)' },
-                ].map(({ n, title, desc }) => (
+                  {
+                    n: 1,
+                    title: 'Скопируйте реферальную ссылку',
+                    desc: 'Ссылка уникальна для вас — через неё регистрируются ваши соседи',
+                    tag: '📋 Ваша ссылка выше',
+                  },
+                  {
+                    n: 2,
+                    title: 'Поделитесь с соседями',
+                    desc: 'Отправьте ссылку в чат подъезда, WhatsApp или расклейте объявления',
+                    tag: '📱 Любой мессенджер',
+                  },
+                  {
+                    n: 3,
+                    title: 'Сосед регистрируется и заказывает',
+                    desc: 'Как только сосед оформит заказ через вашу ссылку — скидка активируется',
+                    tag: '✅ Автоматически',
+                  },
+                  {
+                    n: 4,
+                    title: 'Скидка растёт у всех',
+                    desc: 'Каждый приглашённый сосед добавляет +2% к скидке для всего подъезда. Максимум — 20% при 10 соседях.',
+                    tag: '🎯 До −20%',
+                  },
+                ].map(({ n, title, desc, tag }) => (
                   <div key={n} className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm text-white" style={{ background: '#16a34a' }}>{n}</div>
-                    <div>
-                      <div className="text-sm font-medium mb-1" style={{ color: c.text }}>{title}</div>
-                      <div className="text-xs" style={{ color: c.muted }}>{desc}</div>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm text-white mt-0.5" style={{ background: '#16a34a' }}>{n}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold mb-0.5" style={{ color: c.text }}>{title}</div>
+                      <div className="text-xs mb-1.5" style={{ color: c.muted }}>{desc}</div>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-lg" style={{ background: '#22c55e15', color: isDark ? '#86efac' : '#15803d' }}>{tag}</span>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 rounded-lg p-3" style={{ background: '#22c55e12', border: '1px solid #22c55e30' }}>
+              <div className="mt-5 rounded-xl p-3" style={{ background: '#22c55e12', border: '1px solid #22c55e30' }}>
                 <div className="flex items-start gap-2">
                   <Gift className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#16a34a' }} />
                   <div className="text-xs" style={{ color: isDark ? '#86efac' : '#14532d' }}>
-                    <strong>Бонус:</strong> Первый приглашённый сосед дает вам дополнительно -5₽ на следующий заказ!
+                    <strong>Выгода для всех:</strong> скидка действует на каждый заказ всех участников — вы экономите вместе с соседями на постоянной основе.
                   </div>
                 </div>
               </div>
