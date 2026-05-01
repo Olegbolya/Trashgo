@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router';
 import { ArrowLeft, Bell, CheckCheck, Trash2, MessageCircle, Package, Zap, CheckCircle, Settings, Mail, Smartphone } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNotificationsStore, type AppNotification } from '../../stores/notifications.store';
+import { useAuthStore } from '../../stores/auth.store';
+import { authApi } from '../../api/auth';
 import { toast } from 'sonner';
 
 const ACCENT = '#2196F3';
@@ -50,8 +52,11 @@ export default function Notifications() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
   const { notifications, markRead, markAllRead, clearAll, settings, updateSettings } = useNotificationsStore();
+  const { user, updateUser } = useAuthStore();
   const [tab, setTab] = useState<'list' | 'settings'>('list');
-  const [emailInput, setEmailInput] = useState(settings?.emailAddress ?? '');
+  const [emailInput, setEmailInput] = useState(user?.notifEmailAddress ?? settings?.emailAddress ?? '');
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [savingEmailToggle, setSavingEmailToggle] = useState(false);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -154,22 +159,46 @@ export default function Notifications() {
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4" style={{ color: ACCENT }} />
                   <span className="text-sm font-semibold" style={{ color: c.text }}>Email-уведомления</span>
+                  {savingEmailToggle && <div className="w-3.5 h-3.5 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: ACCENT }} />}
                 </div>
-                <Toggle value={settings?.emailEnabled ?? false} onChange={(v) => updateSettings({ emailEnabled: v })} />
+                <Toggle value={settings?.emailEnabled ?? false} onChange={async (v) => {
+                  updateSettings({ emailEnabled: v });
+                  setSavingEmailToggle(true);
+                  try {
+                    const updated = await authApi.updateProfile({ notifEmail: v });
+                    updateUser({ notifEmail: updated.notifEmail });
+                  } catch { toast.error('Не удалось сохранить настройку'); }
+                  finally { setSavingEmailToggle(false); }
+                }} />
               </div>
               {settings?.emailEnabled && (
                 <div className="px-4 py-3">
                   <div className="text-xs mb-2" style={{ color: c.muted }}>Email для получения уведомлений</div>
                   <div className="flex gap-2">
                     <input type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="example@mail.ru" style={{ flex: 1, height: '2.25rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: c.subtle, color: c.text, padding: '0 0.75rem', fontSize: '0.875rem', fontFamily: 'inherit', outline: 'none' }} />
-                    <button onClick={() => { updateSettings({ emailAddress: emailInput }); toast.success('Email сохранён'); }} style={{ height: '2.25rem', padding: '0 1rem', borderRadius: '0.5rem', background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, fontFamily: 'inherit' }}>Сохранить</button>
+                    <button
+                      disabled={savingEmail}
+                      onClick={async () => {
+                        setSavingEmail(true);
+                        try {
+                          const updated = await authApi.updateProfile({ notifEmailAddress: emailInput });
+                          updateUser({ notifEmailAddress: updated.notifEmailAddress });
+                          updateSettings({ emailAddress: emailInput });
+                          toast.success('Email сохранён');
+                        } catch { toast.error('Не удалось сохранить email'); }
+                        finally { setSavingEmail(false); }
+                      }}
+                      style={{ height: '2.25rem', padding: '0 1rem', borderRadius: '0.5rem', background: ACCENT, color: 'white', border: 'none', cursor: savingEmail ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontWeight: 600, fontFamily: 'inherit', opacity: savingEmail ? 0.7 : 1 }}
+                    >
+                      {savingEmail ? '...' : 'Сохранить'}
+                    </button>
                   </div>
                   <div className="text-xs mt-2" style={{ color: c.muted }}>Уведомления о завершении заказов будут дублироваться на почту</div>
                 </div>
               )}
             </div>
             <div className="rounded-xl px-4 py-3 text-xs" style={{ background: `${ACCENT}10`, color: c.muted }}>
-              Настройки применяются немедленно и сохраняются на этом устройстве
+              Email-настройки сохраняются на сервере и будут применяться на всех устройствах
             </div>
           </div>
         )}

@@ -13,6 +13,9 @@ export interface User {
   avgRating: number | null;
   ratingCount: number;
   addresses: string[];
+  notifPush: boolean;
+  notifEmail: boolean;
+  notifEmailAddress: string | null;
   createdAt: string;
 }
 

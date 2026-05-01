@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { getDayLabel } from '../lib/utils';
 import { ordersApi } from '../../api/orders';
 import { referralsApi } from '../../api/referrals';
+import { achievementsApi } from '../../api/achievements';
 import type { Order, ChatMessage } from '../../types/order';
 import { HowItWorksModal } from '../components/HowItWorksModal';
 import { RatingModal } from '../components/RatingModal';
@@ -69,6 +70,7 @@ export default function CustomerDashboard() {
   const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '' });
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [referralCount, setReferralCount] = useState(0);
+  const [apiUnlockedIds, setApiUnlockedIds] = useState<Set<string>>(new Set());
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeSending, setDisputeSending] = useState(false);
@@ -199,9 +201,12 @@ export default function CustomerDashboard() {
     }
   }, [selectedOrder?.id]);
 
-  // Load referral count
+  // Load referral count + server achievements
   useEffect(() => {
     referralsApi.getMyReferral().then((d) => setReferralCount(d.count)).catch(() => {});
+    achievementsApi.getMy().then((list) => {
+      setApiUnlockedIds(new Set(list.filter(a => a.unlocked).map(a => a.id)));
+    }).catch(() => {});
   }, []);
 
   // Poll chat messages every 5s while chat is open
@@ -294,7 +299,12 @@ export default function CustomerDashboard() {
     { id: 'level_10',      icon: '🌳', title: 'Уровень 10',      description: 'Достигните 10-го уровня',            unlocked: (user?.level ?? 1) >= 10, progress: user?.level ?? 1, maxProgress: 10, reward: 'Значок «Эксперт»' },
   ];
 
-  const achievements: Achievement[] = [...visibleOrderChain, ...extraAchievements];
+  // Merge server-confirmed unlocks into achievement list
+  const DB_ACHIEVEMENT_IDS = new Set(['first_order','orders_5','orders_10','orders_25','orders_50','orders_100','first_rating','perfect_5','first_ref','refs_3','refs_5']);
+  const rawAchievements = [...visibleOrderChain, ...extraAchievements];
+  const achievements: Achievement[] = rawAchievements.map(a =>
+    DB_ACHIEVEMENT_IDS.has(a.id) ? { ...a, unlocked: apiUnlockedIds.has(a.id) } : a
+  );
 
   const stats = {
     totalOrders: myOrders.length,

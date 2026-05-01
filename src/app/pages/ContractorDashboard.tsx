@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { getDayLabel } from '../lib/utils';
 import { ordersApi } from '../../api/orders';
 import { authApi } from '../../api/auth';
+import { achievementsApi } from '../../api/achievements';
 import type { Order, ChatMessage } from '../../types/order';
 import { MapView } from '../components/MapView';
 import { HowItWorksModal } from '../components/HowItWorksModal';
@@ -63,6 +64,7 @@ export default function ContractorDashboard() {
   const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '' });
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [myJobsLoading, setMyJobsLoading] = useState(false);
+  const [apiUnlockedIds, setApiUnlockedIds] = useState<Set<string>>(new Set());
   const prevJobStatusesRef = useRef<Record<string, string>>({});
   const prevXpRef = useRef<number | null>(null);
   const prevLevelRef = useRef<number | null>(null);
@@ -106,6 +108,13 @@ export default function ContractorDashboard() {
     const interval = setInterval(load, 10000);
     return () => clearInterval(interval);
   }, [activeTab]);
+
+  // Load server achievements on mount
+  useEffect(() => {
+    achievementsApi.getMy().then((list) => {
+      setApiUnlockedIds(new Set(list.filter(a => a.unlocked).map(a => a.id)));
+    }).catch(() => {});
+  }, []);
 
   // Refresh user data (XP, level, balance) and detect changes (item 11)
   const { updateUser } = useAuthStore();
@@ -219,7 +228,11 @@ export default function ContractorDashboard() {
     { id: 'top_rating',   icon: '🌟', title: 'Отличный рейтинг', description: 'Получите средний рейтинг 4.5+',      unlocked: (user?.avgRating ?? 0) >= 4.5,  reward: 'Значок «Проверенный»' },
   ];
 
-  const achievements: Achievement[] = [...visibleJobChain, ...extraAchievements];
+  const DB_ACHIEVEMENT_IDS = new Set(['first_order','orders_5','orders_10','orders_25','orders_50','orders_100','first_rating','perfect_5','first_ref','refs_3','refs_5']);
+  const rawAchievements = [...visibleJobChain, ...extraAchievements];
+  const achievements: Achievement[] = rawAchievements.map(a =>
+    DB_ACHIEVEMENT_IDS.has(a.id) ? { ...a, unlocked: apiUnlockedIds.has(a.id) } : a
+  );
 
   const levelData: LevelData = {
     level: currentLevel,

@@ -20,16 +20,16 @@ function formatPhone(raw: string) {
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const role = location.state?.role || 'customer';
+  // If arrived via referral link, RefRedirect saves ?role=contractor to sessionStorage
+  const pendingRefRole = sessionStorage.getItem('pendingRefRole') as 'customer' | 'contractor' | null;
+  const role = (location.state?.role || pendingRefRole || 'customer') as 'customer' | 'contractor';
   const { accentColor, setRole } = useRoleStore();
   const accent = accentColor;
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // sync role from navigation state
-  if (location.state?.role && location.state.role !== role) {
-    setRole(location.state.role);
-  }
+  // sync role to store so accent colour updates
+  if (role === 'contractor' || role === 'customer') setRole(role);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '');
