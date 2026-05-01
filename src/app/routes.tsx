@@ -28,6 +28,7 @@ const RefRedirect = lazy(() => import("./pages/RefRedirect"));
 const ContractorReferral = lazy(() => import("./pages/ContractorReferral"));
 const Help = lazy(() => import("./pages/Help"));
 const Notifications = lazy(() => import("./pages/Notifications"));
+const Payment = lazy(() => import("./pages/Payment"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function PageLoader() {
@@ -94,6 +95,7 @@ export const router = createBrowserRouter([
   { path: "/invite-neighbor", element: guardedLayout(InviteNeighbor) },
   { path: "/help", element: guarded(Help) },
   { path: "/notifications", element: guarded(Notifications) },
+  { path: "/payment", element: guarded(Payment) },
   { path: "/order-confirmed", element: guardedLayout(OrderConfirmed) },
 
   // Protected + Layout — contractor pages

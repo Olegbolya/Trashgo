@@ -980,7 +980,7 @@ export default function ContractorDashboard() {
               <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
                 {[
                   { icon: Bell, label: 'Уведомления', sub: 'Настройка push и email', action: () => navigate('/notifications') },
-                  { icon: CreditCard, label: 'Способ оплаты', sub: 'Карты и банковские счета', action: () => toast.info('Способы оплаты') },
+                  { icon: CreditCard, label: 'Выплаты', sub: 'Баланс и вывод средств', action: () => navigate('/payment') },
                   { icon: UserPlus, label: 'Реферальная программа', sub: 'Приглашайте напарников — получайте бонусы', action: () => navigate('/contractor-referral') },
                   { icon: HelpCircle, label: 'Помощь и поддержка', sub: 'FAQ и связь с поддержкой', action: () => navigate('/help') },
                 ].map((item, i, arr) => (
