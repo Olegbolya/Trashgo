@@ -28,6 +28,10 @@ export const ordersApi = {
     return api.post<Order>('/orders', data);
   },
 
+  update(id: string, data: Partial<CreateOrderInput>) {
+    return api.patch<Order>(`/orders/${id}`, data);
+  },
+
   updateStatus(id: string, status: OrderStatus) {
     return api.patch<Order>(`/orders/${id}/status`, { status });
   },

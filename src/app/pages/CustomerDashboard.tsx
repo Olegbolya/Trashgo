@@ -954,38 +954,73 @@ export default function CustomerDashboard() {
                 : new Date(`${createForm.date}T${createForm.time}:00`).toISOString();
 
               try {
-                const res = await ordersApi.create({
-                  address: fullAddress,
-                  district: user?.district || 'Казань',
-                  volume: createForm.volume,
-                  price: createForm.price,
-                  description: createForm.description,
-                  asap: createForm.asap,
-                  scheduledAt,
-                  photoUrls,
-                }) as any;
+                let resultOrder: MyOrder;
 
-                const apiOrder: Order = res?.data ?? res;
-                const newOrder: MyOrder = {
-                  id: apiOrder.id,
-                  address: createForm.address,
-                  entrance: createForm.entrance,
-                  floor: createForm.floor,
-                  apartment: createForm.apartment,
-                  date: createForm.date,
-                  time: createForm.time,
-                  asap: createForm.asap,
-                  volume: createForm.volume,
-                  price: createForm.price,
-                  description: createForm.description,
-                  photoUrls,
-                  completionPhotoUrls: [],
-                  status: 'waiting',
-                  responses: 0,
-                  createdAt: new Date().toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }),
-                };
-                setMyOrders((prev) => [newOrder, ...prev]);
-                toast.success('Заказ создан!', { description: 'Исполнители уже видят ваш заказ', duration: 3000 });
+                if (isEditing && originalOrder) {
+                  // Update existing order
+                  const res = await ordersApi.update(originalOrder.id, {
+                    address: fullAddress,
+                    district: user?.district || 'Казань',
+                    volume: createForm.volume,
+                    price: createForm.price,
+                    description: createForm.description,
+                    asap: createForm.asap,
+                    scheduledAt,
+                    photoUrls,
+                  }) as any;
+                  const apiOrder: Order = res?.data ?? res;
+                  resultOrder = {
+                    ...originalOrder,
+                    id: apiOrder.id,
+                    address: createForm.address,
+                    entrance: createForm.entrance,
+                    floor: createForm.floor,
+                    apartment: createForm.apartment,
+                    date: createForm.date,
+                    time: createForm.time,
+                    asap: createForm.asap,
+                    volume: createForm.volume,
+                    price: createForm.price,
+                    description: createForm.description,
+                    photoUrls,
+                  };
+                  setMyOrders((prev) => [resultOrder, ...prev.filter(o => o.id !== originalOrder.id)]);
+                  toast.success('Заказ обновлён!', { description: 'Изменения сохранены', duration: 3000 });
+                } else {
+                  // Create new order
+                  const res = await ordersApi.create({
+                    address: fullAddress,
+                    district: user?.district || 'Казань',
+                    volume: createForm.volume,
+                    price: createForm.price,
+                    description: createForm.description,
+                    asap: createForm.asap,
+                    scheduledAt,
+                    photoUrls,
+                  }) as any;
+                  const apiOrder: Order = res?.data ?? res;
+                  resultOrder = {
+                    id: apiOrder.id,
+                    address: createForm.address,
+                    entrance: createForm.entrance,
+                    floor: createForm.floor,
+                    apartment: createForm.apartment,
+                    date: createForm.date,
+                    time: createForm.time,
+                    asap: createForm.asap,
+                    volume: createForm.volume,
+                    price: createForm.price,
+                    description: createForm.description,
+                    photoUrls,
+                    completionPhotoUrls: [],
+                    status: 'waiting',
+                    responses: 0,
+                    createdAt: new Date().toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }),
+                  };
+                  setMyOrders((prev) => [resultOrder, ...prev]);
+                  toast.success('Заказ создан!', { description: 'Исполнители уже видят ваш заказ', duration: 3000 });
+                }
+
                 setCreateForm({ address: '', date: '', time: '', asap: false, volume: 1, price: 50, entrance: '', floor: '', apartment: '', description: '' });
                 setCreatePhotos([]);
                 setPreloadedPhotoUrls([]);
@@ -994,7 +1029,7 @@ export default function CustomerDashboard() {
                 setOriginalOrder(null);
                 setActiveTab('home');
               } catch (err: any) {
-                toast.error(err?.message || 'Не удалось создать заказ');
+                toast.error(err?.message || (isEditing ? 'Не удалось обновить заказ' : 'Не удалось создать заказ'));
               } finally {
                 publishingRef.current = false;
                 setIsPublishing(false);

@@ -10,14 +10,16 @@ export function MapView({ address, isDark }: Props) {
   const mapRef = useRef<any>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [destCoords, setDestCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [geoStatus, setGeoStatus] = useState<'pending' | 'granted' | 'denied'>('pending');
   const geocodedRef = useRef(false);
 
-  // Geocode destination address
+  // Geocode destination address — always append Kazan context for reliable results
   useEffect(() => {
     if (geocodedRef.current) return;
     geocodedRef.current = true;
 
-    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&accept-language=ru`)
+    const searchQuery = /казань|kazan/i.test(address) ? address : `${address}, Казань, Россия`;
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=1&accept-language=ru`)
       .then(r => r.json())
       .then((data: any[]) => {
         if (data[0]) {
@@ -54,7 +56,6 @@ export function MapView({ address, isDark }: Props) {
         maxZoom: 19,
       }).addTo(map);
 
-      // Destination marker (blue)
       const destIcon = L.divIcon({
         html: '<div style="width:20px;height:20px;background:#ef4444;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.5)"></div>',
         iconSize: [20, 20],
@@ -72,9 +73,9 @@ export function MapView({ address, isDark }: Props) {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
+            setGeoStatus('granted');
             const { latitude: userLat, longitude: userLon } = pos.coords;
 
-            // Current location marker (green)
             const userIcon = L.divIcon({
               html: '<div style="width:16px;height:16px;background:#4CAF50;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>',
               iconSize: [16, 16],
@@ -85,11 +86,9 @@ export function MapView({ address, isDark }: Props) {
               .addTo(map)
               .bindPopup('<b>Вы здесь</b>');
 
-            // Fit map to both points
             const bounds = L.latLngBounds([[userLat, userLon], [destLat, destLon]]);
             map.fitBounds(bounds, { padding: [40, 40] });
 
-            // Fetch route from OSRM (free routing API)
             fetch(`https://router.project-osrm.org/route/v1/driving/${userLon},${userLat};${destLon},${destLat}?overview=full&geometries=geojson`)
               .then(r => r.json())
               .then((data: any) => {
@@ -100,15 +99,16 @@ export function MapView({ address, isDark }: Props) {
                 }
               })
               .catch(() => {
-                // If routing fails, just draw a straight line
                 L.polyline([[userLat, userLon], [destLat, destLon]], { color: '#2196F3', weight: 3, opacity: 0.6, dashArray: '8,8' }).addTo(map);
               });
           },
           () => {
-            // Geolocation denied/unavailable — just show destination
+            setGeoStatus('denied');
           },
-          { timeout: 5000, enableHighAccuracy: false }
+          { timeout: 8000, enableHighAccuracy: false }
         );
+      } else {
+        setGeoStatus('denied');
       }
     });
 
@@ -138,14 +138,14 @@ export function MapView({ address, isDark }: Props) {
         <div style={{ fontSize: '0.875rem', color: '#9ca3af', textAlign: 'center' }}>Не удалось найти адрес на карте</div>
         <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
           <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`}
+            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address + ', Казань')}`}
             target="_blank" rel="noreferrer"
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '2.25rem', borderRadius: '0.5rem', background: '#4285F4', color: 'white', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}
           >
             📍 Google Maps
           </a>
           <a
-            href={`https://2gis.ru/search/${encodeURIComponent(address)}`}
+            href={`https://2gis.ru/kazan/search/${encodeURIComponent(address)}`}
             target="_blank" rel="noreferrer"
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '2.25rem', borderRadius: '0.5rem', background: '#1E9B5A', color: 'white', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}
           >
@@ -157,18 +157,25 @@ export function MapView({ address, isDark }: Props) {
   }
 
   const { lat, lon } = destCoords;
-  const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
-  const twoGisUrl = `https://2gis.ru/directions/pedestrian/geo%2F${lon}%2C${lat}`;
+  const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address + ', Казань')}`;
+  const twoGisUrl = `https://2gis.ru/kazan/directions/points/${lon}%2C${lat}`;
 
   return (
     <div style={{ borderRadius: '0.75rem', overflow: 'hidden', border: `1px solid ${border}` }}>
       <div ref={containerRef} style={{ height: '260px', width: '100%' }} />
+      {geoStatus === 'denied' && (
+        <div style={{ padding: '0.5rem 0.75rem', background: isDark ? '#1c2333' : '#fffbeb', borderTop: `1px solid ${isDark ? '#374151' : '#fde68a'}`, fontSize: '0.72rem', color: isDark ? '#fbbf24' : '#92400e' }}>
+          ⚠️ Разрешите доступ к геолокации в браузере, чтобы видеть маршрут от вашего местоположения
+        </div>
+      )}
       <div style={{ display: 'flex', gap: '0.5rem', padding: '0.625rem', background: surface, flexWrap: 'wrap' }}>
-        <div style={{ width: '100%', display: 'flex', gap: '0.35rem', fontSize: '0.72rem', color: '#9ca3af', paddingBottom: '0.25rem' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-            <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#4CAF50', display: 'inline-block', border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
-            Вы
-          </span>
+        <div style={{ width: '100%', display: 'flex', gap: '0.75rem', fontSize: '0.72rem', color: '#9ca3af', paddingBottom: '0.25rem' }}>
+          {geoStatus === 'granted' && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#4CAF50', display: 'inline-block', border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
+              Вы
+            </span>
+          )}
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
             <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block', border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
             Адрес заказа
