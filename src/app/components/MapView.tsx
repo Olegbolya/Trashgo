@@ -19,7 +19,7 @@ export function MapView({ address, isDark }: Props) {
     geocodedRef.current = true;
 
     const searchQuery = /казань|kazan/i.test(address) ? address : `${address}, Казань, Россия`;
-    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=1&accept-language=ru`)
+    fetch(`/api/v1/geocode?q=${encodeURIComponent(searchQuery)}`)
       .then(r => r.json())
       .then((data: any[]) => {
         if (data[0]) {
