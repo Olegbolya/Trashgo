@@ -72,6 +72,21 @@ export default function CustomerDashboard() {
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [referralCount, setReferralCount] = useState(0);
   const [apiUnlockedIds, setApiUnlockedIds] = useState<Set<string>>(new Set());
+
+  const refreshAchievements = () => {
+    achievementsApi.getMy().then((list) => {
+      const newIds = new Set(list.filter(a => a.unlocked).map(a => a.id));
+      setApiUnlockedIds(prev => {
+        newIds.forEach(id => {
+          if (!prev.has(id)) {
+            const def = list.find(a => a.id === id);
+            if (def) toast.success(`🏆 Достижение разблокировано: ${def.title}`, { description: `+${def.xp} XP`, duration: 5000 });
+          }
+        });
+        return newIds;
+      });
+    }).catch(() => {});
+  };
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeSending, setDisputeSending] = useState(false);
@@ -1533,6 +1548,7 @@ export default function CustomerDashboard() {
                     setSelectedOrder(null);
                     toast.success('Заказ подтверждён!', { description: 'Оплата исполнителю начислена', duration: 3000 });
                     setRatingOrder({ id: orderId, contractorName: orderContact?.contractorName || 'Исполнитель' });
+                    setTimeout(refreshAchievements, 1000);
                   } catch (err: any) {
                     toast.error(err?.message || 'Ошибка подтверждения');
                   } finally {
@@ -1726,6 +1742,7 @@ export default function CustomerDashboard() {
                         setSelectedOrder(null);
                         toast.success('Заказ подтверждён!', { description: 'Оплата исполнителю начислена', duration: 3000 });
                         setRatingOrder({ id: orderId, contractorName: orderContact?.contractorName || 'Исполнитель' });
+                        setTimeout(refreshAchievements, 1000);
                       } catch (e: any) {
                         toast.error(e?.message || 'Ошибка подтверждения');
                       } finally {

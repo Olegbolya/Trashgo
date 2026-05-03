@@ -78,6 +78,22 @@ export default function ContractorDashboard() {
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [myJobsLoading, setMyJobsLoading] = useState(false);
   const [apiUnlockedIds, setApiUnlockedIds] = useState<Set<string>>(new Set());
+
+  const refreshAchievements = () => {
+    achievementsApi.getMy().then((list) => {
+      const newIds = new Set(list.filter(a => a.unlocked).map(a => a.id));
+      setApiUnlockedIds(prev => {
+        newIds.forEach(id => {
+          if (!prev.has(id)) {
+            const def = list.find(a => a.id === id);
+            if (def) toast.success(`🏆 Достижение разблокировано: ${def.title}`, { description: `+${def.xp} XP`, duration: 5000 });
+          }
+        });
+        return newIds;
+      });
+    }).catch(() => {});
+  };
+
   const prevJobStatusesRef = useRef<Record<string, string>>({});
   const prevXpRef = useRef<number | null>(null);
   const prevLevelRef = useRef<number | null>(null);
@@ -643,6 +659,7 @@ export default function ContractorDashboard() {
                                           setMyJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'pending_confirmation' as const } : j));
                                           setCompletionPhotos(prev => { const n = { ...prev }; delete n[job.id]; return n; });
                                           toast.success('Выполнение отправлено!', { description: 'Ждите подтверждения от заказчика', duration: 3000 });
+                                          setTimeout(refreshAchievements, 1000);
                                         } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
                                         finally { setSubmittingId(null); }
                                       }}
