@@ -80,9 +80,8 @@ export function Footer() {
               © 2026 Вынос Мусора Казань. Все права защищены.
             </div>
             <div className="flex flex-wrap gap-6 text-sm text-white/60">
-              <a href="#" className="hover:text-white transition-colors">Политика конфиденциальности</a>
-              <a href="#" className="hover:text-white transition-colors">Пользовательское соглашение</a>
-              <a href="#" className="hover:text-white transition-colors">Cookies</a>
+              <a href="/privacy" className="hover:text-white transition-colors">Политика конфиденциальности</a>
+              <a href="/terms" className="hover:text-white transition-colors">Пользовательское соглашение</a>
             </div>
           </div>
 
@@ -94,11 +93,11 @@ export function Footer() {
             </div>
             <div className="bg-white/5 px-4 py-2 rounded-lg text-xs text-white/60 flex items-center gap-2">
               <div className="w-2 h-2 bg-[#2ed573] rounded-full"></div>
-              Безопасные платежи ЮKassa
+              P2P — расчёты напрямую
             </div>
             <div className="bg-white/5 px-4 py-2 rounded-lg text-xs text-white/60 flex items-center gap-2">
               <div className="w-2 h-2 bg-[#2ed573] rounded-full"></div>
-              Гарантия возврата средств
+              Система рейтингов и отзывов
             </div>
           </div>
         </div>

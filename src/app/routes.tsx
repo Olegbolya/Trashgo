@@ -29,6 +29,8 @@ const ContractorReferral = lazy(() => import("./pages/ContractorReferral"));
 const Help = lazy(() => import("./pages/Help"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const Payment = lazy(() => import("./pages/Payment"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function PageLoader() {
@@ -80,6 +82,8 @@ export const router = createBrowserRouter([
   { path: "/register-contractor", element: page(RegisterContractor) },
   { path: "/how-it-works", element: page(HowItWorks) },
   { path: "/ref/:code", element: page(RefRedirect) },
+  { path: "/privacy", element: page(Privacy) },
+  { path: "/terms", element: page(Terms) },
 
   // Protected — auth required (both dashboards accessible for role switching)
   { path: "/dashboard", element: guarded(UnifiedDashboard) },

@@ -55,6 +55,7 @@ export default function CustomerDashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const publishingRef = useRef(false);
+  const isEditingRef = useRef(false);
   const prevXpRef = useRef<number | null>(null);
   const prevLevelRef = useRef<number | null>(null);
   const prevOrderStatusesRef = useRef<Record<string, string>>({});
@@ -151,6 +152,8 @@ export default function CustomerDashboard() {
       }
       prevOrderStatusesRef.current = Object.fromEntries(mapped.map(o => [o.id, o.status]));
 
+      // Don't overwrite local state while user is editing an order (race condition fix)
+      if (isEditingRef.current) return;
       setMyOrders(mapped);
       setSelectedOrder(prev => {
         if (!prev) return prev;
@@ -1029,6 +1032,7 @@ export default function CustomerDashboard() {
                 setPreloadedPhotoUrls([]);
                 setCreateErrors({});
                 setIsEditing(false);
+                isEditingRef.current = false;
                 setOriginalOrder(null);
                 setActiveTab('home');
               } catch (err: any) {
@@ -1391,6 +1395,7 @@ export default function CustomerDashboard() {
                           setPreloadedPhotoUrls([]);
                           setCreatePhotos([]);
                           setIsEditing(false);
+                          isEditingRef.current = false;
                           setOriginalOrder(null);
                           setActiveTab('home');
                         }}
@@ -1409,6 +1414,7 @@ export default function CustomerDashboard() {
                           setPreloadedPhotoUrls([]);
                           setCreatePhotos([]);
                           setIsEditing(false);
+                          isEditingRef.current = false;
                           setOriginalOrder(null);
                           setActiveTab('home');
                           toast.success('Заказ отменён');
@@ -1812,6 +1818,7 @@ export default function CustomerDashboard() {
                         setCreatePhotos([]);
                         setOriginalOrder(selectedOrder);
                         setIsEditing(true);
+                        isEditingRef.current = true;
                         setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
                         setSelectedOrder(null);
                         setActiveTab('create');
