@@ -1,4 +1,5 @@
 import { Trophy } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 export interface Achievement {
   id: string;
@@ -17,61 +18,73 @@ interface AchievementsPanelProps {
 }
 
 export function AchievementsPanel({ achievements, variant = 'customer' }: AchievementsPanelProps) {
-  const accentBg = variant === 'contractor' ? 'bg-green-50' : 'bg-gray-50';
-  const accentBorder = variant === 'contractor' ? 'border-green-200' : 'border-gray-200';
-  const accentText = variant === 'contractor' ? 'text-green-700' : 'text-gray-700';
-  const badgeBg = variant === 'contractor' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-100 border-gray-200 text-gray-700';
+  const { isDark } = useTheme();
+
+  const accent = variant === 'contractor' ? '#4CAF50' : '#2196F3';
+  const surface = isDark ? '#1e2433' : '#ffffff';
+  const border = isDark ? '#374151' : '#e5e7eb';
+  const subtle = isDark ? '#1f2937' : '#f3f4f6';
+  const text = isDark ? '#f9fafb' : '#111827';
+  const muted = isDark ? '#9ca3af' : '#6b7280';
+  const cardBorder = isDark ? '#374151' : '#d1d5db';
 
   const unlockedCount = achievements.filter(a => a.unlocked).length;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+    <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: '1rem', overflow: 'hidden' }}>
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-gray-500" />
-          <h2 className="text-sm font-semibold text-gray-900">Достижения</h2>
+      <div style={{ padding: '1rem 1.25rem', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Trophy style={{ width: '1rem', height: '1rem', color: muted }} />
+          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: text }}>Достижения</span>
         </div>
-        <div className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${badgeBg}`}>
+        <span style={{ padding: '0.25rem 0.625rem', borderRadius: '9999px', border: `1px solid ${border}`, fontSize: '0.75rem', fontWeight: 600, background: `${accent}12`, color: accent }}>
           {unlockedCount}/{achievements.length}
-        </div>
+        </span>
       </div>
 
       {/* Achievements Grid */}
-      <div className="p-4 grid grid-cols-2 gap-2.5">
+      <div style={{ padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.625rem' }}>
         {achievements.map((achievement) => (
           <div
             key={achievement.id}
-            className={`rounded-xl p-3.5 border transition-all ${
-              achievement.unlocked
-                ? `bg-white ${accentBorder}`
-                : 'bg-gray-50 border-gray-200'
-            }`}
+            style={{
+              borderRadius: '0.75rem',
+              padding: '0.875rem',
+              border: `1px solid ${achievement.unlocked ? accent + '50' : cardBorder}`,
+              background: achievement.unlocked ? `${accent}08` : subtle,
+              transition: 'all 0.2s',
+            }}
           >
-            <div className="text-2xl mb-2">{achievement.icon}</div>
-            <h3 className={`text-xs font-semibold mb-0.5 ${achievement.unlocked ? 'text-gray-900' : 'text-gray-400'}`}>
+            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{achievement.icon}</div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.125rem', color: achievement.unlocked ? text : muted }}>
               {achievement.title}
-            </h3>
-            <p className="text-xs text-gray-400 mb-2 leading-tight">
+            </div>
+            <div style={{ fontSize: '0.7rem', color: muted, marginBottom: '0.5rem', lineHeight: 1.4 }}>
               {achievement.description}
-            </p>
+            </div>
 
             {achievement.progress !== undefined && achievement.maxProgress !== undefined && (
-              <div className="mt-1.5">
-                <div className="h-1.5 rounded-full overflow-hidden bg-gray-200">
+              <div style={{ marginTop: '0.375rem' }}>
+                <div style={{ height: '0.375rem', borderRadius: '9999px', overflow: 'hidden', background: isDark ? '#374151' : '#e5e7eb' }}>
                   <div
-                    className={`h-full rounded-full transition-all ${achievement.unlocked ? (variant === 'contractor' ? 'bg-green-500' : 'bg-gray-900') : 'bg-gray-400'}`}
-                    style={{ width: `${Math.min((achievement.progress / achievement.maxProgress) * 100, 100)}%` }}
+                    style={{
+                      height: '100%',
+                      borderRadius: '9999px',
+                      background: achievement.unlocked ? accent : muted,
+                      width: `${Math.min((achievement.progress / achievement.maxProgress) * 100, 100)}%`,
+                      transition: 'width 0.6s ease',
+                    }}
                   />
                 </div>
-                <div className="text-xs mt-1 text-gray-400">
+                <div style={{ fontSize: '0.7rem', marginTop: '0.25rem', color: muted }}>
                   {achievement.progress}/{achievement.maxProgress}
                 </div>
               </div>
             )}
 
             {achievement.reward && achievement.unlocked && (
-              <div className={`mt-2 rounded-lg px-2 py-1 text-xs font-medium border ${accentBg} ${accentBorder} ${accentText}`}>
+              <div style={{ marginTop: '0.5rem', borderRadius: '0.5rem', padding: '0.25rem 0.5rem', fontSize: '0.7rem', fontWeight: 600, border: `1px solid ${accent}30`, background: `${accent}12`, color: accent }}>
                 {achievement.reward}
               </div>
             )}

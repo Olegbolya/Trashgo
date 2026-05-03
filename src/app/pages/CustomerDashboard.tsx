@@ -355,7 +355,7 @@ export default function CustomerDashboard() {
   const card2: React.CSSProperties = { ...card, borderWidth: '2px' };
 
   return (
-    <div className="min-h-screen lg:flex" style={{ background: c.bg, fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen lg:flex overflow-x-hidden" style={{ background: c.bg, fontFamily: "'Inter', system-ui, sans-serif" }}>
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col fixed top-0 left-0 h-full w-64 z-50" style={{ background: c.surface, borderRight: `2px solid ${ACCENT}` }}>
@@ -630,10 +630,10 @@ export default function CustomerDashboard() {
                     {activeOrders.map((order) => (
                       <div key={order.id} style={{ ...card2, borderColor: c.border, cursor: 'pointer' }} onClick={() => setSelectedOrder(order)}>
                         <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <MapPin className="w-4 h-4" style={{ color: c.muted }} />
-                              <span className="font-semibold" style={{ color: c.text }}>{order.address}</span>
+                              <MapPin className="w-4 h-4 flex-shrink-0" style={{ color: c.muted }} />
+                              <span className="font-semibold truncate" style={{ color: c.text }}>{order.address}</span>
                             </div>
                             <div className="text-sm mb-2 flex items-center gap-1.5 flex-wrap" style={{ color: c.muted }}>
                               {order.asap ? (
@@ -742,20 +742,20 @@ export default function CustomerDashboard() {
                   <div className="space-y-2">
                     {historyOrders.map((order) => (
                       <div key={order.id} style={{ ...card, padding: '1rem' }}>
-                        <div className="flex items-center justify-between" style={{ cursor: 'pointer' }} onClick={() => setSelectedOrder(order)}>
-                          <div>
-                            <div className="text-sm font-medium" style={{ color: c.text }}>{order.address}</div>
-                            <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center justify-between gap-2" style={{ cursor: 'pointer' }} onClick={() => setSelectedOrder(order)}>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate" style={{ color: c.text }}>{order.address}</div>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                               <div className="text-xs" style={{ color: c.muted }}>{order.createdAt} · {order.volume} мешк.</div>
                               <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: order.status === 'completed' ? `${ACCENT}18` : '#9ca3af18', color: order.status === 'completed' ? ACCENT : '#9ca3af' }}>
                                 {order.status === 'completed' ? '✓ Выполнен' : 'Отменён'}
                               </span>
                             </div>
                             {order.contractorName && (
-                              <div className="text-xs mt-0.5" style={{ color: c.muted }}>👤 {order.contractorName}</div>
+                              <div className="text-xs mt-0.5 truncate" style={{ color: c.muted }}>👤 {order.contractorName}</div>
                             )}
                           </div>
-                          <div className="text-sm font-medium" style={{ color: c.text }}>{order.price}₽</div>
+                          <div className="text-sm font-medium flex-shrink-0" style={{ color: c.text }}>{order.price}₽</div>
                         </div>
                         {order.status === 'completed' && !order.ratingByCustomer && (
                           <button
@@ -787,19 +787,19 @@ export default function CustomerDashboard() {
             <div className="max-w-4xl mx-auto space-y-3">
               {/* Profile Header */}
               <div style={card}>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-2xl" style={{ background: `${ACCENT}20`, color: ACCENT }}>
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-2xl flex-shrink-0" style={{ background: `${ACCENT}20`, color: ACCENT }}>
                       {(user?.name || 'U').charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <h1 className="text-lg font-semibold" style={{ color: c.text }}>{user?.name || '—'}</h1>
+                    <div className="min-w-0">
+                      <h1 className="text-lg font-semibold truncate" style={{ color: c.text }}>{user?.name || '—'}</h1>
                       <div className="text-xs font-medium px-2 py-0.5 rounded-full inline-block mt-0.5" style={{ background: `${ACCENT}18`, color: ACCENT }}>{statusLabel}</div>
                       <div className="text-sm mt-1" style={{ color: c.muted }}>{user?.phone || '—'}</div>
                     </div>
                   </div>
                   <button
-                    className="h-8 px-3 rounded-lg text-xs"
+                    className="h-8 px-3 rounded-lg text-xs flex-shrink-0"
                     style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
                     onClick={() => { setEditProfileForm({ name: user?.name || '', district: user?.district || '' }); setEditProfileOpen(true); }}
                   >
@@ -1560,13 +1560,13 @@ export default function CustomerDashboard() {
               </button>
             )}
 
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold" style={{ color: c.text }}>Детали заказа #{selectedOrder.id.slice(-6)}</h2>
-              <span className="text-xs px-2 py-1 rounded-full font-medium" style={{
+            <div className="flex items-start justify-between gap-2 mb-4 flex-wrap">
+              <h2 className="text-base font-bold" style={{ color: c.text }}>Заказ #{selectedOrder.id.slice(-6)}</h2>
+              <span className="text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap" style={{
                 background: selectedOrder.status === 'waiting' ? '#F97316' + '18' : selectedOrder.status === 'pending' ? '#FBBF2420' : `${ACCENT}18`,
                 color: selectedOrder.status === 'waiting' ? '#F97316' : selectedOrder.status === 'pending' ? '#92400e' : ACCENT,
               }}>
-                {selectedOrder.status === 'waiting' ? `Ждёт исполнителя · ${selectedOrder.responses} откликов` : selectedOrder.status === 'pending' ? '⏳ Ждёт подтверждения' : 'Принят'}
+                {selectedOrder.status === 'waiting' ? `${selectedOrder.responses} откл.` : selectedOrder.status === 'pending' ? '⏳ Подтверждение' : 'Принят'}
               </span>
             </div>
 

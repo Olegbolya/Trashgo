@@ -330,7 +330,7 @@ export default function ContractorDashboard() {
   };
 
   return (
-    <div className="min-h-screen lg:flex" style={{ background: c.bg, fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen lg:flex overflow-x-hidden" style={{ background: c.bg, fontFamily: "'Inter', system-ui, sans-serif" }}>
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col fixed top-0 left-0 h-full w-64 z-50" style={{ background: c.surface, borderRight: `2px solid ${ACCENT}` }}>
@@ -558,22 +558,22 @@ export default function ContractorDashboard() {
                           return (
                             <div key={job.id} style={{ ...card, padding: '0.875rem' }}>
                               <div className="flex items-start justify-between mb-2">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                                     {job.asap ? (
                                       <span style={{ fontSize: '0.8rem', fontWeight: 700, color: ACCENT }}>⚡ Как можно скорее</span>
                                     ) : (
                                       <>
-                                        <Clock className="w-3.5 h-3.5" style={{ color: c.muted }} />
+                                        <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: c.muted }} />
                                         <span className="text-sm font-semibold" style={{ color: c.text }}>{timeStr}</span>
                                         <span className="text-xs" style={{ color: c.muted }}>{dateStr}</span>
                                       </>
                                     )}
-                                    <span className="px-1.5 py-0.5 text-xs font-medium rounded" style={{ background: `${statusColor}20`, color: statusColor }}>{statusLabel}</span>
+                                    <span className="px-1.5 py-0.5 text-xs font-medium rounded whitespace-nowrap" style={{ background: `${statusColor}20`, color: statusColor }}>{statusLabel}</span>
                                   </div>
                                   <div className="flex items-center gap-1.5 mb-1">
-                                    <MapPin className="w-3.5 h-3.5" style={{ color: c.muted }} />
-                                    <span className="text-sm font-medium" style={{ color: c.text }}>{job.address}</span>
+                                    <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: c.muted }} />
+                                    <span className="text-sm font-medium truncate" style={{ color: c.text }}>{job.address}</span>
                                   </div>
                                   {job.description && (
                                     <div className="text-xs" style={{ color: c.muted }}>{job.description}</div>
@@ -849,14 +849,14 @@ export default function ContractorDashboard() {
                             setHistoryDetailLoading(false);
                           }}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5 mb-0.5">
                                 {isDone
-                                  ? <CheckCircle className="w-3.5 h-3.5" style={{ color: '#4CAF50' }} />
-                                  : <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>✕</span>
+                                  ? <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#4CAF50' }} />
+                                  : <span style={{ fontSize: '0.75rem', color: '#9ca3af', flexShrink: 0 }}>✕</span>
                                 }
-                                <span className="text-sm font-medium" style={{ color: c.text }}>{job.address}</span>
+                                <span className="text-sm font-medium truncate" style={{ color: c.text }}>{job.address}</span>
                               </div>
                               <div className="text-xs" style={{ color: c.muted }}>
                                 {job.asap ? '⚡ ASAP' : `${dateStr} · ${timeStr}`} · {job.volume} мешк.
@@ -955,19 +955,19 @@ export default function ContractorDashboard() {
             <div className="max-w-4xl mx-auto space-y-3">
               {/* Profile Header */}
               <div style={card}>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-2xl" style={{ background: `${ACCENT}20`, color: ACCENT }}>
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-2xl flex-shrink-0" style={{ background: `${ACCENT}20`, color: ACCENT }}>
                       {(user?.name || 'U').charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <h1 className="text-lg font-semibold" style={{ color: c.text }}>{user?.name || '—'}</h1>
+                    <div className="min-w-0">
+                      <h1 className="text-lg font-semibold truncate" style={{ color: c.text }}>{user?.name || '—'}</h1>
                       <div className="text-xs font-medium px-2 py-0.5 rounded-full inline-block mt-0.5" style={{ background: `${ACCENT}18`, color: ACCENT }}>{statusLabel}</div>
                       <div className="text-sm mt-1" style={{ color: c.muted }}>{user?.phone || '—'}</div>
                     </div>
                   </div>
                   <button
-                    className="h-8 px-3 rounded-lg text-xs"
+                    className="h-8 px-3 rounded-lg text-xs flex-shrink-0"
                     style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
                     onClick={() => { setEditProfileForm({ name: user?.name || '', district: '' }); setEditProfileOpen(true); }}
                   >
@@ -1313,23 +1313,23 @@ export default function ContractorDashboard() {
                       return (
                         <div key={order.id} style={{ ...card, cursor: 'pointer', borderColor: isAsap ? ACCENT : c.border }} onClick={() => setSelectedOrder(order)}>
                           <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 {isAsap ? (
                                   <>
                                     <span style={{ fontSize: '0.875rem', fontWeight: 700, color: ACCENT }}>⚡ Как можно скорее</span>
                                   </>
                                 ) : (
                                   <>
-                                    <Clock className="w-4 h-4" style={{ color: c.muted }} />
+                                    <Clock className="w-4 h-4 flex-shrink-0" style={{ color: c.muted }} />
                                     <span className="text-base font-semibold" style={{ color: c.text }}>{timeStr}</span>
                                     <span className="text-xs" style={{ color: c.muted }}>{dateStr}</span>
                                   </>
                                 )}
                               </div>
                               <div className="flex items-center gap-1.5 mb-1">
-                                <MapPin className="w-3.5 h-3.5" style={{ color: c.muted }} />
-                                <span className="text-sm font-medium" style={{ color: c.text }}>{order.address}</span>
+                                <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: c.muted }} />
+                                <span className="text-sm font-medium truncate" style={{ color: c.text }}>{order.address}</span>
                               </div>
                               {order.description && (
                                 <div className="text-xs mb-2" style={{ color: c.muted }}>{order.description}</div>
