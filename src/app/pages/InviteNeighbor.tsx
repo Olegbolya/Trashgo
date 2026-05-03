@@ -1,10 +1,23 @@
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Users, TrendingDown, Copy, Share2, CheckCircle, MapPin, Gift, Sparkles, Phone, MessageCircle, Briefcase, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Users, Copy, Share2, CheckCircle, MapPin, Gift, Zap, Phone, MessageCircle, Briefcase, ChevronRight, UserPlus } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useTheme } from '../context/ThemeContext';
 import { referralsApi, type ReferralInfo } from '../../api/referrals';
+
+const GREEN = '#16a34a';
+const GREEN_LIGHT = '#22c55e';
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return 'сегодня';
+  if (days === 1) return '1 день назад';
+  if (days < 7) return `${days} дней назад`;
+  const weeks = Math.floor(days / 7);
+  return weeks === 1 ? '1 неделю назад' : `${weeks} недели назад`;
+}
 
 export default function InviteNeighbor() {
   const navigate = useNavigate();
@@ -29,53 +42,37 @@ export default function InviteNeighbor() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Скидочная механика
-  const basePrice = 60;
-  const maxDiscount = 20;
-  const discountPerPerson = 2;
-  const currentNeighbors = referralInfo?.count ?? 0;
-
-  const calculateDiscount = (neighbors: number) => Math.min(neighbors * discountPerPerson, maxDiscount);
-  const calculatePrice = (neighbors: number) => {
-    const discount = calculateDiscount(neighbors);
-    return basePrice - (basePrice * discount / 100);
-  };
-
-  const currentDiscount = calculateDiscount(currentNeighbors);
-  const currentPrice = calculatePrice(currentNeighbors);
-  const nextPrice = calculatePrice(currentNeighbors + 1);
-  const maxPrice = calculatePrice(10);
-  const progressToMax = (currentNeighbors / 10) * 100;
-
+  const count = referralInfo?.count ?? 0;
+  // Use server-computed discount if available, otherwise calculate locally
+  const discount = referralInfo?.discount ?? Math.min(count * 2, 20);
   const referralLink = referralInfo?.link ?? '';
 
   const copyLink = () => {
     if (!referralLink) return;
     navigator.clipboard.writeText(referralLink);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 2500);
   };
 
   const shareLink = () => {
     if (!referralLink) return;
     if (navigator.share) {
       navigator.share({
-        title: 'TrashGo - Вывоз мусора',
-        text: `Присоединяйся! Вместе дешевле — уже ${currentDiscount}% скидка!`,
+        title: 'TrashGo — вывоз мусора',
+        text: `Присоединяйся! Вместе дешевле — уже ${discount}% скидка на вывоз мусора!`,
         url: referralLink,
       });
     }
   };
 
-  const formatJoinedAt = (iso: string) => {
-    const diff = Date.now() - new Date(iso).getTime();
-    const days = Math.floor(diff / 86400000);
-    if (days === 0) return 'сегодня';
-    if (days === 1) return '1 день назад';
-    if (days < 7) return `${days} дней назад`;
-    const weeks = Math.floor(days / 7);
-    return weeks === 1 ? '1 неделю назад' : `${weeks} недели назад`;
-  };
+  // Milestone thresholds for progress display
+  const milestones = [
+    { count: 1,  discount: 2,  label: '1 сосед',   reward: '−2%' },
+    { count: 3,  discount: 6,  label: '3 соседа',  reward: '−6%' },
+    { count: 5,  discount: 10, label: '5 соседей', reward: '−10%' },
+    { count: 10, discount: 20, label: '10 соседей', reward: '−20% макс' },
+  ];
+  const nextMilestone = milestones.find((m) => count < m.count);
 
   return (
     <div className="min-h-screen pb-14" style={{ background: c.bg }}>
@@ -91,7 +88,7 @@ export default function InviteNeighbor() {
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm font-medium">Назад</span>
             </button>
-            <div className="text-sm font-semibold" style={{ color: c.text }}>Реферальная программа</div>
+            <div className="text-sm font-semibold" style={{ color: c.text }}>Пригласи соседей</div>
             <div className="w-16" />
           </div>
         </div>
@@ -99,282 +96,236 @@ export default function InviteNeighbor() {
 
       {loading ? (
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="w-8 h-8 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: '#22c55e' }} />
+          <div className="w-8 h-8 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: GREEN_LIGHT }} />
         </div>
       ) : (
-        <div className="container mx-auto px-3 py-3">
-          <div className="max-w-4xl mx-auto space-y-3">
-            {/* Hero - Current Discount */}
-            <div className="rounded-2xl p-6 text-white relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a, #15803d)' }}>
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20"></div>
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-16 -mb-16"></div>
+        <div className="container mx-auto px-3 py-3 max-w-2xl space-y-3">
 
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-4">
-                  <Users className="w-6 h-6" />
-                  <h1 className="text-2xl font-bold">Пригласи соседей</h1>
-                </div>
-
-                <div className="mb-5">
-                  <div className="text-sm text-white/80 mb-2">Ваша текущая цена</div>
-                  <div className="flex items-end gap-3 mb-1">
-                    <div className="text-5xl font-bold">{currentPrice.toFixed(0)}₽</div>
-                    <div className="text-xl text-white/60 line-through mb-2">{basePrice}₽</div>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-lg border border-white/30">
-                    <TrendingDown className="w-4 h-4" />
-                    <span className="font-semibold">-{currentDiscount}% скидка</span>
-                    <span className="text-white/80">• {currentNeighbors} соседей</span>
-                  </div>
-                </div>
-
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-white/80">До максимальной скидки</span>
-                    <span className="text-sm font-semibold">{Math.max(0, 10 - currentNeighbors)} соседей</span>
-                  </div>
-                  <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden mb-2">
-                    <div
-                      className="h-full bg-gradient-to-r from-green-400 to-emerald-300 transition-all duration-500"
-                      style={{ width: `${progressToMax}%` }}
-                    ></div>
-                  </div>
-                  <div className="text-xs text-white/70">
-                    {currentNeighbors} из 10 соседей • {maxDiscount - currentDiscount}% осталось
-                  </div>
-                </div>
+          {/* Hero — current discount */}
+          <div className="rounded-2xl p-6 text-white relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${GREEN_LIGHT}, ${GREEN})` }}>
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-16 -mb-16" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-5 h-5" />
+                <span className="font-semibold text-base">Программа «Сосед помогает соседу»</span>
               </div>
-            </div>
-
-            {/* Economics Calculator */}
-            <div className="bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600 rounded-2xl p-5 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="w-5 h-5" />
-                  <h2 className="text-lg font-semibold">Экономия при приглашении</h2>
-                </div>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                    <div className="text-xs text-white/80 mb-1">Сейчас платите</div>
-                    <div className="text-2xl font-bold">{currentPrice.toFixed(0)}₽</div>
-                    <div className="text-xs text-white/70">за вывоз</div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                    <div className="text-xs text-white/80 mb-1">+1 сосед = цена</div>
-                    <div className="text-2xl font-bold">{nextPrice.toFixed(0)}₽</div>
-                    <div className="text-xs text-white/70">-{(currentPrice - nextPrice).toFixed(0)}₽ экономия</div>
-                  </div>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <div className="text-sm font-semibold mb-1">При 10 соседях</div>
-                      <div className="text-3xl font-bold">{maxPrice.toFixed(0)}₽</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-white/80 mb-1">Экономия</div>
-                      <div className="text-2xl font-bold text-green-200">-{(basePrice - maxPrice).toFixed(0)}₽</div>
-                      <div className="text-xs text-white/70">каждый раз</div>
-                    </div>
-                  </div>
-                  <div className="text-xs text-white/80">
-                    💰 В месяц (2 раза в неделю): -{((basePrice - maxPrice) * 8).toFixed(0)}₽ экономия
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Neighbors List */}
-            <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#22c55e18' }}>
-                  <MapPin className="w-5 h-5" style={{ color: '#16a34a' }} />
-                </div>
+              <div className="flex items-end gap-4 mb-4">
                 <div>
-                  <div className="text-sm font-semibold mb-1" style={{ color: c.text }}>Приглашённые соседи</div>
-                  <div className="text-xs" style={{ color: c.muted }}>{currentNeighbors} участников</div>
+                  <div className="text-xs text-white/80 mb-1">Ваша скидка на сервис</div>
+                  <div className="text-5xl font-bold">{discount}%</div>
                 </div>
+                {discount < 20 && (
+                  <div className="text-sm text-white/80 pb-1">
+                    {nextMilestone
+                      ? `ещё ${nextMilestone.count - count} ${nextMilestone.count - count === 1 ? 'сосед' : 'соседей'} → ${nextMilestone.reward}`
+                      : 'максимальная скидка!'}
+                  </div>
+                )}
               </div>
+              {/* Progress bar */}
+              <div className="bg-white/20 rounded-full h-2.5 overflow-hidden mb-2">
+                <div
+                  className="h-full bg-white/80 rounded-full transition-all duration-700"
+                  style={{ width: `${Math.min((count / 10) * 100, 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-white/70">
+                <span>{count} из 10 соседей</span>
+                <span>−20% макс</span>
+              </div>
+            </div>
+          </div>
 
-              {referralInfo && referralInfo.referrals.length > 0 ? (
-                <div className="space-y-2 mb-4">
-                  <div className="text-xs font-semibold uppercase" style={{ color: c.muted }}>Ваши соседи</div>
-                  {referralInfo.referrals.map((neighbor, i) => (
-                    <div key={i} className="flex items-center justify-between rounded-lg p-3" style={{ background: c.subtle }}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}>
-                          {neighbor.name.charAt(0)}
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium" style={{ color: c.text }}>{neighbor.name}</div>
-                          <div className="text-xs" style={{ color: c.muted }}>{formatJoinedAt(neighbor.joinedAt)}</div>
-                        </div>
-                      </div>
-                      <CheckCircle className="w-4 h-4 text-green-500" />
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-xl p-3 text-center" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+              <div className="text-2xl font-bold" style={{ color: GREEN_LIGHT }}>{count}</div>
+              <div className="text-xs mt-0.5" style={{ color: c.muted }}>Соседей</div>
+            </div>
+            <div className="rounded-xl p-3 text-center" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+              <div className="text-2xl font-bold" style={{ color: GREEN }}>{discount}%</div>
+              <div className="text-xs mt-0.5" style={{ color: c.muted }}>Скидка</div>
+            </div>
+            <div className="rounded-xl p-3 text-center" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+              <div className="text-2xl font-bold" style={{ color: c.text }}>{20 - discount}%</div>
+              <div className="text-xs mt-0.5" style={{ color: c.muted }}>До макс.</div>
+            </div>
+          </div>
+
+          {/* Referral link */}
+          <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+            <h2 className="text-sm font-semibold mb-3" style={{ color: c.text }}>Ваша ссылка для соседей</h2>
+            <div className="rounded-xl p-3 mb-3" style={{ background: c.subtle, border: `1px solid ${c.border}` }}>
+              <div className="text-xs mb-1" style={{ color: c.muted }}>Ссылка для заказчиков</div>
+              <div className="text-sm font-mono break-all" style={{ color: c.text }}>{referralLink || '...'}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button onClick={copyLink} variant="outline" className="w-full" disabled={!referralLink}>
+                {copied
+                  ? <><CheckCircle className="w-4 h-4 mr-2 text-green-600" />Скопировано!</>
+                  : <><Copy className="w-4 h-4 mr-2" />Копировать</>}
+              </Button>
+              <Button onClick={shareLink} className="w-full text-white" style={{ background: GREEN }} disabled={!referralLink}>
+                <Share2 className="w-4 h-4 mr-2" />Поделиться
+              </Button>
+            </div>
+          </div>
+
+          {/* Milestones */}
+          <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+            <h2 className="text-sm font-semibold mb-3" style={{ color: c.text }}>Ступени скидки</h2>
+            <div className="space-y-2">
+              {milestones.map((m) => {
+                const reached = count >= m.count;
+                return (
+                  <div
+                    key={m.count}
+                    className="flex items-center gap-3 p-3 rounded-xl"
+                    style={{ background: reached ? '#22c55e10' : c.subtle, border: `1px solid ${reached ? '#22c55e40' : c.border}` }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: reached ? GREEN_LIGHT : c.border, color: 'white' }}
+                    >
+                      {reached ? <CheckCircle className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-gray-500 text-center py-4 mb-4">
-                  Пока никого нет. Пригласите первого соседа!
-                </div>
-              )}
-
-              <div className="rounded-lg p-3" style={{ background: '#22c55e12', border: '1px solid #22c55e30' }}>
-                <div className="text-xs" style={{ color: isDark ? '#86efac' : '#15803d' }}>
-                  🎯 <strong>Цель:</strong> Ещё {Math.max(0, 10 - currentNeighbors)} соседей до максимальной скидки 20%
-                </div>
-              </div>
-            </div>
-
-            {/* Referral Link */}
-            <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-              <h2 className="text-base font-semibold mb-3" style={{ color: c.text }}>Реферальная ссылка</h2>
-              <div className="rounded-lg p-3 mb-3" style={{ background: c.subtle, border: `1px solid ${c.border}` }}>
-                <div className="text-xs mb-2" style={{ color: c.muted }}>Ваша ссылка</div>
-                <div className="text-sm font-mono break-all" style={{ color: c.text }}>{referralLink || '...'}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button onClick={copyLink} variant="outline" className="w-full" disabled={!referralLink}>
-                  {copied ? (
-                    <><CheckCircle className="w-4 h-4 mr-2 text-green-600" />Скопировано!</>
-                  ) : (
-                    <><Copy className="w-4 h-4 mr-2" />Копировать</>
-                  )}
-                </Button>
-                <Button onClick={shareLink} className="w-full text-white" style={{ background: '#16a34a' }} disabled={!referralLink}>
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Поделиться
-                </Button>
-              </div>
-            </div>
-
-            {/* How it works */}
-            <div className="rounded-2xl p-5" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-              <h2 className="text-base font-semibold mb-5" style={{ color: c.text }}>Как это работает?</h2>
-              <div className="space-y-4">
-                {[
-                  {
-                    n: 1,
-                    title: 'Скопируйте реферальную ссылку',
-                    desc: 'Ссылка уникальна для вас — через неё регистрируются ваши соседи',
-                    tag: '📋 Ваша ссылка выше',
-                  },
-                  {
-                    n: 2,
-                    title: 'Поделитесь с соседями',
-                    desc: 'Отправьте ссылку в чат подъезда, WhatsApp или расклейте объявления',
-                    tag: '📱 Любой мессенджер',
-                  },
-                  {
-                    n: 3,
-                    title: 'Сосед регистрируется и заказывает',
-                    desc: 'Как только сосед оформит заказ через вашу ссылку — скидка активируется',
-                    tag: '✅ Автоматически',
-                  },
-                  {
-                    n: 4,
-                    title: 'Скидка растёт у всех',
-                    desc: 'Каждый приглашённый сосед добавляет +2% к скидке для всего подъезда. Максимум — 20% при 10 соседях.',
-                    tag: '🎯 До −20%',
-                  },
-                ].map(({ n, title, desc, tag }) => (
-                  <div key={n} className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm text-white mt-0.5" style={{ background: '#16a34a' }}>{n}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold mb-0.5" style={{ color: c.text }}>{title}</div>
-                      <div className="text-xs mb-1.5" style={{ color: c.muted }}>{desc}</div>
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-lg" style={{ background: '#22c55e15', color: isDark ? '#86efac' : '#15803d' }}>{tag}</span>
+                      <div className="text-sm font-medium" style={{ color: reached ? (isDark ? '#86efac' : '#14532d') : c.text }}>{m.label}</div>
+                      <div className="text-xs" style={{ color: c.muted }}>{reached ? 'Достигнуто' : `Ещё ${m.count - count}`}</div>
                     </div>
+                    <div
+                      className="text-sm font-bold px-2 py-1 rounded-lg"
+                      style={{ background: reached ? '#22c55e18' : c.border + '40', color: reached ? GREEN : c.muted }}
+                    >
+                      {m.reward}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Invited neighbors list */}
+          {referralInfo && referralInfo.referrals.length > 0 && (
+            <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+              <div className="flex items-center gap-2 mb-3">
+                <MapPin className="w-4 h-4" style={{ color: GREEN }} />
+                <h2 className="text-sm font-semibold" style={{ color: c.text }}>Ваши соседи ({count})</h2>
+              </div>
+              <div className="space-y-2">
+                {referralInfo.referrals.map((n, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: c.subtle }}>
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0" style={{ background: `linear-gradient(135deg, ${GREEN_LIGHT}, ${GREEN})` }}>
+                      {n.name.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium" style={{ color: c.text }}>{n.name}</div>
+                      <div className="text-xs" style={{ color: c.muted }}>{timeAgo(n.joinedAt)}</div>
+                    </div>
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: GREEN_LIGHT }} />
                   </div>
                 ))}
               </div>
-              <div className="mt-5 rounded-xl p-3" style={{ background: '#22c55e12', border: '1px solid #22c55e30' }}>
-                <div className="flex items-start gap-2">
-                  <Gift className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#16a34a' }} />
-                  <div className="text-xs" style={{ color: isDark ? '#86efac' : '#14532d' }}>
-                    <strong>Выгода для всех:</strong> скидка действует на каждый заказ всех участников — вы экономите вместе с соседями на постоянной основе.
+            </div>
+          )}
+
+          {/* How it works */}
+          <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${c.border}` }}>
+            <div className="px-4 py-3 flex items-center gap-2" style={{ background: '#22c55e14', borderBottom: `1px solid ${c.border}` }}>
+              <Zap className="w-4 h-4" style={{ color: GREEN }} />
+              <h2 className="text-sm font-semibold" style={{ color: c.text }}>Как работает программа</h2>
+            </div>
+            <div style={{ background: c.surface }}>
+              {[
+                {
+                  n: 1,
+                  title: 'Поделитесь ссылкой',
+                  desc: 'Отправьте ссылку соседям — через WhatsApp, в чат подъезда или лично. Ссылка направит их на регистрацию как заказчика.',
+                  tag: '📋 Ваша ссылка выше',
+                  color: GREEN,
+                },
+                {
+                  n: 2,
+                  title: 'Сосед регистрируется',
+                  desc: 'Как только сосед зарегистрируется по вашей ссылке — вы получите уведомление и ваша скидка увеличится на 2%.',
+                  tag: '✅ Автоматически',
+                  color: GREEN,
+                },
+                {
+                  n: 3,
+                  title: 'Ваша скидка растёт',
+                  desc: 'Каждый приглашённый сосед добавляет +2% к вашей личной скидке на сервисный сбор. Максимум — 20% при 10 соседях.',
+                  tag: '🎯 До −20%',
+                  color: GREEN_LIGHT,
+                },
+                {
+                  n: 4,
+                  title: 'Скидка применяется к сервисному сбору',
+                  desc: 'Скидка распространяется на сервисный сбор платформы — подключается автоматически при каждом заказе.',
+                  tag: '💳 Постоянно',
+                  color: '#0891b2',
+                },
+              ].map(({ n, title, desc, tag, color }, i, arr) => (
+                <div key={n} className="flex gap-3 p-4" style={{ borderBottom: i < arr.length - 1 ? `1px solid ${c.border}` : 'none' }}>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-sm font-bold mt-0.5" style={{ background: color }}>{n}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold mb-0.5" style={{ color: c.text }}>{title}</div>
+                    <div className="text-xs mb-2 leading-relaxed" style={{ color: c.muted }}>{desc}</div>
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-lg" style={{ background: '#22c55e15', color: isDark ? '#86efac' : '#15803d' }}>{tag}</span>
                   </div>
                 </div>
+              ))}
+            </div>
+            <div className="px-4 py-3 flex items-start gap-2" style={{ background: '#22c55e10', borderTop: `1px solid ${c.border}` }}>
+              <Gift className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: GREEN }} />
+              <div className="text-xs leading-relaxed" style={{ color: isDark ? '#86efac' : '#14532d' }}>
+                <strong>Скидка личная:</strong> каждый участник программы получает свою скидку пропорционально количеству приглашённых соседей. Пригласили больше — экономите больше.
               </div>
             </div>
+          </div>
 
-            {/* Discount Table */}
-            <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-              <h2 className="text-base font-semibold mb-3" style={{ color: c.text }}>Таблица скидок</h2>
-              <div className="space-y-1.5">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((count) => {
-                  const discount = calculateDiscount(count);
-                  const price = calculatePrice(count);
-                  const isCurrent = count === currentNeighbors;
-                  return (
-                    <div
-                      key={count}
-                      className="flex items-center justify-between p-2.5 rounded-lg" style={{ background: isCurrent ? '#22c55e15' : c.subtle, border: `${isCurrent ? '2px' : '1px'} solid ${isCurrent ? '#22c55e60' : c.border}` }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style={{ background: isCurrent ? '#16a34a' : c.surface, color: isCurrent ? 'white' : c.text, border: isCurrent ? 'none' : `1px solid ${c.border}` }}>
-                          {count}
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium" style={{ color: isCurrent ? (isDark ? '#86efac' : '#14532d') : c.text }}>
-                            {count} {count === 1 ? 'сосед' : count < 5 ? 'соседа' : 'соседей'}
-                          </div>
-                          {isCurrent && <div className="text-xs font-medium" style={{ color: '#16a34a' }}>Ваш уровень</div>}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-base font-bold" style={{ color: isCurrent ? (isDark ? '#86efac' : '#14532d') : c.text }}>{price.toFixed(0)}₽</div>
-                        <div className="text-xs" style={{ color: isCurrent ? '#16a34a' : c.muted }}>-{discount}%</div>
-                      </div>
-                    </div>
-                  );
-                })}
+          {/* CTA buttons */}
+          <div className="rounded-2xl p-5 text-white relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${GREEN}, #15803d)` }}>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
+            <div className="relative">
+              <div className="text-base font-bold mb-2">Расскажите соседям!</div>
+              <div className="text-sm text-white/90 mb-4">
+                Чем больше вас — тем больше скидка у каждого. Отправьте ссылку прямо сейчас.
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={() => toast.info('WhatsApp', { description: 'Используйте кнопку «Поделиться» выше' })}
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                >
+                  <MessageCircle className="w-4 h-4 mr-1.5" />
+                  WhatsApp
+                </Button>
+                <Button
+                  onClick={() => toast.info('Звонок', { description: 'Функция звонков в разработке' })}
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                >
+                  <Phone className="w-4 h-4 mr-1.5" />
+                  Позвонить
+                </Button>
               </div>
             </div>
+          </div>
 
-            {/* CTA */}
-            <div className="rounded-2xl p-5 text-white relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-              <div className="relative">
-                <div className="text-lg font-bold mb-2">Расскажите соседям!</div>
-                <div className="text-sm text-white/90 mb-4">
-                  Чем больше вас — тем дешевле каждому. Создайте чат подъезда или расклейте объявления.
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    onClick={() => toast.info('WhatsApp', { description: 'Интеграция с мессенджерами в разработке' })}
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
-                  >
-                    <MessageCircle className="w-4 h-4 mr-1.5" />
-                    WhatsApp
-                  </Button>
-                  <Button
-                    onClick={() => toast.info('Звонок', { description: 'Функция звонков в разработке' })}
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
-                  >
-                    <Phone className="w-4 h-4 mr-1.5" />
-                    Позвонить
-                  </Button>
-                </div>
-              </div>
+          {/* Cross-link to contractor referral */}
+          <div
+            className="rounded-2xl p-4 flex items-center gap-4 cursor-pointer"
+            style={{ background: c.surface, border: `1px solid ${c.border}` }}
+            onClick={() => navigate('/contractor-referral')}
+          >
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#2196F318' }}>
+              <Briefcase className="w-6 h-6" style={{ color: '#2196F3' }} />
             </div>
-            {/* Contractor referral banner */}
-            <div
-              className="rounded-2xl p-4 flex items-center gap-4 cursor-pointer"
-              style={{ background: c.surface, border: `1px solid ${c.border}` }}
-              onClick={() => navigate('/contractor-referral')}
-            >
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#2196F318' }}>
-                <Briefcase className="w-6 h-6" style={{ color: '#2196F3' }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold" style={{ color: c.text }}>Вы исполнитель?</div>
-                <div className="text-xs mt-0.5" style={{ color: c.muted }}>Для исполнителей действует отдельная программа — приведи напарника и получай бонусы</div>
-              </div>
-              <ChevronRight className="w-5 h-5 flex-shrink-0" style={{ color: c.muted }} />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold" style={{ color: c.text }}>Вы исполнитель?</div>
+              <div className="text-xs mt-0.5" style={{ color: c.muted }}>Отдельная программа для исполнителей — приведи напарника и получай денежный бонус</div>
             </div>
+            <ChevronRight className="w-5 h-5 flex-shrink-0" style={{ color: c.muted }} />
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@ export interface ReferralInfo {
   code: string;
   link: string;
   count: number;
+  discount?: number;
   referrals: { name: string; role?: string; joinedAt: string }[];
 }
 
