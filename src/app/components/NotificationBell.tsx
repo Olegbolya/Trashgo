@@ -57,11 +57,7 @@ export function NotificationBell({ accentColor }: Props) {
     if (n.type === 'xp') {
       navigate(user?.role === 'contractor' ? '/contractor?tab=profile' : '/customer?tab=profile');
     } else if (n.orderId) {
-      if (user?.role === 'contractor') {
-        navigate('/contractor?tab=active');
-      } else {
-        navigate('/customer?tab=calendar');
-      }
+      navigate(`/order/${n.orderId}`);
     } else {
       navigate('/notifications');
     }

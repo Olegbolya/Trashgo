@@ -46,6 +46,7 @@ export default function ContractorDashboard() {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [completionPhotos, setCompletionPhotos] = useState<Record<string, File[]>>({});
   const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [startingId, setStartingId] = useState<string | null>(null);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -571,16 +572,19 @@ export default function ContractorDashboard() {
                                 {job.status === 'accepted' && (
                                   <button
                                     className="w-full text-xs font-semibold h-9 rounded-lg"
-                                    style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                                    disabled={startingId === job.id}
+                                    style={{ background: ACCENT, color: 'white', border: 'none', cursor: startingId === job.id ? 'not-allowed' : 'pointer', opacity: startingId === job.id ? 0.6 : 1, fontFamily: 'inherit' }}
                                     onClick={async () => {
+                                      setStartingId(job.id);
                                       try {
                                         await ordersApi.updateStatus(job.id, 'in_progress');
                                         setMyJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'in_progress' as const } : j));
                                         toast.success('Отмечено: мусор получен, идёте к баку');
                                       } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
+                                      finally { setStartingId(null); }
                                     }}
                                   >
-                                    ✅ Получено — иду к баку
+                                    {startingId === job.id ? 'Отмечаем...' : '✅ Получено — иду к баку'}
                                   </button>
                                 )}
                                 {job.status === 'in_progress' && (
