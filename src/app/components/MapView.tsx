@@ -156,9 +156,9 @@ export function MapView({ address, isDark }: Props) {
   }
 
   const { lat, lon } = destCoords;
-  const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address + ', Казань')}`;
+  const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
   const twoGisUrl = `https://2gis.ru/kazan/directions/points/${lon}%2C${lat}`;
-  const yandexUrl = `https://yandex.ru/maps/43/kazan/?mode=routes&rtext=~${encodeURIComponent(address + ', Казань')}&rtt=auto`;
+  const yandexUrl = `https://yandex.ru/maps/?mode=routes&rtext=~${lat},${lon}&rtt=auto`;
 
   return (
     <div style={{ borderRadius: '0.75rem', overflow: 'hidden', border: `1px solid ${border}` }}>
