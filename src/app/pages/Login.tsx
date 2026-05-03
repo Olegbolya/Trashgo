@@ -45,7 +45,7 @@ export default function Login() {
 
     try {
       const res = await authApi.login(formattedPhone);
-      navigate('/verify', { state: { phone: formattedPhone, role, isNewUser: res.isNewUser } });
+      navigate('/verify', { state: { phone: formattedPhone, role, isNewUser: res.isNewUser, devCode: res.devCode, channel: res.channel, telegramBotLink: res.telegramBotLink } });
     } catch {
       toast.error('Ошибка отправки кода. Попробуйте ещё раз.');
     } finally {

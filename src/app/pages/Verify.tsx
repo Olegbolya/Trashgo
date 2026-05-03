@@ -14,6 +14,8 @@ export default function Verify() {
   const phone = location.state?.phone || '';
   const role = location.state?.role || 'customer';
   const devCode = location.state?.devCode as string | undefined;
+  const telegramBotLink = location.state?.telegramBotLink as string | undefined;
+  const channel = location.state?.channel as string | undefined;
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -84,9 +86,35 @@ export default function Verify() {
           Введите код
         </h1>
         <p style={{ fontSize: '0.875rem', color: c.muted, marginBottom: '1.75rem' }}>
-          Отправили SMS на{' '}
-          <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span>
+          {channel === 'telegram'
+            ? telegramBotLink
+              ? <>Откройте бота TrashGo в Telegram и он пришлёт код для <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
+              : <>Код отправлен в ваш <span style={{ color: c.text, fontWeight: 600 }}>Telegram</span></>
+            : <>Отправили SMS на <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
+          }
         </p>
+
+        {/* Telegram link — shown when user hasn't linked Telegram yet */}
+        {telegramBotLink && (
+          <a
+            href={telegramBotLink}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              background: '#229ED9' + '18', border: `1px solid ${'#229ED9' + '40'}`,
+              borderRadius: '0.75rem', padding: '0.875rem 1rem',
+              marginBottom: '1.25rem', textDecoration: 'none',
+            }}
+          >
+            <span style={{ fontSize: '1.5rem' }}>✈️</span>
+            <div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#229ED9' }}>Открыть бот TrashGo в Telegram</div>
+              <div style={{ fontSize: '0.72rem', color: c.muted, marginTop: '0.125rem' }}>Бот пришлёт вам код автоматически</div>
+            </div>
+            <span style={{ marginLeft: 'auto', fontSize: '0.9rem', color: '#229ED9' }}>→</span>
+          </a>
+        )}
 
         {/* Dev hint — only shown when server returns devCode (dev mode) */}
         {devCode && (

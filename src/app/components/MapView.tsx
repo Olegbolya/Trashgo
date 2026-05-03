@@ -133,23 +133,22 @@ export function MapView({ address, isDark }: Props) {
   }
 
   if (status === 'error' || !destCoords) {
+    const addrEnc = encodeURIComponent(address + ', Казань');
     return (
       <div style={{ padding: '1rem', background: bg, borderRadius: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
-        <div style={{ fontSize: '0.875rem', color: '#9ca3af', textAlign: 'center' }}>Не удалось найти адрес на карте</div>
+        <div style={{ fontSize: '0.875rem', color: '#9ca3af', textAlign: 'center' }}>Откройте маршрут в картах</div>
         <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address + ', Казань')}`}
-            target="_blank" rel="noreferrer"
-            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '2.25rem', borderRadius: '0.5rem', background: '#4285F4', color: 'white', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}
-          >
-            📍 Google Maps
+          <a href={`https://yandex.ru/maps/43/kazan/?mode=routes&rtext=~${addrEnc}&rtt=auto`} target="_blank" rel="noreferrer"
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '2.25rem', borderRadius: '0.5rem', background: '#FC3F1D', color: 'white', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}>
+            🗺️ Яндекс
           </a>
-          <a
-            href={`https://2gis.ru/kazan/search/${encodeURIComponent(address)}`}
-            target="_blank" rel="noreferrer"
-            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '2.25rem', borderRadius: '0.5rem', background: '#1E9B5A', color: 'white', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}
-          >
-            🗺️ 2GIS
+          <a href={`https://www.google.com/maps/dir/?api=1&destination=${addrEnc}`} target="_blank" rel="noreferrer"
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '2.25rem', borderRadius: '0.5rem', background: '#4285F4', color: 'white', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}>
+            Google
+          </a>
+          <a href={`https://2gis.ru/kazan/search/${encodeURIComponent(address)}`} target="_blank" rel="noreferrer"
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '2.25rem', borderRadius: '0.5rem', background: '#1E9B5A', color: 'white', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}>
+            2GIS
           </a>
         </div>
       </div>
@@ -159,6 +158,7 @@ export function MapView({ address, isDark }: Props) {
   const { lat, lon } = destCoords;
   const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address + ', Казань')}`;
   const twoGisUrl = `https://2gis.ru/kazan/directions/points/${lon}%2C${lat}`;
+  const yandexUrl = `https://yandex.ru/maps/43/kazan/?mode=routes&rtext=~${encodeURIComponent(address + ', Казань')}&rtt=auto`;
 
   return (
     <div style={{ borderRadius: '0.75rem', overflow: 'hidden', border: `1px solid ${border}` }}>
@@ -182,18 +182,25 @@ export function MapView({ address, isDark }: Props) {
           </span>
         </div>
         <a
+          href={yandexUrl}
+          target="_blank" rel="noreferrer"
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', height: '2.25rem', borderRadius: '0.5rem', background: '#FC3F1D', color: 'white', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}
+        >
+          🗺️ Яндекс
+        </a>
+        <a
           href={gmapsUrl}
           target="_blank" rel="noreferrer"
           style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', height: '2.25rem', borderRadius: '0.5rem', background: '#4285F4', color: 'white', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}
         >
-          📍 Google Maps
+          📍 Google
         </a>
         <a
           href={twoGisUrl}
           target="_blank" rel="noreferrer"
           style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', height: '2.25rem', borderRadius: '0.5rem', background: '#1E9B5A', color: 'white', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}
         >
-          🗺️ 2GIS
+          2GIS
         </a>
       </div>
     </div>

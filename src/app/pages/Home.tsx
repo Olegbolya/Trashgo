@@ -116,7 +116,7 @@ export default function Home() {
     setLoading(true);
     try {
       const res = await authApi.login(formattedPhone);
-      navigate('/verify', { state: { phone: formattedPhone, role: selectedRole, isNewUser: res.isNewUser, devCode: res.devCode } });
+      navigate('/verify', { state: { phone: formattedPhone, role: selectedRole, isNewUser: res.isNewUser, devCode: res.devCode, channel: res.channel, telegramBotLink: res.telegramBotLink } });
     } catch {
       setPhoneError('Ошибка отправки кода. Проверьте номер и попробуйте ещё раз.');
     } finally {

@@ -120,6 +120,9 @@ export default function CustomerDashboard() {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [geocodeSuggestions, setGeocodeSuggestions] = useState<{ label: string; full: string }[]>([]);
+  const [geocodeNoResults, setGeocodeNoResults] = useState(false);
+  const geocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshOrders = (silent = false) => {
     if (!silent) setOrdersLoading(true);
@@ -1057,9 +1060,41 @@ export default function CustomerDashboard() {
                             const regAddr = user?.district && user.district.toLowerCase().includes(val.toLowerCase()) ? [user.district] : [];
                             const unique = [...new Set([...regAddr, ...pastAddrs])];
                             setAddressSuggestions(unique);
-                            setShowAddressSuggestions(unique.length > 0);
+                            setShowAddressSuggestions(true);
                           } else {
                             setShowAddressSuggestions(false);
+                            setGeocodeSuggestions([]);
+                          }
+                          // Debounced geocoding from Nominatim for real Kazan addresses
+                          if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current);
+                          setGeocodeNoResults(false);
+                          if (val.length >= 3) {
+                            geocodeTimerRef.current = setTimeout(async () => {
+                              try {
+                                const res = await fetch(`/api/v1/geocode?q=${encodeURIComponent(val + ' Казань')}&limit=5`);
+                                const data: any[] = await res.json();
+                                const suggestions = data
+                                  .filter(d => d.address)
+                                  .map(d => {
+                                    const a = d.address;
+                                    const road = a.road || a.pedestrian || a.footway || '';
+                                    const house = a.house_number || '';
+                                    const label = [road, house].filter(Boolean).join(', ') || d.display_name.split(',')[0];
+                                    return { label, full: label };
+                                  })
+                                  .filter(s => s.label.length > 0);
+                                setGeocodeSuggestions(suggestions);
+                                if (suggestions.length > 0) {
+                                  setShowAddressSuggestions(true);
+                                  setGeocodeNoResults(false);
+                                } else {
+                                  setGeocodeNoResults(true);
+                                }
+                              } catch {}
+                            }, 500);
+                          } else {
+                            setGeocodeSuggestions([]);
+                            setGeocodeNoResults(false);
                           }
                         }}
                         onFocus={() => {
@@ -1077,20 +1112,22 @@ export default function CustomerDashboard() {
                         placeholder="ул. Баумана, 58"
                         style={inputStyle(!!createErrors.address)}
                       />
-                      {showAddressSuggestions && (
-                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: c.surface, border: `1px solid ${c.border}`, borderRadius: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginTop: '2px', overflow: 'hidden' }}>
+                      {showAddressSuggestions && (addressSuggestions.length > 0 || geocodeSuggestions.length > 0) && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: c.surface, border: `1px solid ${c.border}`, borderRadius: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginTop: '2px', overflow: 'hidden', maxHeight: '14rem', overflowY: 'auto' }}>
+                          {/* Past/registered addresses */}
                           {addressSuggestions.map((addr, i) => {
                             const isReg = addr === user?.district;
                             return (
                               <button
-                                key={i}
+                                key={`past-${i}`}
                                 type="button"
                                 onMouseDown={() => {
                                   const parsed = parseAddressParts(addr);
                                   setCreateForm({ ...createForm, address: parsed.address, entrance: parsed.entrance, floor: parsed.floor, apartment: parsed.apartment });
                                   setShowAddressSuggestions(false);
+                                  setGeocodeSuggestions([]);
                                 }}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', textAlign: 'left', padding: '0.625rem 0.875rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: c.text, fontFamily: 'inherit', borderBottom: i < addressSuggestions.length - 1 ? `1px solid ${c.border}` : 'none' }}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', textAlign: 'left', padding: '0.625rem 0.875rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: c.text, fontFamily: 'inherit', borderBottom: `1px solid ${c.border}` }}
                                 onMouseEnter={e => (e.currentTarget.style.background = c.subtle)}
                                 onMouseLeave={e => (e.currentTarget.style.background = 'none')}
                               >
@@ -1098,17 +1135,35 @@ export default function CustomerDashboard() {
                                   <MapPin style={{ width: '0.875rem', height: '0.875rem', flexShrink: 0, color: isReg ? ACCENT : c.muted }} />
                                   {addr}
                                 </span>
-                                {isReg && (
-                                  <span style={{ fontSize: '0.7rem', color: ACCENT, background: `${ACCENT}18`, padding: '0.1rem 0.4rem', borderRadius: '0.25rem', flexShrink: 0 }}>
-                                    мой адрес
-                                  </span>
-                                )}
+                                {isReg && <span style={{ fontSize: '0.7rem', color: ACCENT, background: `${ACCENT}18`, padding: '0.1rem 0.4rem', borderRadius: '0.25rem', flexShrink: 0 }}>мой адрес</span>}
                               </button>
                             );
                           })}
+                          {/* Real Kazan addresses from geocoding */}
+                          {geocodeSuggestions.map((s, i) => (
+                            <button
+                              key={`geo-${i}`}
+                              type="button"
+                              onMouseDown={() => {
+                                setCreateForm({ ...createForm, address: s.full });
+                                setShowAddressSuggestions(false);
+                                setGeocodeSuggestions([]);
+                              }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', textAlign: 'left', padding: '0.625rem 0.875rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: c.text, fontFamily: 'inherit', borderBottom: i < geocodeSuggestions.length - 1 ? `1px solid ${c.border}` : 'none' }}
+                              onMouseEnter={e => (e.currentTarget.style.background = c.subtle)}
+                              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                            >
+                              <MapPin style={{ width: '0.875rem', height: '0.875rem', flexShrink: 0, color: '#9ca3af' }} />
+                              <span style={{ flex: 1 }}>{s.label}</span>
+                              <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Казань</span>
+                            </button>
+                          ))}
                         </div>
                       )}
                       {createErrors.address && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{createErrors.address}</p>}
+                      {geocodeNoResults && !createErrors.address && createForm.address.length >= 3 && (
+                        <p className="text-xs mt-1" style={{ color: '#f59e0b' }}>⚠️ Адрес не найден в Казани. Проверьте написание или введите вручную.</p>
+                      )}
                     </div>
 
                     {/* Подъезд + Этаж + Квартира — необязательные без пометки */}

@@ -5,6 +5,8 @@ interface LoginResponse {
   otpSent: boolean;
   isNewUser: boolean;
   devCode?: string;
+  channel?: 'telegram' | 'sms' | 'dev';
+  telegramBotLink?: string;
 }
 
 interface VerifyResponse {

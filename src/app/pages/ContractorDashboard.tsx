@@ -19,6 +19,14 @@ import { useNotificationsStore } from '../../stores/notifications.store';
 
 const ACCENT = '#2196F3';
 
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export default function ContractorDashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -54,7 +62,10 @@ export default function ContractorDashboard() {
   const [filterTimeTo, setFilterTimeTo] = useState('');
   const [filterDistrict, setFilterDistrict] = useState('');
   const [filterDistanceKm, setFilterDistanceKm] = useState(10);
-  const [sortOrders, setSortOrders] = useState<'newest' | 'price_asc' | 'price_desc' | 'date_asc' | 'date_desc'>('newest');
+  const [sortOrders, setSortOrders] = useState<'newest' | 'price_asc' | 'price_desc' | 'date_asc' | 'date_desc' | 'distance_asc'>('newest');
+  const [contractorGps, setContractorGps] = useState<{ lat: number; lon: number } | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [orderCoords, setOrderCoords] = useState<Map<string, { lat: number; lon: number } | null>>(new Map());
   const [historyDetailOrder, setHistoryDetailOrder] = useState<Order | null>(null);
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
   const [ratingOrder, setRatingOrder] = useState<{ id: string; customerName: string } | null>(null);
@@ -172,6 +183,44 @@ export default function ContractorDashboard() {
     const interval = setInterval(poll, 15000);
     return () => clearInterval(interval);
   }, [myJobs, chatJobId]);
+
+  // Auto-acquire GPS when contractor opens Find tab
+  useEffect(() => {
+    if (activeTab !== 'find' || contractorGps || gpsLoading) return;
+    setGpsLoading(true);
+    navigator.geolocation?.getCurrentPosition(
+      pos => { setContractorGps({ lat: pos.coords.latitude, lon: pos.coords.longitude }); setGpsLoading(false); },
+      () => setGpsLoading(false),
+      { timeout: 8000, enableHighAccuracy: false }
+    );
+  }, [activeTab]);
+
+  // Geocode order addresses for distance calculation (throttled to 1 req/s)
+  useEffect(() => {
+    if (activeTab !== 'find') return;
+    const toGeocode = availableOrders.filter(o => !orderCoords.has(o.id));
+    if (!toGeocode.length) return;
+    let cancelled = false;
+    (async () => {
+      for (const order of toGeocode) {
+        if (cancelled) break;
+        try {
+          const q = /казань|kazan/i.test(order.address) ? order.address : `${order.address}, Казань, Россия`;
+          const res = await fetch(`/api/v1/geocode?q=${encodeURIComponent(q)}`);
+          const data = await res.json();
+          setOrderCoords(prev => {
+            const next = new Map(prev);
+            next.set(order.id, data[0] ? { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) } : null);
+            return next;
+          });
+        } catch {
+          setOrderCoords(prev => { const next = new Map(prev); next.set(order.id, null); return next; });
+        }
+        await new Promise(r => setTimeout(r, 1100));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [availableOrders, activeTab]);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -1044,11 +1093,15 @@ export default function ContractorDashboard() {
 
           {/* FIND ORDERS TAB */}
           {activeTab === 'find' && (() => {
-            const hasActiveFilters = filterDateFrom || filterDateTo || filterTimeFrom || filterTimeTo || filterDistrict;
+            const hasActiveFilters = !!(filterDateFrom || filterDateTo || filterTimeFrom || filterTimeTo || filterDistrict || (contractorGps && filterDistanceKm < 50));
             const visibleOrders = availableOrders.filter(o => {
               if (hiddenOrderIds.has(o.id)) return false;
               if (filterDistrict && !o.district.toLowerCase().includes(filterDistrict.toLowerCase())) return false;
-              if (o.asap) return true; // ASAP orders always pass date/time filters
+              if (contractorGps && filterDistanceKm < 50) {
+                const coords = orderCoords.get(o.id);
+                if (coords !== undefined && (!coords || haversineKm(contractorGps.lat, contractorGps.lon, coords.lat, coords.lon) > filterDistanceKm)) return false;
+              }
+              if (o.asap) return true;
               const dt = o.scheduledAt ? new Date(o.scheduledAt) : null;
               if (dt) {
                 const dateStr = dt.toISOString().slice(0, 10);
@@ -1060,6 +1113,13 @@ export default function ContractorDashboard() {
               }
               return true;
             }).sort((a, b) => {
+              if (sortOrders === 'distance_asc' && contractorGps) {
+                const ca = orderCoords.get(a.id);
+                const cb = orderCoords.get(b.id);
+                const da = ca ? haversineKm(contractorGps.lat, contractorGps.lon, ca.lat, ca.lon) : Infinity;
+                const db2 = cb ? haversineKm(contractorGps.lat, contractorGps.lon, cb.lat, cb.lon) : Infinity;
+                return da - db2;
+              }
               if (sortOrders === 'price_asc') return a.price - b.price;
               if (sortOrders === 'price_desc') return b.price - a.price;
               if (sortOrders === 'date_asc') {
@@ -1140,15 +1200,36 @@ export default function ContractorDashboard() {
                       style={{ border: `1px solid ${c.border}`, background: c.subtle, color: c.text, fontFamily: 'inherit', outline: 'none' }} />
                   </div>
                   <div>
+                    <div className="text-xs mb-1.5" style={{ color: c.muted }}>Моё местоположение</div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGpsLoading(true);
+                        navigator.geolocation?.getCurrentPosition(
+                          pos => { setContractorGps({ lat: pos.coords.latitude, lon: pos.coords.longitude }); setGpsLoading(false); },
+                          () => setGpsLoading(false),
+                          { timeout: 8000, enableHighAccuracy: false }
+                        );
+                      }}
+                      className="w-full px-2.5 py-1.5 rounded-lg text-sm font-medium"
+                      style={{ border: `1px solid ${contractorGps ? ACCENT + '60' : c.border}`, background: contractorGps ? `${ACCENT}12` : c.subtle, color: contractorGps ? ACCENT : c.muted, fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left' }}
+                    >
+                      {gpsLoading ? '⏳ Определяем...' : contractorGps ? '✅ Местоположение определено' : '📍 Определить моё местоположение'}
+                    </button>
+                  </div>
+                  <div>
                     <div className="flex items-center justify-between text-xs mb-1.5" style={{ color: c.muted }}>
-                      <span>Дальность от точки</span>
-                      <span className="font-medium" style={{ color: c.text }}>{filterDistanceKm} км</span>
+                      <span>Дальность от меня</span>
+                      <span className="font-medium" style={{ color: contractorGps ? c.text : c.muted }}>{filterDistanceKm < 50 ? `${filterDistanceKm} км` : 'Любая'}</span>
                     </div>
                     <input type="range" min={1} max={50} value={filterDistanceKm} onChange={e => setFilterDistanceKm(Number(e.target.value))}
-                      className="w-full" style={{ accentColor: ACCENT }} />
+                      className="w-full" style={{ accentColor: ACCENT, opacity: contractorGps ? 1 : 0.5 }} disabled={!contractorGps} />
                     <div className="flex justify-between text-xs mt-0.5" style={{ color: c.muted }}>
-                      <span>1 км</span><span>50 км</span>
+                      <span>1 км</span><span>50 км (без ограничений)</span>
                     </div>
+                    {!contractorGps && (
+                      <div className="text-xs mt-1" style={{ color: c.muted }}>Определите местоположение для фильтрации по расстоянию</div>
+                    )}
                   </div>
                   <div>
                     <div className="text-xs mb-1.5" style={{ color: c.muted }}>Сортировка</div>
@@ -1160,6 +1241,7 @@ export default function ContractorDashboard() {
                       <option value="price_desc">Цена: по убыванию</option>
                       <option value="date_asc">Дата: сначала ближние</option>
                       <option value="date_desc">Дата: сначала дальние</option>
+                      <option value="distance_asc" disabled={!contractorGps}>Ближе всего (по GPS)</option>
                     </select>
                   </div>
                 </div>
