@@ -270,32 +270,40 @@ export default function ContractorDashboard() {
 
   const asapJobsCount = myJobs.filter(j => j.status === 'completed' && j.asap).length;
 
-  // Sequential completion chain
+  // Sequential completion chain — IDs match backend ACHIEVEMENT_DEFS
   const jobChain: Achievement[] = [
-    { id: 'first_pickup',  icon: '🎯', title: 'Первый вывоз',   description: 'Выполните свой первый заказ',          unlocked: completedJobsCount >= 1,   progress: Math.min(completedJobsCount, 1),   maxProgress: 1,   reward: '+10 XP' },
-    { id: 'jobs_5',        icon: '⭐', title: 'Пятёрка',        description: 'Выполните 5 заказов',                  unlocked: completedJobsCount >= 5,   progress: Math.min(completedJobsCount, 5),   maxProgress: 5,   reward: '+25 XP' },
-    { id: 'jobs_10',       icon: '🔟', title: 'Десятка',        description: 'Выполните 10 заказов',                 unlocked: completedJobsCount >= 10,  progress: Math.min(completedJobsCount, 10),  maxProgress: 10,  reward: '+50 XP' },
-    { id: 'jobs_25',       icon: '💫', title: 'Ветеран',        description: 'Выполните 25 заказов',                 unlocked: completedJobsCount >= 25,  progress: Math.min(completedJobsCount, 25),  maxProgress: 25,  reward: '+75 XP' },
-    { id: 'jobs_50',       icon: '🔥', title: 'Полсотни',       description: 'Выполните 50 заказов',                 unlocked: completedJobsCount >= 50,  progress: Math.min(completedJobsCount, 50),  maxProgress: 50,  reward: '+100 XP' },
-    { id: 'jobs_100',      icon: '🏆', title: 'Сотня',          description: 'Выполните 100 заказов',                unlocked: completedJobsCount >= 100, progress: Math.min(completedJobsCount, 100), maxProgress: 100, reward: '+200 XP' },
-    { id: 'jobs_250',      icon: '👑', title: 'Мастер вывоза',  description: 'Выполните 250 заказов',                unlocked: completedJobsCount >= 250, progress: Math.min(completedJobsCount, 250), maxProgress: 250, reward: '+500 XP' },
-    { id: 'jobs_500',      icon: '🌠', title: 'Легенда',        description: 'Выполните 500 заказов',                unlocked: completedJobsCount >= 500, progress: Math.min(completedJobsCount, 500), maxProgress: 500, reward: '+1000 XP' },
+    { id: 'first_order',  icon: '🎉', title: 'Первый шаг',      description: 'Выполните свой первый заказ',          unlocked: completedJobsCount >= 1,   progress: Math.min(completedJobsCount, 1),   maxProgress: 1,   reward: '+15 XP' },
+    { id: 'orders_5',     icon: '⭐', title: 'В ритме',          description: 'Выполните 5 заказов',                  unlocked: completedJobsCount >= 5,   progress: Math.min(completedJobsCount, 5),   maxProgress: 5,   reward: '+30 XP' },
+    { id: 'orders_10',    icon: '🔟', title: 'Опытный',          description: 'Выполните 10 заказов',                 unlocked: completedJobsCount >= 10,  progress: Math.min(completedJobsCount, 10),  maxProgress: 10,  reward: '+60 XP' },
+    { id: 'orders_25',    icon: '💪', title: 'Ветеран',          description: 'Выполните 25 заказов',                 unlocked: completedJobsCount >= 25,  progress: Math.min(completedJobsCount, 25),  maxProgress: 25,  reward: '+100 XP' },
+    { id: 'orders_50',    icon: '🔥', title: 'Профи',            description: 'Выполните 50 заказов',                 unlocked: completedJobsCount >= 50,  progress: Math.min(completedJobsCount, 50),  maxProgress: 50,  reward: '+200 XP' },
+    { id: 'orders_100',   icon: '💎', title: 'Сотня',            description: 'Выполните 100 заказов',                unlocked: completedJobsCount >= 100, progress: Math.min(completedJobsCount, 100), maxProgress: 100, reward: '+350 XP' },
+    { id: 'orders_250',   icon: '👑', title: 'Мастер',           description: 'Выполните 250 заказов',                unlocked: completedJobsCount >= 250, progress: Math.min(completedJobsCount, 250), maxProgress: 250, reward: '+500 XP' },
+    { id: 'orders_500',   icon: '🌠', title: 'Легенда',          description: 'Выполните 500 заказов',                unlocked: completedJobsCount >= 500, progress: Math.min(completedJobsCount, 500), maxProgress: 500, reward: '+1000 XP' },
   ];
   const visibleJobChain = jobChain.filter((a, i) => i === 0 || jobChain[i - 1].unlocked || a.unlocked);
 
   const extraAchievements: Achievement[] = [
-    { id: 'earner_1k',    icon: '💰', title: 'Первый заработок', description: 'Заработайте 1000₽',                  unlocked: (user?.balance ?? 0) >= 1000,   reward: '+15 XP' },
-    { id: 'earner_10k',   icon: '💵', title: 'Десятка тысяч',   description: 'Заработайте 10 000₽',                 unlocked: (user?.balance ?? 0) >= 10000,  progress: Math.min(user?.balance ?? 0, 10000), maxProgress: 10000, reward: '+50 XP' },
-    { id: 'month_10k',    icon: '📈', title: 'Месячный рекорд', description: 'Заработайте 10 000₽ за месяц',        unlocked: earningsMonth >= 10000,          progress: Math.min(earningsMonth, 10000), maxProgress: 10000, reward: 'Звание «Мастер»' },
-    { id: 'asap_1',       icon: '⚡', title: 'Срочный вывоз',   description: 'Выполните срочный заказ',             unlocked: asapJobsCount >= 1,             reward: '+5 XP' },
-    { id: 'asap_10',      icon: '⚡⚡', title: 'Мистер ASAP',  description: 'Выполните 10 срочных заказов',         unlocked: asapJobsCount >= 10,            progress: Math.min(asapJobsCount, 10), maxProgress: 10, reward: '+30 XP' },
-    { id: 'level_3',      icon: '🌱', title: 'Уровень 3',       description: 'Достигните 3-го уровня',              unlocked: currentLevel >= 3,              reward: 'Значок надёжности' },
-    { id: 'level_5',      icon: '🌿', title: 'Уровень 5',       description: 'Достигните 5-го уровня',              unlocked: currentLevel >= 5,              progress: currentLevel, maxProgress: 5, reward: '+100 XP' },
-    { id: 'level_10',     icon: '🌳', title: 'Уровень 10',      description: 'Достигните 10-го уровня',             unlocked: currentLevel >= 10,             progress: currentLevel, maxProgress: 10, reward: 'Значок «Эксперт»' },
-    { id: 'top_rating',   icon: '🌟', title: 'Отличный рейтинг', description: 'Получите средний рейтинг 4.5+',      unlocked: (user?.avgRating ?? 0) >= 4.5,  reward: 'Значок «Проверенный»' },
+    { id: 'first_rating', icon: '💬', title: 'Первый отзыв',     description: 'Получите первую оценку от заказчика',  unlocked: (user?.avgRating != null),      reward: '+10 XP' },
+    { id: 'perfect_5',    icon: '🌟', title: 'Пятёрочник',       description: 'Получите оценку 5 звёзд',              unlocked: false,                          reward: '+10 XP' },
+    { id: 'ratings_10',   icon: '💛', title: 'Любимчик',         description: 'Получите 10 оценок',                   unlocked: (user?.ratingCount ?? 0) >= 10, progress: Math.min(user?.ratingCount ?? 0, 10), maxProgress: 10, reward: '+40 XP' },
+    { id: 'asap_job_1',   icon: '⚡', title: 'Срочный вывоз',    description: 'Выполните срочный заказ',              unlocked: asapJobsCount >= 1,             reward: '+10 XP' },
+    { id: 'asap_job_10',  icon: '🚀', title: 'Мистер ASAP',      description: 'Выполните 10 срочных заказов',         unlocked: asapJobsCount >= 10,            progress: Math.min(asapJobsCount, 10), maxProgress: 10, reward: '+50 XP' },
+    { id: 'first_ref',    icon: '🤝', title: 'Наставник',        description: 'Пригласите коллегу в сервис',          unlocked: false,                          reward: '+25 XP' },
+    { id: 'refs_3',       icon: '👷', title: 'Бригадир',         description: 'Пригласите 3 коллег',                  unlocked: false,                          reward: '+75 XP' },
+    { id: 'earner_1k',    icon: '💰', title: 'Первый заработок', description: 'Заработайте 1000₽ за всё время',       unlocked: (user?.balance ?? 0) >= 1000,   reward: '—' },
+    { id: 'earner_10k',   icon: '💵', title: 'Десятка тысяч',   description: 'Заработайте 10 000₽ за всё время',      unlocked: (user?.balance ?? 0) >= 10000,  progress: Math.min(user?.balance ?? 0, 10000), maxProgress: 10000, reward: '—' },
+    { id: 'level_3',      icon: '🌱', title: 'Уровень 3',        description: 'Достигните 3-го уровня',               unlocked: currentLevel >= 3,              reward: '—' },
+    { id: 'level_5',      icon: '🌿', title: 'Уровень 5',        description: 'Достигните 5-го уровня',               unlocked: currentLevel >= 5,              progress: currentLevel, maxProgress: 5, reward: '+100 XP' },
+    { id: 'level_10',     icon: '🌳', title: 'Уровень 10',       description: 'Достигните 10-го уровня',              unlocked: currentLevel >= 10,             progress: currentLevel, maxProgress: 10, reward: '—' },
   ];
 
-  const DB_ACHIEVEMENT_IDS = new Set(['first_order','orders_5','orders_10','orders_25','orders_50','orders_100','first_rating','perfect_5','first_ref','refs_3','refs_5']);
+  const DB_ACHIEVEMENT_IDS = new Set([
+    'first_order','orders_5','orders_10','orders_25','orders_50','orders_100','orders_250','orders_500',
+    'first_rating','perfect_5','ratings_10',
+    'first_ref','refs_3','refs_5','refs_10',
+    'asap_job_1','asap_job_10','asap_job_50',
+  ]);
   const rawAchievements = [...visibleJobChain, ...extraAchievements];
   const achievements: Achievement[] = rawAchievements.map(a =>
     DB_ACHIEVEMENT_IDS.has(a.id) ? { ...a, unlocked: apiUnlockedIds.has(a.id) } : a
