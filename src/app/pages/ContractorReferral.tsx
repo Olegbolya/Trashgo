@@ -145,23 +145,63 @@ export default function ContractorReferral() {
           </div>
 
           {/* How it works */}
-          <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-            <h2 className="text-base font-semibold mb-4" style={{ color: c.text }}>Как это работает?</h2>
-            <div className="space-y-4">
-              {[
-                { n: 1, title: 'Поделитесь ссылкой', desc: 'Отправьте ссылку другу — она автоматически направит его на регистрацию исполнителя' },
-                { n: 2, title: 'Друг регистрируется и работает', desc: 'Напарник выполняет первые 5 заказов на платформе' },
-                { n: 3, title: 'Вы получаете +150₽', desc: 'После 5-го заказа — бонус зачисляется на ваш баланс автоматически' },
-                { n: 4, title: 'Ещё +5% весь первый месяц', desc: 'С каждого последующего его заказа вы получаете 5% (до 500₽ в месяц)' },
-              ].map(({ n, title, desc }) => (
-                <div key={n} className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm text-white" style={{ background: ACCENT }}>{n}</div>
-                  <div>
-                    <div className="text-sm font-medium mb-0.5" style={{ color: c.text }}>{title}</div>
-                    <div className="text-xs" style={{ color: c.muted }}>{desc}</div>
-                  </div>
+          <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${c.border}` }}>
+            {/* Header */}
+            <div className="px-4 py-3 flex items-center gap-2" style={{ background: `${ACCENT}14`, borderBottom: `1px solid ${c.border}` }}>
+              <Zap className="w-4 h-4" style={{ color: ACCENT }} />
+              <h2 className="text-sm font-semibold" style={{ color: c.text }}>Как работает программа «Приведи напарника»</h2>
+            </div>
+
+            <div style={{ background: c.surface }}>
+              {/* Step 1 */}
+              <div className="flex gap-3 p-4" style={{ borderBottom: `1px solid ${c.border}` }}>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-bold text-sm" style={{ background: ACCENT }}>1</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold mb-0.5" style={{ color: c.text }}>Поделитесь уникальной ссылкой</div>
+                  <div className="text-xs leading-relaxed" style={{ color: c.muted }}>Скопируйте ссылку выше и отправьте знакомому. Ссылка автоматически направит его на регистрацию как <strong style={{ color: c.textSub }}>исполнителя</strong> — не заказчика.</div>
                 </div>
-              ))}
+              </div>
+
+              {/* Step 2 */}
+              <div className="flex gap-3 p-4" style={{ borderBottom: `1px solid ${c.border}` }}>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-bold text-sm" style={{ background: ACCENT }}>2</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold mb-0.5" style={{ color: c.text }}>Напарник выполняет первые 5 заказов</div>
+                  <div className="text-xs leading-relaxed" style={{ color: c.muted }}>Он регистрируется, находит заказы рядом с домом и начинает работать. Ваш бонус копится незаметно для него.</div>
+                </div>
+              </div>
+
+              {/* Step 3 — highlight */}
+              <div className="flex gap-3 p-4" style={{ borderBottom: `1px solid ${c.border}`, background: `${ACCENT}08` }}>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-bold text-sm" style={{ background: '#4CAF50' }}>3</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div className="text-sm font-semibold" style={{ color: c.text }}>Вы получаете</div>
+                    <span className="text-sm font-bold px-2 py-0.5 rounded-lg text-white" style={{ background: '#4CAF50' }}>+150₽</span>
+                  </div>
+                  <div className="text-xs leading-relaxed" style={{ color: c.muted }}>После 5-го выполненного заказа напарника — 150₽ зачисляется на ваш баланс автоматически. Деньги доступны сразу.</div>
+                </div>
+              </div>
+
+              {/* Step 4 — highlight */}
+              <div className="flex gap-3 p-4" style={{ background: `${ACCENT}05` }}>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-bold text-sm" style={{ background: '#FF9800' }}>4</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                    <div className="text-sm font-semibold" style={{ color: c.text }}>Ещё</div>
+                    <span className="text-sm font-bold px-2 py-0.5 rounded-lg text-white" style={{ background: '#FF9800' }}>+5% весь первый месяц</span>
+                  </div>
+                  <div className="text-xs leading-relaxed" style={{ color: c.muted }}>С каждого следующего заказа напарника вы получаете 5% от его суммы. Максимум — 500₽ за месяц. После месяца бонус заканчивается.</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div className="px-4 py-3 flex items-start gap-2" style={{ background: `${ACCENT}10`, borderTop: `1px solid ${c.border}` }}>
+              <Gift className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: ACCENT }} />
+              <div className="text-xs leading-relaxed" style={{ color: isDark ? '#93c5fd' : '#1d4ed8' }}>
+                <strong>Итого за одного напарника:</strong> до <strong>150₽ + 500₽ = 650₽</strong> в первый месяц. Приглашайте больше — бонусы суммируются.
+              </div>
             </div>
           </div>
 
