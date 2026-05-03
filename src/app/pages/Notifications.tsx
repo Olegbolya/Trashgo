@@ -57,6 +57,8 @@ export default function Notifications() {
   const [emailInput, setEmailInput] = useState(user?.notifEmailAddress ?? settings?.emailAddress ?? '');
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingEmailToggle, setSavingEmailToggle] = useState(false);
+  const [savingPushToggle, setSavingPushToggle] = useState(false);
+  const emailEnabled = user?.notifEmail ?? settings?.emailEnabled ?? false;
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -136,9 +138,21 @@ export default function Notifications() {
         {tab === 'settings' && (
           <div className="space-y-4">
             <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid ${c.border}` }}>
-                <Smartphone className="w-4 h-4" style={{ color: ACCENT }} />
-                <span className="text-sm font-semibold" style={{ color: c.text }}>Push-уведомления</span>
+              <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${c.border}` }}>
+                <div className="flex items-center gap-2">
+                  <Smartphone className="w-4 h-4" style={{ color: ACCENT }} />
+                  <span className="text-sm font-semibold" style={{ color: c.text }}>Push-уведомления</span>
+                  {savingPushToggle && <div className="w-3.5 h-3.5 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: ACCENT }} />}
+                </div>
+                <Toggle value={user?.notifPush ?? true} onChange={async (v) => {
+                  updateUser({ notifPush: v });
+                  setSavingPushToggle(true);
+                  try {
+                    const updated = await authApi.updateProfile({ notifPush: v });
+                    updateUser({ notifPush: updated.notifPush });
+                  } catch { toast.error('Не удалось сохранить настройку'); }
+                  finally { setSavingPushToggle(false); }
+                }} />
               </div>
               {([
                 { key: 'pushOrderStatus' as const, label: 'Статус заказа', sub: 'Принят, в пути, выполнен' },
@@ -155,13 +169,13 @@ export default function Notifications() {
               ))}
             </div>
             <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-              <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: settings?.emailEnabled ? `1px solid ${c.border}` : 'none' }}>
+              <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: emailEnabled ? `1px solid ${c.border}` : 'none' }}>
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4" style={{ color: ACCENT }} />
                   <span className="text-sm font-semibold" style={{ color: c.text }}>Email-уведомления</span>
                   {savingEmailToggle && <div className="w-3.5 h-3.5 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: ACCENT }} />}
                 </div>
-                <Toggle value={settings?.emailEnabled ?? false} onChange={async (v) => {
+                <Toggle value={emailEnabled} onChange={async (v) => {
                   updateSettings({ emailEnabled: v });
                   setSavingEmailToggle(true);
                   try {
@@ -171,7 +185,7 @@ export default function Notifications() {
                   finally { setSavingEmailToggle(false); }
                 }} />
               </div>
-              {settings?.emailEnabled && (
+              {emailEnabled && (
                 <div className="px-4 py-3">
                   <div className="text-xs mb-2" style={{ color: c.muted }}>Email для получения уведомлений</div>
                   <div className="flex gap-2">
