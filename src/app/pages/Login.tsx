@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { Trash2, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -6,6 +6,8 @@ import { Input } from '../components/ui/input';
 import { authApi } from '../../api/auth';
 import { useRoleStore } from '../../stores/role.store';
 import { toast } from 'sonner';
+import { getFirebaseAuth, isFirebaseEnabled } from '../../lib/firebase';
+import { firebaseOtp } from '../../services/firebase-otp';
 
 function formatPhone(raw: string) {
   const digits = raw.replace(/\D/g, '').replace(/^7/, '').replace(/^8/, '').slice(0, 10);
@@ -17,23 +19,31 @@ function formatPhone(raw: string) {
   return result;
 }
 
+function toE164(formatted: string) {
+  const digits = formatted.replace(/\D/g, '');
+  return '+' + (digits.startsWith('7') ? digits : '7' + digits.slice(-10));
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  // If arrived via referral link, RefRedirect saves ?role=contractor to sessionStorage
   const pendingRefRole = sessionStorage.getItem('pendingRefRole') as 'customer' | 'contractor' | null;
   const role = (location.state?.role || pendingRefRole || 'customer') as 'customer' | 'contractor';
   const { accentColor, setRole } = useRoleStore();
   const accent = accentColor;
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const recaptchaRef = useRef<HTMLDivElement>(null);
 
-  // sync role to store so accent colour updates
   if (role === 'contractor' || role === 'customer') setRole(role);
 
+  // Clean up any previous reCAPTCHA verifier on mount
+  useEffect(() => {
+    firebaseOtp.clear();
+  }, []);
+
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/\D/g, '');
-    setPhone(raw);
+    setPhone(e.target.value.replace(/\D/g, ''));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,9 +53,30 @@ export default function Login() {
     const formattedPhone = formatPhone(phone);
     setLoading(true);
 
+    // Firebase path — sends real SMS for free via Google's infrastructure
+    if (isFirebaseEnabled()) {
+      try {
+        const auth = getFirebaseAuth()!;
+        const { RecaptchaVerifier, signInWithPhoneNumber } = await import('firebase/auth');
+        const verifier = new RecaptchaVerifier(auth, recaptchaRef.current!, { size: 'invisible' });
+        const confirmation = await signInWithPhoneNumber(auth, toE164(formattedPhone), verifier);
+        firebaseOtp.set(confirmation);
+        navigate('/verify', { state: { phone: formattedPhone, role, useFirebase: true } });
+      } catch (err: any) {
+        console.error('[Firebase OTP]', err);
+        toast.error('Не удалось отправить код. Попробуйте ещё раз.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Fallback: existing Telegram/SMS.ru/dev path
     try {
       const res = await authApi.login(formattedPhone);
-      navigate('/verify', { state: { phone: formattedPhone, role, isNewUser: res.isNewUser, devCode: res.devCode, channel: res.channel, telegramBotLink: res.telegramBotLink } });
+      navigate('/verify', {
+        state: { phone: formattedPhone, role, isNewUser: res.isNewUser, devCode: res.devCode, channel: res.channel, telegramBotLink: res.telegramBotLink },
+      });
     } catch {
       toast.error('Ошибка отправки кода. Попробуйте ещё раз.');
     } finally {
@@ -55,11 +86,11 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      {/* Invisible reCAPTCHA container — required by Firebase */}
+      <div ref={recaptchaRef} />
+
       <div className="w-full max-w-md">
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8"
-        >
+        <button onClick={() => navigate('/')} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8">
           <ArrowLeft className="w-5 h-5" />
           <span>Назад</span>
         </button>

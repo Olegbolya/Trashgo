@@ -9,6 +9,23 @@ interface LoginResponse {
   telegramBotLink?: string;
 }
 
+interface VerifyFirebaseResponse {
+  isNewUser?: boolean;
+  phone?: string;
+  tempToken?: string;
+  user?: User;
+  token?: string;
+  refreshToken?: string;
+}
+
+interface RegisterFirebaseInput {
+  tempToken: string;
+  name: string;
+  role: UserRole;
+  district: string;
+  refCode?: string;
+}
+
 interface VerifyResponse {
   verified?: boolean;
   isNewUser?: boolean;
@@ -45,6 +62,16 @@ export const authApi = {
 
   async register(data: RegisterInput): Promise<RegisterResponse> {
     const res = await api.post<{ data: RegisterResponse }>('/auth/register', data);
+    return res.data;
+  },
+
+  async verifyFirebase(idToken: string): Promise<VerifyFirebaseResponse> {
+    const res = await api.post<{ data: VerifyFirebaseResponse }>('/auth/verify-firebase', { idToken });
+    return res.data;
+  },
+
+  async registerFirebase(data: RegisterFirebaseInput): Promise<RegisterResponse> {
+    const res = await api.post<{ data: RegisterResponse }>('/auth/register-firebase', data);
     return res.data;
   },
 

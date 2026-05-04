@@ -6,6 +6,7 @@ import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore } from '../../stores/role.store';
 import { useTheme } from '../context/ThemeContext';
 import { toast } from 'sonner';
+import { firebaseOtp } from '../../services/firebase-otp';
 
 export default function Verify() {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ export default function Verify() {
   const devCode = location.state?.devCode as string | undefined;
   const telegramBotLink = location.state?.telegramBotLink as string | undefined;
   const channel = location.state?.channel as string | undefined;
+  const useFirebase = !!(location.state?.useFirebase);
+  const codeLen = useFirebase ? 6 : 4;
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -36,6 +39,39 @@ export default function Verify() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    // Firebase path
+    if (useFirebase) {
+      const pending = firebaseOtp.get();
+      if (!pending) {
+        setError('Сессия истекла. Начните заново.');
+        setLoading(false);
+        return;
+      }
+      try {
+        const result = await pending.confirm(code);
+        const idToken = await result.user.getIdToken();
+        const res = await authApi.verifyFirebase(idToken);
+        firebaseOtp.clear();
+        if (res.isNewUser) {
+          const target = role === 'contractor' ? '/register-contractor' : '/register-customer';
+          navigate(target, { state: { phone: res.phone, role, tempToken: res.tempToken, useFirebase: true } });
+          return;
+        }
+        setAuth(res.user!, res.token!, res.refreshToken!);
+        navigate(res.user!.role === 'contractor' ? '/contractor' : '/customer', { replace: true });
+      } catch (err: any) {
+        const code_ = err?.code as string | undefined;
+        if (code_ === 'auth/invalid-verification-code') setError('Неверный код');
+        else if (code_ === 'auth/code-expired') setError('Код истёк. Запросите новый.');
+        else setError(err?.message || 'Ошибка подтверждения');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Existing OTP path (Telegram / SMS.ru / dev)
     try {
       const res = await authApi.verify(phone, code, role);
       if (res.isNewUser) {
@@ -53,6 +89,10 @@ export default function Verify() {
   };
 
   const handleResend = async () => {
+    if (useFirebase) {
+      navigate('/login', { state: { role } });
+      return;
+    }
     try {
       await authApi.login(phone);
       toast.success('Код отправлен повторно');
@@ -86,11 +126,13 @@ export default function Verify() {
           Введите код
         </h1>
         <p style={{ fontSize: '0.875rem', color: c.muted, marginBottom: '1.75rem' }}>
-          {channel === 'telegram'
-            ? telegramBotLink
-              ? <>Откройте бота TrashGo в Telegram и он пришлёт код для <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
-              : <>Код отправлен в ваш <span style={{ color: c.text, fontWeight: 600 }}>Telegram</span></>
-            : <>Отправили SMS на <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
+          {useFirebase
+            ? <>Отправили SMS на <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span> — введите 6-значный код</>
+            : channel === 'telegram'
+              ? telegramBotLink
+                ? <>Откройте бота TrashGo в Telegram и он пришлёт код для <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
+                : <>Код отправлен в ваш <span style={{ color: c.text, fontWeight: 600 }}>Telegram</span></>
+              : <>Отправили SMS на <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
           }
         </p>
 
@@ -142,8 +184,8 @@ export default function Verify() {
           <input
             type="text"
             inputMode="numeric"
-            placeholder="• • • •"
-            maxLength={4}
+            placeholder={useFirebase ? '• • • • • •' : '• • • •'}
+            maxLength={codeLen}
             value={code}
             onChange={(e) => { setError(''); setCode(e.target.value.replace(/\D/g, '')); }}
             style={{
@@ -169,14 +211,14 @@ export default function Verify() {
 
           <button
             type="submit"
-            disabled={loading || code.length < 4}
+            disabled={loading || code.length < codeLen}
             style={{
               display: 'block', width: '100%', height: '3rem',
               borderRadius: '0.875rem', background: accent,
               color: 'white', fontSize: '0.95rem', fontWeight: 700,
               border: 'none',
               cursor: loading || code.length < 4 ? 'not-allowed' : 'pointer',
-              opacity: loading || code.length < 4 ? 0.45 : 1,
+              opacity: loading || code.length < codeLen ? 0.45 : 1,
               transition: 'opacity 0.2s', fontFamily: 'inherit',
               marginBottom: '0.875rem',
             }}
