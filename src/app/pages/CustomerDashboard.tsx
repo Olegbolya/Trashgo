@@ -232,6 +232,26 @@ export default function CustomerDashboard() {
     }).catch(() => {});
   }, []);
 
+  // Restore edit mode after page refresh (survives accidental reloads)
+  useEffect(() => {
+    const pendingEditId = sessionStorage.getItem('trashgo_pending_edit');
+    if (!pendingEditId) return;
+    isEditingRef.current = true; // prevent polling from overwriting orders list
+    ordersApi.getById(pendingEditId).then((res: any) => {
+      const o = res?.data ?? res;
+      if (!o?.id) { sessionStorage.removeItem('trashgo_pending_edit'); isEditingRef.current = false; return; }
+      const mapped = apiOrderToMyOrder(o);
+      const parsed = parseAddressParts(mapped.address);
+      setCreateForm({ address: parsed.address, entrance: parsed.entrance, floor: parsed.floor, apartment: parsed.apartment, date: mapped.date, time: mapped.time, asap: mapped.asap, volume: mapped.volume, price: mapped.price, description: mapped.description });
+      setPreloadedPhotoUrls(mapped.photoUrls);
+      setCreatePhotos([]);
+      setOriginalOrder(mapped);
+      setIsEditing(true);
+      setMyOrders((prev) => prev.filter((o) => o.id !== pendingEditId));
+      setActiveTab('create');
+    }).catch(() => { sessionStorage.removeItem('trashgo_pending_edit'); isEditingRef.current = false; });
+  }, []);
+
   // Poll chat messages every 5s while chat is open
   const prevChatCountsRef = useRef<Record<string, number>>({});
   useEffect(() => {
@@ -1055,6 +1075,7 @@ export default function CustomerDashboard() {
                 setIsEditing(false);
                 isEditingRef.current = false;
                 setOriginalOrder(null);
+                sessionStorage.removeItem('trashgo_pending_edit');
                 setActiveTab('home');
               } catch (err: any) {
                 toast.error(err?.message || (isEditing ? 'Не удалось обновить заказ' : 'Не удалось создать заказ'));
@@ -1418,6 +1439,7 @@ export default function CustomerDashboard() {
                           setIsEditing(false);
                           isEditingRef.current = false;
                           setOriginalOrder(null);
+                          sessionStorage.removeItem('trashgo_pending_edit');
                           setActiveTab('home');
                         }}
                       >
@@ -1437,6 +1459,7 @@ export default function CustomerDashboard() {
                           setIsEditing(false);
                           isEditingRef.current = false;
                           setOriginalOrder(null);
+                          sessionStorage.removeItem('trashgo_pending_edit');
                           setActiveTab('home');
                           toast.success('Заказ отменён');
                         }}
@@ -1842,6 +1865,7 @@ export default function CustomerDashboard() {
                         setOriginalOrder(selectedOrder);
                         setIsEditing(true);
                         isEditingRef.current = true;
+                        sessionStorage.setItem('trashgo_pending_edit', selectedOrder.id);
                         setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
                         setSelectedOrder(null);
                         setActiveTab('create');
