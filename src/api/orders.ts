@@ -36,6 +36,10 @@ export const ordersApi = {
     return api.patch<Order>(`/orders/${id}/status`, { status });
   },
 
+  accept(id: string) {
+    return api.patch<Order>(`/orders/${id}/status`, { status: 'accepted' });
+  },
+
   available(district?: string) {
     const qs = district ? `?district=${district}` : '';
     return api.get<ApiResponse<Order[]>>(`/orders/available${qs}`);

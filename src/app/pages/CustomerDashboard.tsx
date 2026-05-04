@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../api/auth';
-import { Home, MapPin, User, Plus, Package, CheckCircle, Clock, RefreshCw, Edit, LogOut, Bell, CreditCard, UserPlus, HelpCircle, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Star, Phone, MessageCircle, Menu, X } from 'lucide-react';
+import { Home, MapPin, User, Plus, Package, CheckCircle, Clock, RefreshCw, Edit, LogOut, Bell, CreditCard, UserPlus, HelpCircle, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Star, Phone, MessageCircle, Menu, X, Trophy } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { LevelSystem, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
@@ -892,6 +892,7 @@ export default function CustomerDashboard() {
                   { icon: Bell, label: 'Уведомления', sub: 'Настройка push и email', action: () => navigate('/notifications') },
                   { icon: CreditCard, label: 'Способ оплаты', sub: 'Карты и банковские счета', action: () => navigate('/payment') },
                   { icon: UserPlus, label: 'Пригласить соседей', sub: 'Чем больше вас — тем дешевле каждому', action: () => navigate('/invite-neighbor') },
+                  { icon: Trophy, label: 'Рейтинг исполнителей', sub: 'Лучшие напарники вашего района', action: () => navigate('/leaderboard') },
                   { icon: HelpCircle, label: 'Помощь и поддержка', sub: 'FAQ и связь с поддержкой', action: () => navigate('/help') },
                 ].map((item, i, arr) => (
                   <button key={i} className="w-full flex items-center justify-between p-4" style={{ background: 'transparent', border: 'none', borderBottom: i < arr.length - 1 ? `1px solid ${c.border}` : 'none', cursor: 'pointer', fontFamily: 'inherit' }} onClick={item.action}>

@@ -1,283 +1,245 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, MapPin, Clock, DollarSign, RefreshCw, Calendar, TrendingUp, Pause, Play } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, RefreshCw, Calendar, Pause, Play, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { getDayLabel, getDayFull } from '../lib/utils';
+import { useTheme } from '../context/ThemeContext';
+import { subscriptionsApi, type Subscription } from '../../api/subscriptions';
+import { toast } from 'sonner';
+
+const DAY_LABELS: Record<number, string> = { 1: 'ПН', 2: 'ВТ', 3: 'СР', 4: 'ЧТ', 5: 'ПТ', 6: 'СБ', 7: 'ВС' };
 
 export default function MySubscriptions() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
 
-  const [subscriptions, setSubscriptions] = useState([
-    {
-      id: 1,
-      address: 'ул. Баумана, 58',
-      customer: 'Александр',
-      days: [1, 4], // Monday, Thursday
-      time: '18:00',
-      price: 50,
-      bonus: 10,
-      distance: '1.2 км',
-      active: true,
-      completedOrders: 12,
-      weeklyEarnings: 100,
-      monthlyEarnings: 400,
-      description: 'Регулярный вывоз, 4 этаж, есть лифт',
-    },
-    {
-      id: 2,
-      address: 'пр. Победы, 120',
-      customer: 'Мария',
-      days: [2, 5], // Tuesday, Friday
-      time: '16:00',
-      price: 45,
-      bonus: 10,
-      distance: '2.5 км',
-      active: true,
-      completedOrders: 8,
-      weeklyEarnings: 90,
-      monthlyEarnings: 360,
-      description: 'Постоянный клиент, частный дом',
-    },
-    {
-      id: 3,
-      address: 'ул. Пушкина, 23',
-      customer: 'Дмитрий',
-      days: [3], // Wednesday
-      time: '19:00',
-      price: 40,
-      bonus: 10,
-      distance: '800 м',
-      active: false,
-      completedOrders: 5,
-      weeklyEarnings: 40,
-      monthlyEarnings: 160,
-      description: 'Небольшие объемы, на паузе',
-    },
-  ]);
+  const [subs, setSubs] = useState<Subscription[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [toggling, setToggling] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
-  const toggleSubscription = (id: number) => {
-    setSubscriptions(subscriptions.map(sub => 
-      sub.id === id ? { ...sub, active: !sub.active } : sub
-    ));
+  useEffect(() => {
+    subscriptionsApi.list()
+      .then(res => setSubs(res.data))
+      .catch(() => toast.error('Не удалось загрузить подписки'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleToggle = async (sub: Subscription) => {
+    setToggling(sub.id);
+    const prev = subs;
+    setSubs(s => s.map(x => x.id === sub.id ? { ...x, active: !x.active } : x));
+    try {
+      await subscriptionsApi.update(sub.id, { active: !sub.active });
+    } catch {
+      setSubs(prev);
+      toast.error('Не удалось обновить подписку');
+    } finally {
+      setToggling(null);
+    }
   };
 
-  const activeSubscriptions = subscriptions.filter(s => s.active);
-  const pausedSubscriptions = subscriptions.filter(s => !s.active);
+  const handleDelete = async (id: string) => {
+    if (!confirm('Удалить подписку?')) return;
+    setDeleting(id);
+    const prev = subs;
+    setSubs(s => s.filter(x => x.id !== id));
+    try {
+      await subscriptionsApi.remove(id);
+      toast.success('Подписка удалена');
+    } catch {
+      setSubs(prev);
+      toast.error('Не удалось удалить подписку');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
-  const totalWeeklyEarnings = activeSubscriptions.reduce((sum, sub) => sum + sub.weeklyEarnings, 0);
-  const totalMonthlyEarnings = activeSubscriptions.reduce((sum, sub) => sum + sub.monthlyEarnings, 0);
+  const active = subs.filter(s => s.active);
+  const paused = subs.filter(s => !s.active);
+
+  const bg = isDark ? 'bg-gray-950' : 'bg-gray-50';
+  const card = isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200';
+  const cardActive = isDark ? 'bg-gray-900 border-green-700' : 'bg-green-50 border-green-200';
+  const text = isDark ? 'text-white' : 'text-gray-900';
+  const muted = isDark ? 'text-gray-400' : 'text-gray-500';
+  const subtext = isDark ? 'text-gray-300' : 'text-gray-700';
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div className={`min-h-screen ${bg}`}>
+      <header className={`${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border-b sticky top-0 z-50`}>
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-6 h-6 text-gray-900" />
+            <button onClick={() => navigate(-1)} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}>
+              <ArrowLeft className={`w-6 h-6 ${text}`} />
             </button>
-            <h1 className="font-semibold text-gray-900">Мои подписки</h1>
-            <div className="w-10" />
+            <h1 className={`font-semibold ${text}`}>Мои подписки</h1>
+            <button
+              onClick={() => navigate('/create-subscription')}
+              className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+            >
+              <Plus className={`w-6 h-6 ${text}`} />
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Earnings summary */}
-      <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">
-        <div className="container mx-auto px-4 py-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center gap-2 mb-3">
-              <RefreshCw className="w-5 h-5" />
-              <span className="text-sm font-medium">Стабильный доход</span>
+      <div className="container mx-auto px-4 py-6 pb-24 max-w-2xl">
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="w-8 h-8 border-2 border-gray-300 border-t-green-600 rounded-full animate-spin" />
+          </div>
+        ) : subs.length === 0 ? (
+          <div className={`${card} border-2 border-dashed rounded-2xl p-12 text-center`}>
+            <RefreshCw className={`w-16 h-16 ${muted} mx-auto mb-4`} />
+            <div className={`text-lg font-medium ${text} mb-2`}>Нет подписок</div>
+            <div className={`text-sm ${muted} mb-6`}>
+              Настройте регулярный вывоз мусора по расписанию
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-xs text-green-100 mb-1">В неделю</div>
-                <div className="text-3xl font-bold">~{totalWeeklyEarnings}₽</div>
-              </div>
-              <div>
-                <div className="text-xs text-green-100 mb-1">В месяц</div>
-                <div className="text-3xl font-bold">~{totalMonthlyEarnings}₽</div>
-              </div>
+            <Button
+              onClick={() => navigate('/create-subscription')}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Создать расписание
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {active.length > 0 && (
+              <section>
+                <h2 className={`text-lg font-semibold ${text} mb-3`}>Активные</h2>
+                <div className="space-y-3">
+                  {active.map(sub => (
+                    <SubCard
+                      key={sub.id}
+                      sub={sub}
+                      isDark={isDark}
+                      cardClass={cardActive}
+                      text={text}
+                      muted={muted}
+                      subtext={subtext}
+                      toggling={toggling === sub.id}
+                      deleting={deleting === sub.id}
+                      onToggle={() => handleToggle(sub)}
+                      onDelete={() => handleDelete(sub.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {paused.length > 0 && (
+              <section>
+                <h2 className={`text-lg font-semibold ${text} mb-3`}>На паузе</h2>
+                <div className="space-y-3">
+                  {paused.map(sub => (
+                    <SubCard
+                      key={sub.id}
+                      sub={sub}
+                      isDark={isDark}
+                      cardClass={card}
+                      text={text}
+                      muted={muted}
+                      subtext={subtext}
+                      toggling={toggling === sub.id}
+                      deleting={deleting === sub.id}
+                      onToggle={() => handleToggle(sub)}
+                      onDelete={() => handleDelete(sub.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface SubCardProps {
+  sub: Subscription;
+  isDark: boolean;
+  cardClass: string;
+  text: string;
+  muted: string;
+  subtext: string;
+  toggling: boolean;
+  deleting: boolean;
+  onToggle: () => void;
+  onDelete: () => void;
+}
+
+function SubCard({ sub, isDark, cardClass, text, muted, subtext, toggling, deleting, onToggle, onDelete }: SubCardProps) {
+  const tagBg = isDark ? 'bg-gray-700 text-gray-200' : 'bg-green-100 text-green-800';
+  const infoBg = isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
+
+  return (
+    <div className={`${cardClass} border-2 rounded-2xl p-5`}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <MapPin className={`w-4 h-4 ${muted}`} />
+            <span className={`font-medium ${text}`}>{sub.address}</span>
+          </div>
+          {sub.district && (
+            <div className={`text-xs ${muted} ml-6`}>{sub.district}</div>
+          )}
+        </div>
+        <div className="text-right ml-4">
+          <div className={`text-xl font-semibold ${sub.active ? 'text-green-600' : muted}`}>{sub.price}₽</div>
+          <div className={`text-xs ${muted}`}>за вывоз</div>
+        </div>
+      </div>
+
+      <div className={`${infoBg} border rounded-xl p-3 mb-3`}>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <div className={`text-xs ${muted} mb-1`}>Дни</div>
+            <div className="flex flex-wrap gap-1">
+              {sub.days.map(d => (
+                <span key={d} className={`px-1.5 py-0.5 rounded text-xs font-medium ${tagBg}`}>
+                  {DAY_LABELS[d] ?? d}
+                </span>
+              ))}
             </div>
-            <div className="mt-4 flex items-center gap-2 text-sm text-green-100">
-              <TrendingUp className="w-4 h-4" />
-              <span>{activeSubscriptions.length} активных адреса</span>
+          </div>
+          <div>
+            <div className={`text-xs ${muted} mb-1`}>Время</div>
+            <div className={`flex items-center gap-1 ${subtext}`}>
+              <Clock className="w-3.5 h-3.5" />
+              <span>{sub.time}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Active subscriptions */}
-      <div className="container mx-auto px-4 py-6 pb-24">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {activeSubscriptions.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Активные подписки</h2>
-              <div className="space-y-4">
-                {activeSubscriptions.map((sub) => (
-                  <div key={sub.id} className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl overflow-hidden">
-                    <div className="p-5">
-                      {/* Header */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <RefreshCw className="w-4 h-4 text-green-600" />
-                            <span className="text-sm font-semibold text-green-700">Регулярный заказ</span>
-                          </div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <MapPin className="w-4 h-4 text-gray-400" />
-                            <span className="font-medium text-gray-900">{sub.address}</span>
-                          </div>
-                          <div className="text-sm text-gray-600 mb-2">Клиент: {sub.customer}</div>
-                        </div>
-                        <div className="text-right ml-4">
-                          <div className="text-2xl font-semibold text-green-600">+{sub.price + sub.bonus}₽</div>
-                          <div className="text-xs text-gray-500">за раз</div>
-                        </div>
-                      </div>
+      {sub.description ? (
+        <div className={`text-xs ${muted} mb-3`}>{sub.description}</div>
+      ) : null}
 
-                      {/* Schedule */}
-                      <div className="bg-white border border-green-200 rounded-xl p-4 mb-3">
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <div className="text-xs text-gray-500 mb-1">График</div>
-                            <div className="flex items-center gap-1">
-                              {sub.days.map((dayId) => (
-                                <span key={dayId} className="px-2 py-1 bg-green-100 text-green-700 rounded font-medium text-xs">
-                                  {getDayLabel(dayId)}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500 mb-1">Время</div>
-                            <div className="flex items-center gap-1 text-gray-900">
-                              <Clock className="w-3.5 h-3.5" />
-                              <span>{sub.time}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Stats */}
-                      <div className="grid grid-cols-3 gap-2 mb-3">
-                        <div className="bg-white border border-green-200 rounded-lg p-3 text-center">
-                          <div className="text-lg font-semibold text-gray-900">{sub.completedOrders}</div>
-                          <div className="text-xs text-gray-600">Выполнено</div>
-                        </div>
-                        <div className="bg-white border border-green-200 rounded-lg p-3 text-center">
-                          <div className="text-lg font-semibold text-green-600">{sub.weeklyEarnings}₽</div>
-                          <div className="text-xs text-gray-600">В неделю</div>
-                        </div>
-                        <div className="bg-white border border-green-200 rounded-lg p-3 text-center">
-                          <div className="text-lg font-semibold text-green-600">{sub.monthlyEarnings}₽</div>
-                          <div className="text-xs text-gray-600">В месяц</div>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 bg-white"
-                          onClick={() => toggleSubscription(sub.id)}
-                        >
-                          <Pause className="w-4 h-4 mr-2" />
-                          Пауза
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 bg-white"
-                        >
-                          <Calendar className="w-4 h-4 mr-2" />
-                          График
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Paused subscriptions */}
-          {pausedSubscriptions.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">На паузе</h2>
-              <div className="space-y-3">
-                {pausedSubscriptions.map((sub) => (
-                  <div key={sub.id} className="bg-white border-2 border-gray-200 rounded-2xl p-5">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <MapPin className="w-4 h-4 text-gray-400" />
-                          <span className="font-medium text-gray-900">{sub.address}</span>
-                        </div>
-                        <div className="text-sm text-gray-600 mb-2">
-                          {sub.days.map(d => getDayLabel(d)).join(', ')} в {sub.time}
-                        </div>
-                        <div className="text-xs text-gray-500">{sub.description}</div>
-                      </div>
-                      <div className="text-right ml-4">
-                        <div className="text-xl font-semibold text-gray-400">+{sub.price + sub.bonus}₽</div>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => toggleSubscription(sub.id)}
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Возобновить
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Empty state */}
-          {subscriptions.length === 0 && (
-            <div className="bg-white border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center">
-              <RefreshCw className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <div className="text-lg font-medium text-gray-900 mb-2">Нет подписок</div>
-              <div className="text-sm text-gray-500 mb-6">
-                Найдите регулярные заказы и получите стабильный доход
-              </div>
-              <Button
-                onClick={() => navigate('/find-orders')}
-                className="bg-gray-900 hover:bg-gray-800 text-white"
-              >
-                Найти подписки
-              </Button>
-            </div>
-          )}
-
-          {/* Info card */}
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <DollarSign className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <div className="font-semibold text-gray-900 mb-1">Преимущества подписок</div>
-                <ul className="text-sm text-gray-700 space-y-1">
-                  <li>• Стабильный доход каждую неделю</li>
-                  <li>• Бонус +10₽ за регулярность</li>
-                  <li>• Знакомые адреса - меньше времени на поиск</li>
-                  <li>• Можно планировать маршруты заранее</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className={`flex-1 ${isDark ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' : ''}`}
+          onClick={onToggle}
+          disabled={toggling}
+        >
+          {sub.active
+            ? <><Pause className="w-4 h-4 mr-1.5" />Пауза</>
+            : <><Play className="w-4 h-4 mr-1.5" />Возобновить</>
+          }
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className={`${isDark ? 'bg-gray-800 border-gray-700 text-red-400 hover:bg-gray-700' : 'text-red-500 hover:text-red-600'}`}
+          onClick={onDelete}
+          disabled={deleting}
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
       </div>
     </div>
   );

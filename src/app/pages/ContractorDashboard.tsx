@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
-import { Home, MapPin, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X } from 'lucide-react';
+import { Home, MapPin, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { LevelSystem, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
@@ -1059,6 +1059,7 @@ export default function ContractorDashboard() {
                 {[
                   { icon: Bell, label: 'Уведомления', sub: 'Настройка push и email', action: () => navigate('/notifications') },
                   { icon: CreditCard, label: 'Выплаты', sub: 'Баланс и вывод средств', action: () => navigate('/payment') },
+                  { icon: Trophy, label: 'Рейтинг исполнителей', sub: 'Топ по заказам и оценкам', action: () => navigate('/leaderboard') },
                   { icon: UserPlus, label: 'Реферальная программа', sub: 'Приглашайте напарников — получайте бонусы', action: () => navigate('/contractor-referral') },
                   { icon: HelpCircle, label: 'Помощь и поддержка', sub: 'FAQ и связь с поддержкой', action: () => navigate('/help') },
                 ].map((item, i, arr) => (

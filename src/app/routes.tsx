@@ -31,6 +31,7 @@ const Notifications = lazy(() => import("./pages/Notifications"));
 const Payment = lazy(() => import("./pages/Payment"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function PageLoader() {
@@ -107,6 +108,7 @@ export const router = createBrowserRouter([
   { path: "/find-orders", element: guardedLayout(FindOrders, 'contractor') },
   { path: "/find-orders-new", element: guardedLayout(FindOrdersNew, 'contractor') },
   { path: "/order/:id", element: guardedLayout(OrderDetail) },
+  { path: "/leaderboard", element: guarded(Leaderboard) },
 
   // 404
   { path: "*", element: page(NotFound) },

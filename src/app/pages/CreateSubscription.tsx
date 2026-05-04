@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, MapPin, Clock, Calendar, DollarSign, Check } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, DollarSign, Check } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { subscriptionsApi } from '../../api/subscriptions';
+import { toast } from 'sonner';
 
 export default function CreateSubscription() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  
-  // Form state
+  const [submitting, setSubmitting] = useState(false);
+
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [time, setTime] = useState('18:00');
   const [address, setAddress] = useState('');
@@ -32,16 +34,23 @@ export default function CreateSubscription() {
     }
   };
 
-  const handleSubmit = () => {
-    // Here would be API call to create subscription
-    console.log({
-      selectedDays,
-      time,
-      address,
-      price,
-      description,
-    });
-    navigate('/customer-dashboard');
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      await subscriptionsApi.create({
+        address,
+        days: selectedDays,
+        time,
+        price: Number(price),
+        description,
+      });
+      toast.success('Расписание создано');
+      navigate('/my-subscriptions');
+    } catch {
+      toast.error('Не удалось создать расписание');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -363,10 +372,10 @@ export default function CreateSubscription() {
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={!address || !price}
+                disabled={!address || !price || submitting}
                 className="flex-1 bg-gray-900 hover:bg-gray-800 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Создать подписку
+                {submitting ? 'Создание...' : 'Создать подписку'}
               </Button>
             )}
           </div>
