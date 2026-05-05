@@ -81,6 +81,11 @@ export const authApi = {
     return res.data;
   },
 
+  async paymentHistory(): Promise<{ id: string; amount: number; address: string; district: string; date: string; type: 'earning' | 'payment' }[]> {
+    const res = await api.get<{ data: { id: string; amount: number; address: string; district: string; date: string; type: 'earning' | 'payment' }[] }>('/users/payment-history');
+    return res.data;
+  },
+
   async refresh(refreshToken: string): Promise<{ token: string; refreshToken: string }> {
     const res = await api.post<{ data: { token: string; refreshToken: string } }>('/auth/refresh', { refreshToken });
     return res.data;

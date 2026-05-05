@@ -92,6 +92,7 @@ export default function CustomerDashboard() {
   const [disputeSending, setDisputeSending] = useState(false);
   const [addAddressOpen, setAddAddressOpen] = useState(false);
   const [newAddress, setNewAddress] = useState('');
+  const [sbpModal, setSbpModal] = useState<{ orderId: string; phone: string; amount: number; contractorName: string } | null>(null);
   const [addressSaving, setAddressSaving] = useState(false);
 
   type MyOrder = {
@@ -181,6 +182,23 @@ export default function CustomerDashboard() {
   useEffect(() => {
     refreshOrders();
   }, []);
+
+  const doConfirmOrder = async (orderId: string) => {
+    setConfirmingId(orderId);
+    setSbpModal(null);
+    try {
+      await ordersApi.confirmOrder(orderId);
+      setMyOrders((prev) => prev.map(o => o.id === orderId ? { ...o, status: 'completed' as const } : o));
+      setSelectedOrder(null);
+      toast.success('Заказ завершён!', { description: 'Оплата исполнителю подтверждена', duration: 3000 });
+      setRatingOrder({ id: orderId, contractorName: orderContact?.contractorName || 'Исполнитель' });
+      setTimeout(refreshAchievements, 1000);
+    } catch (err: any) {
+      toast.error(err?.message || 'Ошибка подтверждения');
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   // Poll user data (XP, level, balance) and detect changes (item 11)
   useEffect(() => {
@@ -1566,23 +1584,15 @@ export default function CustomerDashboard() {
                   fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(102,187,106,0.4)',
                   transition: 'opacity 0.15s',
                 }}
-                onClick={async (e) => {
+                onClick={(e) => {
                   e.stopPropagation();
                   if (confirmingId) return;
-                  const orderId = selectedOrder.id;
-                  setConfirmingId(orderId);
-                  try {
-                    await ordersApi.confirmOrder(orderId);
-                    setMyOrders((prev) => prev.map(o => o.id === orderId ? { ...o, status: 'completed' as const } : o));
-                    setSelectedOrder(null);
-                    toast.success('Заказ подтверждён!', { description: 'Оплата исполнителю начислена', duration: 3000 });
-                    setRatingOrder({ id: orderId, contractorName: orderContact?.contractorName || 'Исполнитель' });
-                    setTimeout(refreshAchievements, 1000);
-                  } catch (err: any) {
-                    toast.error(err?.message || 'Ошибка подтверждения');
-                  } finally {
-                    setConfirmingId(null);
-                  }
+                  setSbpModal({
+                    orderId: selectedOrder.id,
+                    phone: orderContact?.contractorPhone || '',
+                    amount: selectedOrder.price,
+                    contractorName: orderContact?.contractorName || 'Исполнитель',
+                  });
                 }}
               >
                 {confirmingId === selectedOrder.id ? '⏳ Подтверждаем...' : '✅ Подтвердить выполнение'}
@@ -1761,22 +1771,14 @@ export default function CustomerDashboard() {
                     className="w-full py-3 rounded-xl text-sm font-semibold"
                     disabled={confirmingId === selectedOrder.id}
                     style={{ background: ACCENT, color: 'white', border: 'none', cursor: confirmingId === selectedOrder.id ? 'not-allowed' : 'pointer', opacity: confirmingId === selectedOrder.id ? 0.7 : 1, fontFamily: 'inherit', transition: 'opacity 0.15s' }}
-                    onClick={async () => {
+                    onClick={() => {
                       if (confirmingId) return;
-                      const orderId = selectedOrder.id;
-                      setConfirmingId(orderId);
-                      try {
-                        await ordersApi.confirmOrder(orderId);
-                        setMyOrders((prev) => prev.map(o => o.id === orderId ? { ...o, status: 'completed' as const } : o));
-                        setSelectedOrder(null);
-                        toast.success('Заказ подтверждён!', { description: 'Оплата исполнителю начислена', duration: 3000 });
-                        setRatingOrder({ id: orderId, contractorName: orderContact?.contractorName || 'Исполнитель' });
-                        setTimeout(refreshAchievements, 1000);
-                      } catch (e: any) {
-                        toast.error(e?.message || 'Ошибка подтверждения');
-                      } finally {
-                        setConfirmingId(null);
-                      }
+                      setSbpModal({
+                        orderId: selectedOrder.id,
+                        phone: orderContact?.contractorPhone || '',
+                        amount: selectedOrder.price,
+                        contractorName: orderContact?.contractorName || 'Исполнитель',
+                      });
                     }}
                   >
                     {confirmingId === selectedOrder.id ? '⏳ Подтверждаем...' : '✅ Подтвердить выполнение'}
@@ -2046,6 +2048,104 @@ export default function CustomerDashboard() {
                 {addressSaving ? 'Сохраняем...' : 'Добавить'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* СБП Payment Modal */}
+      {sbpModal && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+            padding: '0 0 env(safe-area-inset-bottom,0)',
+          }}
+          onClick={() => setSbpModal(null)}
+        >
+          <div
+            style={{
+              width: '100%', maxWidth: '480px',
+              background: '#fff', borderRadius: '1.25rem 1.25rem 0 0',
+              padding: '1.5rem 1.25rem 2rem',
+              fontFamily: "'Inter', system-ui, sans-serif",
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ width: '2.5rem', height: '0.25rem', background: '#e5e7eb', borderRadius: '9999px', margin: '0 auto 1.25rem' }} />
+
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💳</div>
+              <div style={{ fontSize: '1.125rem', fontWeight: 800, color: '#111827', marginBottom: '0.25rem' }}>
+                Оплатите через СБП
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                Переведите исполнителю напрямую — без комиссии
+              </div>
+            </div>
+
+            {/* Amount */}
+            <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '1rem', padding: '1rem', marginBottom: '1rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Сумма к оплате</div>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: '#15803d' }}>{sbpModal.amount.toLocaleString('ru-RU')} ₽</div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.125rem' }}>{sbpModal.contractorName}</div>
+            </div>
+
+            {/* Phone */}
+            {sbpModal.phone ? (
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '1rem', padding: '0.875rem 1rem', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.7rem', color: '#9ca3af', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Номер для СБП</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', letterSpacing: '0.04em' }}>{sbpModal.phone}</div>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(sbpModal.phone); toast.success('Номер скопирован'); }}
+                    style={{ background: ACCENT + '18', border: 'none', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.75rem', fontWeight: 600, color: ACCENT, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    Копировать
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ background: '#fefce8', border: '1px solid #fde68a', borderRadius: '1rem', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.8rem', color: '#92400e' }}>
+                Контакт исполнителя загружается…
+              </div>
+            )}
+
+            {/* Steps */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              {[
+                'Скопируйте номер телефона выше',
+                'Откройте приложение своего банка',
+                'Выберите «Перевод по СБП» и введите номер',
+                'Переведите сумму и вернитесь сюда',
+              ].map((step, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', marginBottom: '0.5rem' }}>
+                  <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', background: ACCENT, color: 'white', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '0.1rem' }}>{i + 1}</div>
+                  <span style={{ fontSize: '0.82rem', color: '#374151' }}>{step}</span>
+                </div>
+              ))}
+            </div>
+
+            <button
+              disabled={!!confirmingId}
+              onClick={() => doConfirmOrder(sbpModal.orderId)}
+              style={{
+                display: 'block', width: '100%', padding: '0.875rem',
+                background: ACCENT, color: 'white', border: 'none',
+                borderRadius: '0.875rem', fontSize: '0.9375rem', fontWeight: 700,
+                cursor: confirmingId ? 'not-allowed' : 'pointer',
+                opacity: confirmingId ? 0.7 : 1, fontFamily: 'inherit',
+                marginBottom: '0.625rem',
+              }}
+            >
+              {confirmingId ? '⏳ Подтверждаем...' : '✅ Я оплатил — завершить заказ'}
+            </button>
+            <button
+              onClick={() => setSbpModal(null)}
+              style={{ display: 'block', width: '100%', padding: '0.625rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', color: '#9ca3af', fontFamily: 'inherit' }}
+            >
+              Отмена
+            </button>
           </div>
         </div>
       )}
