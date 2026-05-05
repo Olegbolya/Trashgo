@@ -6,7 +6,6 @@ import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore } from '../../stores/role.store';
 import { useTheme } from '../context/ThemeContext';
 import { toast } from 'sonner';
-import { firebaseOtp } from '../../services/firebase-otp';
 
 export default function Verify() {
   const navigate = useNavigate();
@@ -18,8 +17,7 @@ export default function Verify() {
   const telegramBotLink = location.state?.telegramBotLink as string | undefined;
   const channel = location.state?.channel as string | undefined;
   const deliveryEmail = location.state?.deliveryEmail as string | undefined;
-  const useFirebase = !!(location.state?.useFirebase);
-  const codeLen = useFirebase ? 6 : 4;
+  const codeLen = 4;
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -41,38 +39,6 @@ export default function Verify() {
     setError('');
     setLoading(true);
 
-    // Firebase path
-    if (useFirebase) {
-      const pending = firebaseOtp.get();
-      if (!pending) {
-        setError('Сессия истекла. Начните заново.');
-        setLoading(false);
-        return;
-      }
-      try {
-        const result = await pending.confirm(code);
-        const idToken = await result.user.getIdToken();
-        const res = await authApi.verifyFirebase(idToken);
-        firebaseOtp.clear();
-        if (res.isNewUser) {
-          const target = role === 'contractor' ? '/register-contractor' : '/register-customer';
-          navigate(target, { state: { phone: res.phone, role, tempToken: res.tempToken, useFirebase: true } });
-          return;
-        }
-        setAuth(res.user!, res.token!, res.refreshToken!);
-        navigate(res.user!.role === 'contractor' ? '/contractor' : '/customer', { replace: true });
-      } catch (err: any) {
-        const code_ = err?.code as string | undefined;
-        if (code_ === 'auth/invalid-verification-code') setError('Неверный код');
-        else if (code_ === 'auth/code-expired') setError('Код истёк. Запросите новый.');
-        else setError(err?.message || 'Ошибка подтверждения');
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
-    // Existing OTP path (Telegram / SMS.ru / dev)
     try {
       const res = await authApi.verify(phone, code, role);
       if (res.isNewUser) {
@@ -90,10 +56,6 @@ export default function Verify() {
   };
 
   const handleResend = async () => {
-    if (useFirebase) {
-      navigate('/login', { state: { role } });
-      return;
-    }
     try {
       await authApi.login(phone, deliveryEmail);
       toast.success('Код отправлен повторно');
@@ -127,15 +89,13 @@ export default function Verify() {
           Введите код
         </h1>
         <p style={{ fontSize: '0.875rem', color: c.muted, marginBottom: '1.75rem' }}>
-          {useFirebase
-            ? <>Отправили SMS на <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span> — введите 6-значный код</>
-            : channel === 'email' && deliveryEmail
-              ? <>Отправили код на <span style={{ color: c.text, fontWeight: 600 }}>{deliveryEmail}</span> — проверьте почту</>
-              : channel === 'telegram'
-                ? telegramBotLink
-                  ? <>Откройте бота TrashGo в Telegram и он пришлёт код для <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
-                  : <>Код отправлен в ваш <span style={{ color: c.text, fontWeight: 600 }}>Telegram</span></>
-                : <>Отправили SMS на <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
+          {channel === 'email' && deliveryEmail
+            ? <>Отправили код на <span style={{ color: c.text, fontWeight: 600 }}>{deliveryEmail}</span> — проверьте почту</>
+            : channel === 'telegram'
+              ? telegramBotLink
+                ? <>Откройте бота TrashGo в Telegram и он пришлёт код для <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
+                : <>Код отправлен в ваш <span style={{ color: c.text, fontWeight: 600 }}>Telegram</span></>
+              : <>Отправили SMS на <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
           }
         </p>
 
@@ -187,7 +147,7 @@ export default function Verify() {
           <input
             type="text"
             inputMode="numeric"
-            placeholder={useFirebase ? '• • • • • •' : '• • • •'}
+            placeholder="• • • •"
             maxLength={codeLen}
             value={code}
             onChange={(e) => { setError(''); setCode(e.target.value.replace(/\D/g, '')); }}
@@ -241,23 +201,6 @@ export default function Verify() {
             Отправить повторно
           </button>
 
-          {useFirebase && (
-            <button
-              type="button"
-              onClick={() => {
-                firebaseOtp.clear();
-                navigate('/login', { state: { role, preferTelegram: true } });
-              }}
-              style={{
-                display: 'block', width: '100%', padding: '0.5rem',
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: '0.8rem', color: c.muted, fontFamily: 'inherit',
-                textDecoration: 'underline',
-              }}
-            >
-              Не пришёл SMS? Попробовать через Telegram
-            </button>
-          )}
         </form>
       </div>
     </div>

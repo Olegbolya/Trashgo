@@ -20,8 +20,6 @@ export default function RegisterContractor() {
   const accent = useRoleStore((s) => s.accentColor);
   const phone = location.state?.phone || '';
   const verifiedCode = location.state?.verifiedCode || '';
-  const tempToken = location.state?.tempToken as string | undefined;
-  const useFirebase = !!(location.state?.useFirebase);
   const setAuth = useAuthStore((s) => s.setAuth);
   const [formData, setFormData] = useState({ name: '', district: 'Вахитовский', transport: 'foot', inn: '' });
   const [loading, setLoading] = useState(false);
@@ -57,9 +55,7 @@ export default function RegisterContractor() {
         transportMode: formData.transport,
         ...(formData.inn.length === 12 ? { inn: formData.inn } : {}),
       };
-      const res = useFirebase && tempToken
-        ? await authApi.registerFirebase({ tempToken, name: formData.name, role: 'contractor', district: formData.district, refCode, ...extraFields })
-        : await authApi.register({ phone, code: verifiedCode, name: formData.name, role: 'contractor', district: formData.district, refCode, ...extraFields });
+      const res = await authApi.register({ phone, code: verifiedCode, name: formData.name, role: 'contractor', district: formData.district, refCode, ...extraFields });
       if (refCode) sessionStorage.removeItem('pendingRefCode');
       setAuth(res.user, res.token, res.refreshToken);
       navigate('/contractor');
