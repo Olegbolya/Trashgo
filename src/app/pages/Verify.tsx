@@ -237,6 +237,24 @@ export default function Verify() {
           >
             Отправить повторно
           </button>
+
+          {useFirebase && (
+            <button
+              type="button"
+              onClick={() => {
+                firebaseOtp.clear();
+                navigate('/login', { state: { role, preferTelegram: true } });
+              }}
+              style={{
+                display: 'block', width: '100%', padding: '0.5rem',
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: '0.8rem', color: c.muted, fontFamily: 'inherit',
+                textDecoration: 'underline',
+              }}
+            >
+              Не пришёл SMS? Попробовать через Telegram
+            </button>
+          )}
         </form>
       </div>
     </div>

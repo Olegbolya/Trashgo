@@ -29,6 +29,7 @@ export default function Login() {
   const location = useLocation();
   const pendingRefRole = sessionStorage.getItem('pendingRefRole') as 'customer' | 'contractor' | null;
   const role = (location.state?.role || pendingRefRole || 'customer') as 'customer' | 'contractor';
+  const preferTelegram = !!(location.state?.preferTelegram);
   const { accentColor, setRole } = useRoleStore();
   const accent = accentColor;
   const [phone, setPhone] = useState('');
@@ -60,7 +61,7 @@ export default function Login() {
     setLoading(true);
 
     // Firebase path — sends real SMS for free via Google's infrastructure
-    if (isFirebaseEnabled()) {
+    if (isFirebaseEnabled() && !preferTelegram) {
       try {
         const auth = getFirebaseAuth()!;
         const { RecaptchaVerifier, signInWithPhoneNumber } = await import('firebase/auth');
