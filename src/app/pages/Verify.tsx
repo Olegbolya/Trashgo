@@ -158,8 +158,8 @@ export default function Verify() {
           </a>
         )}
 
-        {/* Dev hint — only shown when server returns devCode (dev mode) */}
-        {devCode && (
+        {/* Dev hint — never shown in production */}
+        {devCode && !import.meta.env.PROD && (
           <div style={{
             background: c.hint,
             border: `1px solid ${c.border}`,
