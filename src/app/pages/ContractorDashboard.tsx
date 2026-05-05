@@ -165,19 +165,30 @@ export default function ContractorDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Poll chat messages while a chat is open
+  // Poll chat messages while a chat is open + SSE push for instant updates
   const prevChatCountsRef = useRef<Record<string, number>>({});
   useEffect(() => {
     if (!chatJobId) return;
-    const fetch = () => ordersApi.getMessages(chatJobId).then((res: any) => {
+    const fetchMessages = () => ordersApi.getMessages(chatJobId).then((res: any) => {
       const msgs = res?.data ?? [];
       setChatMessages(msgs);
       prevChatCountsRef.current[chatJobId] = msgs.length;
       setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     }).catch(() => {});
-    fetch();
-    const interval = setInterval(fetch, 5000);
-    return () => clearInterval(interval);
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 5000);
+
+    // SSE push: refresh instantly when a new message arrives for this order
+    const sseHandler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.orderId === chatJobId) fetchMessages();
+    };
+    window.addEventListener('sse:chat', sseHandler);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('sse:chat', sseHandler);
+    };
   }, [chatJobId]);
 
   // Detect new chat messages on active jobs when chat is closed

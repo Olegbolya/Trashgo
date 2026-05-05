@@ -46,6 +46,11 @@ export function connectSSE(token: string) {
           description: event.message,
           duration: 4000,
         });
+
+        // Notify open chat windows to refresh instantly (no polling delay)
+        if (event.type === 'chat' && event.orderId) {
+          window.dispatchEvent(new CustomEvent('sse:chat', { detail: { orderId: event.orderId } }));
+        }
       }
     } catch { /* ignore parse errors */ }
   });

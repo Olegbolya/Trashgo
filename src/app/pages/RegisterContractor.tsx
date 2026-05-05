@@ -23,7 +23,7 @@ export default function RegisterContractor() {
   const tempToken = location.state?.tempToken as string | undefined;
   const useFirebase = !!(location.state?.useFirebase);
   const setAuth = useAuthStore((s) => s.setAuth);
-  const [formData, setFormData] = useState({ name: '', district: 'Вахитовский', transport: 'foot' });
+  const [formData, setFormData] = useState({ name: '', district: 'Вахитовский', transport: 'foot', inn: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -53,9 +53,13 @@ export default function RegisterContractor() {
     setLoading(true);
     try {
       const refCode = sessionStorage.getItem('pendingRefCode') ?? undefined;
+      const extraFields = {
+        transportMode: formData.transport,
+        ...(formData.inn.length === 12 ? { inn: formData.inn } : {}),
+      };
       const res = useFirebase && tempToken
-        ? await authApi.registerFirebase({ tempToken, name: formData.name, role: 'contractor', district: formData.district, refCode })
-        : await authApi.register({ phone, code: verifiedCode, name: formData.name, role: 'contractor', district: formData.district, refCode });
+        ? await authApi.registerFirebase({ tempToken, name: formData.name, role: 'contractor', district: formData.district, refCode, ...extraFields })
+        : await authApi.register({ phone, code: verifiedCode, name: formData.name, role: 'contractor', district: formData.district, refCode, ...extraFields });
       if (refCode) sessionStorage.removeItem('pendingRefCode');
       setAuth(res.user, res.token, res.refreshToken);
       navigate('/contractor');
@@ -144,6 +148,28 @@ export default function RegisterContractor() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* INN (optional) */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: c.label, marginBottom: '0.375rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+                ИНН <span style={{ fontWeight: 400, textTransform: 'none', color: c.muted }}>(необязательно)</span>
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="123456789012"
+                maxLength={12}
+                value={formData.inn}
+                onChange={(e) => setFormData({ ...formData, inn: e.target.value.replace(/\D/g, '') })}
+                style={inputStyle(formData.inn.length === 12)}
+              />
+              {formData.inn.length > 0 && formData.inn.length < 12 && (
+                <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.25rem' }}>ИНН должен содержать 12 цифр</div>
+              )}
+              {formData.inn.length === 12 && (
+                <div style={{ fontSize: '0.75rem', color: '#22c55e', marginTop: '0.25rem' }}>✓ ИНН принят — получите значок самозанятого</div>
+              )}
             </div>
 
             {/* Info */}
