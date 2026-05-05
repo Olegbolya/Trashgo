@@ -5,8 +5,9 @@ interface LoginResponse {
   otpSent: boolean;
   isNewUser: boolean;
   devCode?: string;
-  channel?: 'telegram' | 'sms' | 'dev';
+  channel?: 'telegram' | 'sms' | 'dev' | 'email';
   telegramBotLink?: string;
+  deliveryEmail?: string;
 }
 
 interface VerifyFirebaseResponse {
@@ -50,8 +51,8 @@ interface RegisterResponse {
 }
 
 export const authApi = {
-  async login(phone: string): Promise<LoginResponse> {
-    const res = await api.post<{ data: LoginResponse }>('/auth/login', { phone });
+  async login(phone: string, deliveryEmail?: string): Promise<LoginResponse> {
+    const res = await api.post<{ data: LoginResponse }>('/auth/login', { phone, ...(deliveryEmail ? { deliveryEmail } : {}) });
     return res.data;
   },
 

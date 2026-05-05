@@ -33,7 +33,9 @@ export default function Login() {
   const { accentColor, setRole } = useRoleStore();
   const accent = accentColor;
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
   const recaptchaRef = useRef<HTMLDivElement>(null);
   const recaptchaVerifierRef = useRef<any>(null);
 
@@ -51,6 +53,22 @@ export default function Login() {
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhone(e.target.value.replace(/\D/g, ''));
+  };
+
+  const handleEmailSubmit = async () => {
+    if (phone.replace(/\D/g, '').length < 10 || !email.trim()) return;
+    const formattedPhone = formatPhone(phone);
+    setEmailLoading(true);
+    try {
+      const res = await authApi.login(formattedPhone, email.trim());
+      navigate('/verify', {
+        state: { phone: formattedPhone, role, isNewUser: res.isNewUser, devCode: res.devCode, channel: res.channel, deliveryEmail: res.deliveryEmail || email.trim() },
+      });
+    } catch {
+      toast.error('Ошибка отправки кода. Попробуйте ещё раз.');
+    } finally {
+      setEmailLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -155,6 +173,26 @@ export default function Login() {
             Отправим SMS с кодом подтверждения
           </p>
         </form>
+
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-4">
+          <p className="text-sm text-gray-500 mb-3">Или получите код на e-mail</p>
+          <Input
+            type="email"
+            placeholder="your@email.com"
+            className="h-12 border-gray-200 mb-3"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Button
+            type="button"
+            onClick={handleEmailSubmit}
+            disabled={emailLoading || phone.replace(/\D/g, '').length < 10 || !email.trim()}
+            variant="outline"
+            className="w-full h-12"
+          >
+            {emailLoading ? 'Отправляем...' : 'Получить код на почту'}
+          </Button>
+        </div>
 
         <p className="text-xs text-gray-500 text-center">
           Нажимая "Получить код", вы принимаете условия использования сервиса

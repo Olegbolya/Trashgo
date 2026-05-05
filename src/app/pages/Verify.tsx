@@ -17,6 +17,7 @@ export default function Verify() {
   const devCode = location.state?.devCode as string | undefined;
   const telegramBotLink = location.state?.telegramBotLink as string | undefined;
   const channel = location.state?.channel as string | undefined;
+  const deliveryEmail = location.state?.deliveryEmail as string | undefined;
   const useFirebase = !!(location.state?.useFirebase);
   const codeLen = useFirebase ? 6 : 4;
   const [code, setCode] = useState('');
@@ -94,7 +95,7 @@ export default function Verify() {
       return;
     }
     try {
-      await authApi.login(phone);
+      await authApi.login(phone, deliveryEmail);
       toast.success('Код отправлен повторно');
     } catch {
       toast.error('Ошибка. Попробуйте позже.');
@@ -128,11 +129,13 @@ export default function Verify() {
         <p style={{ fontSize: '0.875rem', color: c.muted, marginBottom: '1.75rem' }}>
           {useFirebase
             ? <>Отправили SMS на <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span> — введите 6-значный код</>
-            : channel === 'telegram'
-              ? telegramBotLink
-                ? <>Откройте бота TrashGo в Telegram и он пришлёт код для <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
-                : <>Код отправлен в ваш <span style={{ color: c.text, fontWeight: 600 }}>Telegram</span></>
-              : <>Отправили SMS на <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
+            : channel === 'email' && deliveryEmail
+              ? <>Отправили код на <span style={{ color: c.text, fontWeight: 600 }}>{deliveryEmail}</span> — проверьте почту</>
+              : channel === 'telegram'
+                ? telegramBotLink
+                  ? <>Откройте бота TrashGo в Telegram и он пришлёт код для <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
+                  : <>Код отправлен в ваш <span style={{ color: c.text, fontWeight: 600 }}>Telegram</span></>
+                : <>Отправили SMS на <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
           }
         </p>
 
