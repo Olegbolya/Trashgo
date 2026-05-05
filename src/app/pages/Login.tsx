@@ -34,12 +34,18 @@ export default function Login() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const recaptchaRef = useRef<HTMLDivElement>(null);
+  const recaptchaVerifierRef = useRef<any>(null);
 
   if (role === 'contractor' || role === 'customer') setRole(role);
 
-  // Clean up any previous reCAPTCHA verifier on mount
   useEffect(() => {
     firebaseOtp.clear();
+    return () => {
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
+      }
+    };
   }, []);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,13 +64,28 @@ export default function Login() {
       try {
         const auth = getFirebaseAuth()!;
         const { RecaptchaVerifier, signInWithPhoneNumber } = await import('firebase/auth');
-        const verifier = new RecaptchaVerifier(auth, recaptchaRef.current!, { size: 'invisible' });
-        const confirmation = await signInWithPhoneNumber(auth, toE164(formattedPhone), verifier);
+        if (!recaptchaVerifierRef.current) {
+          recaptchaVerifierRef.current = new RecaptchaVerifier(auth, recaptchaRef.current!, { size: 'invisible' });
+        }
+        const confirmation = await signInWithPhoneNumber(auth, toE164(formattedPhone), recaptchaVerifierRef.current);
         firebaseOtp.set(confirmation);
         navigate('/verify', { state: { phone: formattedPhone, role, useFirebase: true } });
       } catch (err: any) {
         console.error('[Firebase OTP]', err);
-        toast.error('Не удалось отправить код. Попробуйте ещё раз.');
+        if (recaptchaVerifierRef.current) {
+          recaptchaVerifierRef.current.clear();
+          recaptchaVerifierRef.current = null;
+        }
+        const code = err?.code as string | undefined;
+        if (code === 'auth/too-many-requests') {
+          toast.error('Слишком много попыток. Подождите несколько минут.');
+        } else if (code === 'auth/invalid-phone-number') {
+          toast.error('Неверный формат номера телефона.');
+        } else if (code === 'auth/unauthorized-domain') {
+          toast.error('Домен не авторизован в Firebase. Свяжитесь с поддержкой.');
+        } else {
+          toast.error(`Не удалось отправить код${code ? ` (${code})` : ''}. Попробуйте ещё раз.`);
+        }
       } finally {
         setLoading(false);
       }
