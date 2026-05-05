@@ -109,7 +109,7 @@ export default function UnifiedDashboard() {
           </button>
 
           <button
-            onClick={() => navigate('/create-order')}
+            onClick={() => navigate('/customer?tab=create')}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white bg-red-600 hover:bg-red-700 transition-colors"
           >
             <Package className="w-5 h-5" />
@@ -220,7 +220,7 @@ export default function UnifiedDashboard() {
                     <div className="flex items-center justify-between mb-3">
                       <h2 className="text-lg font-bold text-gray-900">Мои заказы</h2>
                       <button 
-                        onClick={() => navigate('/create-order')}
+                        onClick={() => navigate('/customer?tab=create')}
                         className="text-sm text-purple-600 font-semibold hover:text-purple-700"
                       >
                         + Создать
@@ -279,7 +279,7 @@ export default function UnifiedDashboard() {
                         <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                         <p className="text-sm text-gray-500 mb-4">Нет активных заказов</p>
                         <Button 
-                          onClick={() => navigate('/create-order')}
+                          onClick={() => navigate('/customer?tab=create')}
                           className="bg-purple-600 hover:bg-purple-700 text-white"
                         >
                           <Plus className="w-4 h-4 mr-2" />
@@ -537,7 +537,7 @@ export default function UnifiedDashboard() {
 
           {/* Order */}
           <button
-            onClick={() => navigate('/create-order')}
+            onClick={() => navigate('/customer?tab=create')}
             className="flex flex-col items-center justify-center gap-1 text-red-600"
           >
             <Package className="w-5 h-5" />

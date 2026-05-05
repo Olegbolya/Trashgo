@@ -19,7 +19,7 @@ export function MainSearch() {
 
   const handleCreateOrder = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/create-order', { state: formData });
+    navigate('/customer?tab=create');
   };
 
   const handleFindOrders = (e: React.FormEvent) => {
