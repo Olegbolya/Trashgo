@@ -24,7 +24,7 @@ export function MainSearch() {
 
   const handleFindOrders = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/find-orders', { state: { district: formData.district } });
+    navigate('/find-orders-new', { state: { district: formData.district } });
   };
 
   return (

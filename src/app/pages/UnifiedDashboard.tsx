@@ -117,7 +117,7 @@ export default function UnifiedDashboard() {
           </button>
 
           <button
-            onClick={() => navigate('/find-orders')}
+            onClick={() => navigate('/find-orders-new')}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white bg-green-600 hover:bg-green-700 transition-colors"
           >
             <Trash2 className="w-5 h-5" />
@@ -294,7 +294,7 @@ export default function UnifiedDashboard() {
                     <div className="flex items-center justify-between mb-3">
                       <h2 className="text-lg font-bold text-gray-900">Мои выносы</h2>
                       <button 
-                        onClick={() => navigate('/find-orders')}
+                        onClick={() => navigate('/find-orders-new')}
                         className="text-sm text-green-600 font-semibold hover:text-green-700"
                       >
                         + Найти
@@ -351,7 +351,7 @@ export default function UnifiedDashboard() {
                         <Trash2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                         <p className="text-sm text-gray-500 mb-4">Нет активных выносов</p>
                         <Button 
-                          onClick={() => navigate('/find-orders')}
+                          onClick={() => navigate('/find-orders-new')}
                           className="bg-green-600 hover:bg-green-700 text-white"
                         >
                           <Plus className="w-4 h-4 mr-2" />
@@ -546,7 +546,7 @@ export default function UnifiedDashboard() {
 
           {/* Earn */}
           <button
-            onClick={() => navigate('/find-orders')}
+            onClick={() => navigate('/find-orders-new')}
             className="flex flex-col items-center justify-center gap-1 text-green-600"
           >
             <DollarSign className="w-5 h-5" />

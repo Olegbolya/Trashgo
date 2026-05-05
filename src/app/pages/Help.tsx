@@ -108,9 +108,9 @@ export default function Help() {
 
   const quickLinks = [
     { icon: Zap,      color: ACCENT, title: 'Как это работает?',   action: () => navigate('/how-it-works') },
-    { icon: Package,  color: GREEN,  title: 'Создать заказ',        action: () => navigate('/create-order') },
+    { icon: Package,  color: GREEN,  title: 'Создать заказ',        action: () => navigate('/customer?tab=create') },
     { icon: Star,     color: '#FF9800', title: 'Реферальная программа', action: () => navigate('/invite-neighbor') },
-    { icon: Trash2,   color: GREEN,  title: 'Найти заказы',         action: () => navigate('/find-orders') },
+    { icon: Trash2,   color: GREEN,  title: 'Найти заказы',         action: () => navigate('/find-orders-new') },
   ];
 
   return (
