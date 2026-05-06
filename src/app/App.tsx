@@ -6,6 +6,7 @@ import { Toaster } from './components/ui/sonner';
 import { ThemeProvider } from './context/ThemeContext';
 import { useAuthStore } from '../stores/auth.store';
 import { connectSSE } from '../services/sse';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,6 +23,7 @@ function SSEConnector() {
   useEffect(() => {
     if (isAuthenticated && token) connectSSE(token);
   }, [isAuthenticated, token]);
+  usePushNotifications();
   return null;
 }
 

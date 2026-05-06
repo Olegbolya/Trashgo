@@ -1,7 +1,9 @@
 import { useNotificationsStore } from '../stores/notifications.store';
 import { toast } from 'sonner';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'https://api-production-8470.up.railway.app';
+// Derive server base (strip /api/v1 suffix if present) for the SSE endpoint which includes its own path
+const RAW_API_URL = import.meta.env.VITE_API_URL ?? 'https://api-production-8470.up.railway.app/api/v1';
+const SSE_BASE = RAW_API_URL.replace(/\/api\/v1\/?$/, '');
 
 let es: EventSource | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -18,7 +20,7 @@ function getCurrentToken(): string | null {
 export function connectSSE(token: string) {
   if (es) return;
 
-  const url = `${API_BASE}/api/v1/notifications/stream?token=${encodeURIComponent(token)}`;
+  const url = `${SSE_BASE}/api/v1/notifications/stream?token=${encodeURIComponent(token)}`;
   es = new EventSource(url);
 
   es.addEventListener('message', (e) => {
