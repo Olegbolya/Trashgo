@@ -334,38 +334,33 @@ export default function CustomerDashboard() {
   };
 
   const completedOrders = myOrders.filter(o => o.status === 'completed').length;
-  const asapOrders = myOrders.filter(o => o.asap).length;
 
-  // Sequential order chain — IDs match backend ACHIEVEMENT_DEFS
+  // Sequential order chain — IDs match backend ACHIEVEMENT_DEFS (customer chain)
   const orderChain: Achievement[] = [
-    { id: 'first_order',   icon: '🎉', title: 'Первый шаг',      description: 'Создайте свой первый заказ',           unlocked: myOrders.length >= 1,   progress: Math.min(myOrders.length, 1),   maxProgress: 1,   reward: '+15 XP' },
-    { id: 'orders_5',      icon: '⭐', title: 'В ритме',          description: 'Создайте 5 заказов',                   unlocked: myOrders.length >= 5,   progress: Math.min(myOrders.length, 5),   maxProgress: 5,   reward: '+30 XP' },
-    { id: 'orders_10',     icon: '🔟', title: 'Опытный',          description: 'Создайте 10 заказов',                  unlocked: myOrders.length >= 10,  progress: Math.min(myOrders.length, 10),  maxProgress: 10,  reward: '+60 XP' },
-    { id: 'orders_25',     icon: '💪', title: 'Ветеран',          description: 'Создайте 25 заказов',                  unlocked: myOrders.length >= 25,  progress: Math.min(myOrders.length, 25),  maxProgress: 25,  reward: '+100 XP' },
-    { id: 'orders_50',     icon: '🔥', title: 'Профи',            description: 'Создайте 50 заказов',                  unlocked: myOrders.length >= 50,  progress: Math.min(myOrders.length, 50),  maxProgress: 50,  reward: '+200 XP' },
-    { id: 'orders_100',    icon: '💎', title: 'Сотня',            description: 'Создайте 100 заказов',                 unlocked: myOrders.length >= 100, progress: Math.min(myOrders.length, 100), maxProgress: 100, reward: '+350 XP' },
-    { id: 'orders_250',    icon: '👑', title: 'Мастер',           description: 'Создайте 250 заказов',                 unlocked: myOrders.length >= 250, progress: Math.min(myOrders.length, 250), maxProgress: 250, reward: '+500 XP' },
-    { id: 'orders_500',    icon: '🌠', title: 'Легенда',          description: 'Создайте 500 заказов',                 unlocked: myOrders.length >= 500, progress: Math.min(myOrders.length, 500), maxProgress: 500, reward: '+1000 XP' },
+    { id: 'customer_first',      icon: '🎊', title: 'Первый заказ',       description: 'Создайте свой первый заказ',  unlocked: myOrders.length >= 1,  progress: Math.min(myOrders.length, 1),  maxProgress: 1,  reward: '+10 XP' },
+    { id: 'customer_orders_5',   icon: '🔄', title: 'Постоянный',         description: 'Создайте 5 заказов',          unlocked: myOrders.length >= 5,  progress: Math.min(myOrders.length, 5),  maxProgress: 5,  reward: '+30 XP' },
+    { id: 'customer_orders_20',  icon: '💎', title: 'Верный клиент',      description: 'Создайте 20 заказов',         unlocked: myOrders.length >= 20, progress: Math.min(myOrders.length, 20), maxProgress: 20, reward: '+100 XP' },
+    { id: 'customer_orders_50',  icon: '👑', title: 'Постоянный клиент',  description: 'Создайте 50 заказов',         unlocked: myOrders.length >= 50, progress: Math.min(myOrders.length, 50), maxProgress: 50, reward: '+250 XP' },
   ];
   // Show chain achievement only if it's the first, unlocked, or the previous one is unlocked
   const visibleOrderChain = orderChain.filter((a, i) => i === 0 || orderChain[i - 1].unlocked || a.unlocked);
 
   const extraAchievements: Achievement[] = [
-    { id: 'completed_1',   icon: '✅', title: 'Первое выполнение', description: 'Подтвердите первый выполненный заказ', unlocked: completedOrders >= 1,   reward: '+15 XP' },
-    { id: 'completed_10',  icon: '🌟', title: 'Проверенный',       description: 'Завершите 10 заказов',                 unlocked: completedOrders >= 10,  progress: Math.min(completedOrders, 10), maxProgress: 10, reward: '+50 XP' },
-    { id: 'asap_1',        icon: '⚡', title: 'Срочный клиент',    description: 'Создайте срочный заказ',               unlocked: asapOrders >= 1,        reward: '+5 XP' },
-    { id: 'asap_5',        icon: '⚡⚡', title: 'Всегда срочно',  description: 'Создайте 5 срочных заказов',            unlocked: asapOrders >= 5,        progress: Math.min(asapOrders, 5), maxProgress: 5, reward: '+20 XP' },
-    { id: 'first_ref',     icon: '👥', title: 'Первый реферал',    description: 'Пригласите соседа',                    unlocked: referralCount >= 1,     reward: '+25 XP' },
-    { id: 'refs_3',        icon: '🤝', title: 'Бригадир',          description: 'Пригласите 3 соседей',                 unlocked: referralCount >= 3,     progress: Math.min(referralCount, 3), maxProgress: 3, reward: '+75 XP' },
-    { id: 'refs_5',        icon: '🏅', title: 'Король рефералов',  description: 'Пригласите 5 соседей',                 unlocked: referralCount >= 5,     progress: Math.min(referralCount, 5), maxProgress: 5, reward: '+150 XP' },
-    { id: 'level_2',       icon: '🌱', title: 'Новый уровень',     description: 'Достигните 2-го уровня',               unlocked: (user?.level ?? 1) >= 2, reward: 'Значок клиента' },
-    { id: 'level_5',       icon: '🌿', title: 'Уровень 5',         description: 'Достигните 5-го уровня',               unlocked: (user?.level ?? 1) >= 5, progress: user?.level ?? 1, maxProgress: 5, reward: '+100 XP' },
-    { id: 'level_10',      icon: '🌳', title: 'Уровень 10',        description: 'Достигните 10-го уровня',              unlocked: (user?.level ?? 1) >= 10, progress: user?.level ?? 1, maxProgress: 10, reward: '—' },
+    { id: 'eco_1',   icon: '🌱', title: 'Эко-старт',  description: 'Первый вывоз выполнен',           unlocked: completedOrders >= 1,   reward: '+20 XP' },
+    { id: 'eco_10',  icon: '♻️', title: 'Эко-боец',   description: '10 вывозов за чистый город',      unlocked: completedOrders >= 10,  progress: Math.min(completedOrders, 10), maxProgress: 10, reward: '+60 XP' },
+    { id: 'eco_50',  icon: '🌍', title: 'Эко-герой',  description: '50 вывозов — ты меняешь мир',     unlocked: completedOrders >= 50,  progress: Math.min(completedOrders, 50), maxProgress: 50, reward: '+150 XP' },
+    { id: 'first_ref', icon: '👥', title: 'Первый реферал',  description: 'Пригласите соседа',         unlocked: referralCount >= 1,     reward: '+25 XP' },
+    { id: 'refs_3',    icon: '🤝', title: 'Бригадир',        description: 'Пригласите 3 соседей',      unlocked: referralCount >= 3,     progress: Math.min(referralCount, 3), maxProgress: 3, reward: '+75 XP' },
+    { id: 'refs_5',    icon: '🏅', title: 'Король рефералов', description: 'Пригласите 5 соседей',     unlocked: referralCount >= 5,     progress: Math.min(referralCount, 5), maxProgress: 5, reward: '+150 XP' },
+    { id: 'level_2',   icon: '🌱', title: 'Новый уровень',   description: 'Достигните 2-го уровня',   unlocked: (user?.level ?? 1) >= 2, reward: 'Значок клиента' },
+    { id: 'level_5',   icon: '🌿', title: 'Уровень 5',       description: 'Достигните 5-го уровня',   unlocked: (user?.level ?? 1) >= 5, progress: user?.level ?? 1, maxProgress: 5, reward: '+100 XP' },
+    { id: 'level_10',  icon: '🌳', title: 'Уровень 10',      description: 'Достигните 10-го уровня',  unlocked: (user?.level ?? 1) >= 10, progress: user?.level ?? 1, maxProgress: 10, reward: '—' },
   ];
 
-  // Merge server-confirmed unlocks into achievement list
+  // Override unlocked status with authoritative server data for IDs that exist in DB
   const DB_ACHIEVEMENT_IDS = new Set([
-    'first_order','orders_5','orders_10','orders_25','orders_50','orders_100','orders_250','orders_500',
+    'customer_first','customer_orders_5','customer_orders_20','customer_orders_50',
+    'eco_1','eco_10','eco_50',
     'first_ref','refs_3','refs_5','refs_10',
   ]);
   const rawAchievements = [...visibleOrderChain, ...extraAchievements];

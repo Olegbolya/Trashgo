@@ -311,9 +311,15 @@ export default function ContractorDashboard() {
 
   const DB_ACHIEVEMENT_IDS = new Set([
     'first_order','orders_5','orders_10','orders_25','orders_50','orders_100','orders_250','orders_500',
-    'first_rating','perfect_5','ratings_10',
+    'first_rating','perfect_5','ratings_10','ratings_50',
+    'quality_4_5','quality_4_8','quality_5_0',
     'first_ref','refs_3','refs_5','refs_10',
     'asap_job_1','asap_job_10','asap_job_50',
+    'volume_10','volume_50','volume_200','volume_500',
+    'districts_2','districts_4','districts_7',
+    'morning_1','morning_5','night_1','night_5','weekend_3','weekend_10',
+    'vehicle_car','vehicle_truck',
+    'tenure_30','tenure_180',
   ]);
   const rawAchievements = [...visibleJobChain, ...extraAchievements];
   const achievements: Achievement[] = rawAchievements.map(a =>
