@@ -1033,10 +1033,8 @@ export default function CustomerDashboard() {
                     scheduledAt,
                     photoUrls,
                   }) as any;
-                  const apiOrder: Order = res?.data ?? res;
                   resultOrder = {
                     ...originalOrder,
-                    id: apiOrder.id,
                     address: createForm.address,
                     entrance: createForm.entrance,
                     floor: createForm.floor,

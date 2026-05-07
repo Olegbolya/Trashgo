@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router';
 import { Bell, X, Trash2, CheckCheck, MessageCircle, Package, Zap } from 'lucide-react';
 import { useNotificationsStore, type AppNotification } from '../../stores/notifications.store';
 import { useTheme } from '../context/ThemeContext';
-import { useAuthStore } from '../../stores/auth.store';
 
 function timeAgo(ts: number): string {
   const diff = Date.now() - ts;
@@ -29,7 +28,6 @@ export function NotificationBell({ accentColor }: Props) {
   const { isDark } = useTheme();
   const navigate = useNavigate();
   const { notifications, markAllRead, clearAll, markRead } = useNotificationsStore();
-  const { user } = useAuthStore();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -54,9 +52,7 @@ export function NotificationBell({ accentColor }: Props) {
   const handleNotifClick = (n: AppNotification) => {
     markRead(n.id);
     setOpen(false);
-    if (n.type === 'xp') {
-      navigate(user?.role === 'contractor' ? '/contractor?tab=profile' : '/customer?tab=profile');
-    } else if (n.orderId) {
+    if (n.orderId) {
       navigate(`/order/${n.orderId}`);
     } else {
       navigate('/notifications');
