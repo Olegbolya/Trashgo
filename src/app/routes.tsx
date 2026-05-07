@@ -15,7 +15,6 @@ const CustomerDashboard = lazy(() => import("./pages/CustomerDashboard"));
 const ContractorDashboard = lazy(() => import("./pages/ContractorDashboard"));
 const CreateOrder = lazy(() => import("./pages/CreateOrder"));
 const FindOrders = lazy(() => import("./pages/FindOrders"));
-const FindOrdersNew = lazy(() => import("./pages/FindOrdersNew"));
 const MySubscriptions = lazy(() => import("./pages/MySubscriptions"));
 const FindContractors = lazy(() => import("./pages/FindContractors"));
 const MyContractors = lazy(() => import("./pages/MyContractors"));
@@ -106,7 +105,6 @@ export const router = createBrowserRouter([
   // Protected + Layout — contractor pages
   { path: "/contractor-referral", element: guardedLayout(ContractorReferral) },
   { path: "/find-orders", element: guardedLayout(FindOrders, 'contractor') },
-  { path: "/find-orders-new", element: guardedLayout(FindOrdersNew, 'contractor') },
   { path: "/order/:id", element: guardedLayout(OrderDetail) },
   { path: "/leaderboard", element: guarded(Leaderboard) },
 
