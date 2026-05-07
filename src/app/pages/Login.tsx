@@ -21,6 +21,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const pendingRefRole = sessionStorage.getItem('pendingRefRole') as 'customer' | 'contractor' | null;
+  const pendingRefCode = sessionStorage.getItem('pendingRefCode');
   const role = (location.state?.role || pendingRefRole || 'customer') as 'customer' | 'contractor';
   const { accentColor, setRole } = useRoleStore();
   const accent = accentColor;
@@ -87,6 +88,22 @@ export default function Login() {
           <h1 className="text-2xl text-gray-900 mb-2">Вход или регистрация</h1>
           <p className="text-gray-600">Введите номер телефона</p>
         </div>
+
+        {pendingRefCode && (
+          <div className="rounded-2xl p-4 mb-4 flex items-start gap-3" style={{ background: `${accent}12`, border: `1.5px solid ${accent}40` }}>
+            <span className="text-xl flex-shrink-0">🎁</span>
+            <div className="text-left">
+              <div className="text-sm font-semibold" style={{ color: accent }}>
+                {pendingRefRole === 'contractor' ? 'Вас приглашают как исполнителя' : 'Вас пригласили в TrashGo'}
+              </div>
+              <div className="text-xs mt-0.5 text-gray-600">
+                {pendingRefRole === 'contractor'
+                  ? 'Зарегистрируйтесь — выполняйте заказы и зарабатывайте рядом с домом'
+                  : 'Зарегистрируйтесь и воспользуйтесь реферальной скидкой'}
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4">
           <div className="mb-6">

@@ -51,7 +51,8 @@ export default function RegisterCustomer() {
     try {
       const refCode = sessionStorage.getItem('pendingRefCode') ?? undefined;
       const res = await authApi.register({ phone, code: verifiedCode, name: formData.name, role: 'customer', district, refCode });
-      if (refCode) sessionStorage.removeItem('pendingRefCode');
+      sessionStorage.removeItem('pendingRefCode');
+      sessionStorage.removeItem('pendingRefRole');
       setAuth(res.user, res.token, res.refreshToken);
       navigate('/customer');
     } catch (err: any) {

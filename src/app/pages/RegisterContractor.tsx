@@ -56,7 +56,8 @@ export default function RegisterContractor() {
         ...(formData.inn.length === 12 ? { inn: formData.inn } : {}),
       };
       const res = await authApi.register({ phone, code: verifiedCode, name: formData.name, role: 'contractor', district: formData.district, refCode, ...extraFields });
-      if (refCode) sessionStorage.removeItem('pendingRefCode');
+      sessionStorage.removeItem('pendingRefCode');
+      sessionStorage.removeItem('pendingRefRole');
       setAuth(res.user, res.token, res.refreshToken);
       navigate('/contractor');
     } catch (err: any) {
