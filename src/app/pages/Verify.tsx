@@ -13,6 +13,11 @@ export default function Verify() {
   const { isDark } = useTheme();
   const phone = location.state?.phone || '';
   const role = location.state?.role || 'customer';
+
+  if (!phone) {
+    navigate('/login', { replace: true });
+    return null;
+  }
   const devCode = location.state?.devCode as string | undefined;
   const telegramBotLink = location.state?.telegramBotLink as string | undefined;
   const channel = location.state?.channel as string | undefined;

@@ -318,7 +318,7 @@ export default function CustomerDashboard() {
     input:   isDark ? '#1f2937' : '#ffffff',
   };
 
-  const XP_THRESHOLDS = [0, 100, 200, 400, 700, 1000];
+  const XP_THRESHOLDS = [0, 100, 250, 500, 900, 1400, 2100, 3000, 4200, 5800, 8000];
   const currentXp = user?.xp ?? 0;
   const currentLevel = user?.level ?? 1;
   const nextLevelXp = XP_THRESHOLDS[Math.min(currentLevel, XP_THRESHOLDS.length - 1)] || 1000;
