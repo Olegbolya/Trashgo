@@ -52,6 +52,7 @@ export default function CustomerDashboard() {
   const [originalOrder, setOriginalOrder] = useState<MyOrder | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const publishingRef = useRef(false);
@@ -1463,11 +1464,14 @@ export default function CustomerDashboard() {
                       </button>
                       <button
                         className="flex-1 h-11 rounded-xl text-sm font-medium"
-                        style={{ border: `1px solid #fca5a5`, background: 'transparent', color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit' }}
+                        disabled={cancelingId === (originalOrder?.id ?? '')}
+                        style={{ border: `1px solid #fca5a5`, background: 'transparent', color: '#ef4444', cursor: cancelingId === (originalOrder?.id ?? '') ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: cancelingId === (originalOrder?.id ?? '') ? 0.6 : 1 }}
                         onClick={async () => {
                           if (originalOrder) {
+                            setCancelingId(originalOrder.id);
                             try { await ordersApi.updateStatus(originalOrder.id, 'cancelled'); } catch {}
                             setMyOrders((prev) => prev.filter((o) => o.id !== originalOrder.id));
+                            setCancelingId(null);
                           }
                           setCreateErrors({});
                           setPreloadedPhotoUrls([]);
@@ -1480,7 +1484,7 @@ export default function CustomerDashboard() {
                           toast.success('Заказ отменён');
                         }}
                       >
-                        Отменить заказ
+                        {cancelingId === (originalOrder?.id ?? '') ? '⏳ Отмена...' : 'Отменить заказ'}
                       </button>
                     </div>
                   </div>
@@ -1885,15 +1889,18 @@ export default function CustomerDashboard() {
                     {selectedOrder.status === 'waiting' && (
                       <button
                         className="flex-1 py-2.5 rounded-xl text-sm font-medium"
-                        style={{ border: `1px solid #fca5a5`, background: 'transparent', color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit' }}
+                        disabled={cancelingId === selectedOrder.id}
+                        style={{ border: `1px solid #fca5a5`, background: 'transparent', color: '#ef4444', cursor: cancelingId === selectedOrder.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: cancelingId === selectedOrder.id ? 0.6 : 1 }}
                         onClick={async () => {
+                          setCancelingId(selectedOrder.id);
                           try { await ordersApi.updateStatus(selectedOrder.id, 'cancelled'); } catch {}
                           setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
                           setSelectedOrder(null);
+                          setCancelingId(null);
                           toast.success('Заказ отменён');
                         }}
                       >
-                        Отменить заказ
+                        {cancelingId === selectedOrder.id ? '⏳ Отмена...' : 'Отменить заказ'}
                       </button>
                     )}
                   </div>
