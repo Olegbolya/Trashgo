@@ -24,11 +24,17 @@ export default function Leaderboard() {
   const [showFilter, setShowFilter] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    leaderboardApi.get(district || undefined, 30)
-      .then(res => setEntries(res.data))
-      .catch(() => toast.error('Не удалось загрузить рейтинг'))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    const load = (showLoader = false) => {
+      if (showLoader) setLoading(true);
+      leaderboardApi.get(district || undefined, 30)
+        .then(res => { if (!cancelled) setEntries(res.data); })
+        .catch(() => { if (showLoader) toast.error('Не удалось загрузить рейтинг'); })
+        .finally(() => { if (showLoader) setLoading(false); });
+    };
+    load(true);
+    const id = setInterval(() => load(false), 60_000);
+    return () => { cancelled = true; clearInterval(id); };
   }, [district]);
 
   const bg = isDark ? 'bg-gray-950' : 'bg-gray-50';

@@ -136,6 +136,7 @@ export default function CustomerDashboard() {
   const [myOrders, setMyOrders] = useState<MyOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<MyOrder | null>(null);
   const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [geocodeSuggestions, setGeocodeSuggestions] = useState<{ label: string; full: string }[]>([]);
@@ -177,7 +178,7 @@ export default function CustomerDashboard() {
         const updated = mapped.find(o => o.id === prev.id);
         return updated ?? prev;
       });
-    }).catch(() => {}).finally(() => { if (!silent) setOrdersLoading(false); });
+    }).catch(() => { if (!silent) setOrdersError(true); }).finally(() => { if (!silent) setOrdersLoading(false); });
   };
 
   useEffect(() => {
@@ -651,6 +652,17 @@ export default function CustomerDashboard() {
                       </div>
                     ))}
                   </div>
+                ) : ordersError ? (
+                  <div className="text-center py-10" style={card}>
+                    <div className="text-2xl mb-2">⚠️</div>
+                    <div className="font-medium mb-1" style={{ color: c.text }}>Не удалось загрузить заказы</div>
+                    <div className="text-sm mb-4" style={{ color: c.muted }}>Проверьте соединение и попробуйте снова</div>
+                    <button
+                      className="px-4 py-2 rounded-xl text-sm font-medium"
+                      style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                      onClick={() => { setOrdersError(false); refreshOrders(); }}
+                    >Повторить</button>
+                  </div>
                 ) : activeOrders.length === 0 ? (
                   <div className="text-center py-12" style={card}>
                     <Package className="w-12 h-12 mx-auto mb-4" style={{ color: c.border }} />
@@ -768,6 +780,12 @@ export default function CustomerDashboard() {
                     <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-t-transparent animate-spin" style={{ borderColor: `${c.border} ${c.border} ${c.border} ${ACCENT}` }} />
                     <div className="font-medium mb-1" style={{ color: c.text }}>Загружаем информацию...</div>
                     <div className="text-sm" style={{ color: c.muted }}>Пожалуйста, подождите</div>
+                  </div>
+                ) : ordersError ? (
+                  <div className="text-center py-10" style={{ ...card }}>
+                    <div className="text-2xl mb-2">⚠️</div>
+                    <div className="font-medium mb-1" style={{ color: c.text }}>Не удалось загрузить историю</div>
+                    <button className="mt-3 px-4 py-2 rounded-xl text-sm font-medium" style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { setOrdersError(false); refreshOrders(); }}>Повторить</button>
                   </div>
                 ) : historyOrders.length === 0 ? (
                   <div className="text-center py-12" style={{ ...card }}>

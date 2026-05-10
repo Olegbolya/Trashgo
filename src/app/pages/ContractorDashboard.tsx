@@ -41,6 +41,7 @@ export default function ContractorDashboard() {
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [myJobs, setMyJobs] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState(false);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -105,7 +106,8 @@ export default function ContractorDashboard() {
       ordersApi.available().then((res: any) => {
         const orders: Order[] = res?.data ?? [];
         setAvailableOrders(orders.filter(o => o.customerId !== user?.id));
-      }).catch(() => {}).finally(() => { if (initial) setOrdersLoading(false); });
+        if (initial) setOrdersError(false);
+      }).catch(() => { if (initial) setOrdersError(true); }).finally(() => { if (initial) setOrdersLoading(false); });
     };
     load(true);
     const interval = setInterval(() => load(false), 10000);
@@ -1306,6 +1308,16 @@ export default function ContractorDashboard() {
                       </div>
                     </div>
                   ))}
+                </div>
+              ) : ordersError ? (
+                <div style={{ ...card, textAlign: 'center', padding: '2.5rem 1.25rem' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>⚠️</div>
+                  <div className="font-semibold mb-1" style={{ color: c.text }}>Не удалось загрузить заказы</div>
+                  <div className="text-sm mb-4" style={{ color: c.muted }}>Проверьте соединение и попробуйте снова</div>
+                  <button
+                    style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '0.5rem 1.25rem', borderRadius: '0.75rem', fontWeight: 500 }}
+                    onClick={() => { setOrdersError(false); setOrdersLoading(true); ordersApi.available().then((res: any) => { setAvailableOrders((res?.data ?? []).filter((o: any) => o.customerId !== user?.id)); }).catch(() => setOrdersError(true)).finally(() => setOrdersLoading(false)); }}
+                  >Повторить</button>
                 </div>
               ) : visibleOrders.length === 0 ? (
                 <div style={{ ...card, textAlign: 'center', padding: '2.5rem 1.25rem' }}>
