@@ -91,20 +91,22 @@ export default function Notifications() {
       {/* Header */}
       <header className="sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}` }}>
         <div className="container mx-auto px-3">
-          <div className="relative flex items-center justify-center h-12">
+          <div className="relative flex items-center h-12">
             <button
               onClick={() => navigate(-1)}
-              style={{ position: 'absolute', left: 0, background: 'none', border: 'none', cursor: 'pointer', color: c.muted, display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'inherit', padding: '4px' }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'inherit', padding: '4px' }}
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
-            <div className="flex items-center gap-2">
-              <div className="text-sm font-semibold" style={{ color: c.text }}>Уведомления</div>
-              {unread > 0 && (
-                <span className="text-xs font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background: '#ef4444' }}>{unread}</span>
-              )}
+            <div style={{ position: 'absolute', left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', pointerEvents: 'auto' }}>
+                <div className="text-sm font-semibold" style={{ color: c.text }}>Уведомления</div>
+                {unread > 0 && (
+                  <span className="text-xs font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background: '#ef4444' }}>{unread}</span>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-1" style={{ position: 'absolute', right: 0 }}>
+            <div className="flex items-center gap-1" style={{ marginLeft: 'auto' }}>
               {tab === 'list' && notifications.length > 0 && (
                 <>
                   <button onClick={markAllRead} title="Прочитать все" style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, padding: '4px', borderRadius: '8px' }}>
