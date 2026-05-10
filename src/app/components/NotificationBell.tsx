@@ -95,8 +95,7 @@ export function NotificationBell({ accentColor }: Props) {
       {/* Dropdown panel */}
       {open && (
         <div
-          className="absolute right-0 top-11 w-80 rounded-2xl shadow-2xl z-[9999] overflow-hidden"
-          style={{ background: c.surface, border: `1px solid ${c.border}` }}
+          style={{ position: 'fixed', right: '8px', top: '56px', width: '320px', maxWidth: 'calc(100vw - 16px)', borderRadius: '1rem', boxShadow: '0 8px 32px rgba(0,0,0,0.25)', zIndex: 9999, overflow: 'hidden', background: c.surface, border: `1px solid ${c.border}` }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${c.border}` }}>
