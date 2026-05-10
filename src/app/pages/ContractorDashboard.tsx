@@ -602,13 +602,13 @@ export default function ContractorDashboard() {
                                   <div className="flex items-center gap-1.5 mb-1">
                                     <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: c.muted }} />
                                     <span className="text-sm font-medium truncate" style={{ color: c.text }}>{job.address}</span>
-                                    <a
-                                      href={`https://yandex.ru/maps/43/kazan/?mode=routes&rtext=~${encodeURIComponent(job.address + ', Казань')}&rtt=auto`}
-                                      target="_blank" rel="noreferrer"
-                                      onClick={(e) => e.stopPropagation()}
-                                      style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 2, padding: '1px 6px', borderRadius: 4, background: '#FC3F1D18', color: '#FC3F1D', fontSize: '0.65rem', fontWeight: 600, textDecoration: 'none', border: 'none' }}
-                                    >🗺️</a>
                                   </div>
+                                  <a
+                                    href={`https://yandex.ru/maps/43/kazan/?mode=routes&rtext=~${encodeURIComponent(job.address + ', Казань')}&rtt=auto`}
+                                    target="_blank" rel="noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.4rem 0.75rem', borderRadius: '0.5rem', background: '#FC3F1D', color: 'white', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none', marginBottom: '0.375rem' }}
+                                  >🗺️ Маршрут до адреса</a>
                                   {job.description && (
                                     <div className="text-xs" style={{ color: c.muted }}>{job.description}</div>
                                   )}
@@ -640,7 +640,7 @@ export default function ContractorDashboard() {
                                 {job.status === 'in_progress' && (
                                   <div className="space-y-2">
                                     <div className="text-xs font-medium" style={{ color: c.muted }}>Сфотографируйте мусор у бака:</div>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', border: `1.5px dashed ${c.border}`, borderRadius: '0.625rem', cursor: 'pointer', background: c.subtle }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', border: `1.5px solid #2196F3`, borderRadius: '0.625rem', cursor: 'pointer', background: '#2196F310' }}>
                                       <input
                                         type="file"
                                         accept="image/*"

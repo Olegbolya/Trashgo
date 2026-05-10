@@ -16,6 +16,7 @@ import { HowItWorksModal } from '../components/HowItWorksModal';
 import { RatingModal } from '../components/RatingModal';
 import { NotificationBell } from '../components/NotificationBell';
 import { useNotificationsStore } from '../../stores/notifications.store';
+import { searchKazanStreets } from '../../data/kazanStreets';
 
 const ACCENT = '#66BB6A';
 
@@ -1141,33 +1142,45 @@ export default function CustomerDashboard() {
                             setShowAddressSuggestions(false);
                             setGeocodeSuggestions([]);
                           }
-                          // Debounced geocoding from Nominatim for real Kazan addresses
+                          // Instant local Kazan streets (≥2 chars) + debounced Nominatim fallback
                           if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current);
                           setGeocodeNoResults(false);
-                          if (val.length >= 3) {
-                            geocodeTimerRef.current = setTimeout(async () => {
-                              try {
-                                const res = await fetch(`/api/v1/geocode?q=${encodeURIComponent(val + ' Казань')}&limit=5`);
-                                const data: any[] = await res.json();
-                                const suggestions = data
-                                  .filter(d => d.address)
-                                  .map(d => {
-                                    const a = d.address;
-                                    const road = a.road || a.pedestrian || a.footway || '';
-                                    const house = a.house_number || '';
-                                    const label = [road, house].filter(Boolean).join(', ') || d.display_name.split(',')[0];
-                                    return { label, full: label };
-                                  })
-                                  .filter(s => s.label.length > 0);
-                                setGeocodeSuggestions(suggestions);
-                                if (suggestions.length > 0) {
-                                  setShowAddressSuggestions(true);
-                                  setGeocodeNoResults(false);
-                                } else {
-                                  setGeocodeNoResults(true);
-                                }
-                              } catch {}
-                            }, 500);
+                          if (val.length >= 2) {
+                            // Show local streets immediately
+                            const local = searchKazanStreets(val, 5);
+                            if (local.length > 0) {
+                              setGeocodeSuggestions(local.map(s => ({ label: `${s.label} (${s.district})`, full: s.label })));
+                              setShowAddressSuggestions(true);
+                              setGeocodeNoResults(false);
+                            } else {
+                              setGeocodeSuggestions([]);
+                            }
+                            // Nominatim as secondary (slower, but catches house numbers)
+                            if (val.length >= 4) {
+                              geocodeTimerRef.current = setTimeout(async () => {
+                                try {
+                                  const res = await fetch(`/api/v1/geocode?q=${encodeURIComponent(val + ' Казань')}&limit=5`);
+                                  const data: any[] = await res.json();
+                                  const suggestions = data
+                                    .filter(d => d.address)
+                                    .map(d => {
+                                      const a = d.address;
+                                      const road = a.road || a.pedestrian || a.footway || '';
+                                      const house = a.house_number || '';
+                                      const label = [road, house].filter(Boolean).join(', ') || d.display_name.split(',')[0];
+                                      return { label, full: label };
+                                    })
+                                    .filter(s => s.label.length > 0);
+                                  if (suggestions.length > 0) {
+                                    setGeocodeSuggestions(suggestions);
+                                    setShowAddressSuggestions(true);
+                                    setGeocodeNoResults(false);
+                                  } else if (local.length === 0) {
+                                    setGeocodeNoResults(true);
+                                  }
+                                } catch {}
+                              }, 800);
+                            }
                           } else {
                             setGeocodeSuggestions([]);
                             setGeocodeNoResults(false);
@@ -1237,8 +1250,8 @@ export default function CustomerDashboard() {
                         </div>
                       )}
                       {createErrors.address && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{createErrors.address}</p>}
-                      {geocodeNoResults && !createErrors.address && createForm.address.length >= 3 && (
-                        <p className="text-xs mt-1" style={{ color: '#f59e0b' }}>⚠️ Адрес не найден в Казани. Проверьте написание или введите вручную.</p>
+                      {geocodeNoResults && !createErrors.address && createForm.address.length >= 4 && (
+                        <p className="text-xs mt-1" style={{ color: '#f59e0b' }}>⚠️ Адрес не найден. Проверьте написание или введите вручную.</p>
                       )}
                     </div>
 
