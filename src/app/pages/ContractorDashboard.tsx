@@ -40,7 +40,7 @@ export default function ContractorDashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [myJobs, setMyJobs] = useState<Order[]>([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState(false);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -63,13 +63,14 @@ export default function ContractorDashboard() {
   const [filterTimeFrom, setFilterTimeFrom] = useState('');
   const [filterTimeTo, setFilterTimeTo] = useState('');
   const [filterDistrict, setFilterDistrict] = useState('');
-  const [filterDistanceKm, setFilterDistanceKm] = useState(10);
+  const [filterDistanceKm, setFilterDistanceKm] = useState(50);
   const [sortOrders, setSortOrders] = useState<'newest' | 'price_asc' | 'price_desc' | 'date_asc' | 'date_desc' | 'distance_asc'>('newest');
   const [contractorGps, setContractorGps] = useState<{ lat: number; lon: number } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [orderCoords, setOrderCoords] = useState<Map<string, { lat: number; lon: number } | null>>(new Map());
   const [historyDetailOrder, setHistoryDetailOrder] = useState<Order | null>(null);
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
+  const [paymentDisputedIds, setPaymentDisputedIds] = useState<Set<string>>(new Set());
   const [ratingOrder, setRatingOrder] = useState<{ id: string; customerName: string } | null>(null);
   const [editInfoOpen, setEditInfoOpen] = useState(false);
   const [editInfoForm, setEditInfoForm] = useState({ transportMode: 'car' });
@@ -919,6 +920,30 @@ export default function ContractorDashboard() {
                               {'★'.repeat((job as any).ratingByContractor)}{'☆'.repeat(5 - (job as any).ratingByContractor)} Вы оценили
                             </div>
                           )}
+                          {isDone && !paymentDisputedIds.has(job.id) && (
+                            <button
+                              className="w-full mt-1.5 h-8 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5"
+                              style={{ background: '#ef444412', border: '1px solid #ef444430', color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit' }}
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!confirm('Вы уверены, что не получили оплату? Аккаунт заказчика будет заморожен до выяснения.')) return;
+                                try {
+                                  await ordersApi.paymentDispute(job.id);
+                                  setPaymentDisputedIds(prev => new Set([...prev, job.id]));
+                                  toast.success('Спор зарегистрирован. Аккаунт заказчика заморожен.');
+                                } catch (err: any) {
+                                  toast.error(err?.message || 'Не удалось зарегистрировать спор');
+                                }
+                              }}
+                            >
+                              ⚠️ Оплату не получил
+                            </button>
+                          )}
+                          {isDone && paymentDisputedIds.has(job.id) && (
+                            <div className="mt-1.5 text-xs text-center py-1.5 rounded-lg" style={{ background: '#ef444412', color: '#ef4444' }}>
+                              Спор зарегистрирован — ожидайте решения
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1154,7 +1179,8 @@ export default function ContractorDashboard() {
               if (filterDistrict && !o.district.toLowerCase().includes(filterDistrict.toLowerCase())) return false;
               if (contractorGps && filterDistanceKm < 50) {
                 const coords = orderCoords.get(o.id);
-                if (coords !== undefined && (!coords || haversineKm(contractorGps.lat, contractorGps.lon, coords.lat, coords.lon) > filterDistanceKm)) return false;
+                // undefined = not yet geocoded → keep (loading); null = geocoding failed → keep; object → apply distance filter
+                if (coords !== undefined && coords !== null && haversineKm(contractorGps.lat, contractorGps.lon, coords.lat, coords.lon) > filterDistanceKm) return false;
               }
               if (o.asap) return true;
               const dt = o.scheduledAt ? new Date(o.scheduledAt) : null;
@@ -1171,8 +1197,11 @@ export default function ContractorDashboard() {
               if (sortOrders === 'distance_asc' && contractorGps) {
                 const ca = orderCoords.get(a.id);
                 const cb = orderCoords.get(b.id);
-                const da = ca ? haversineKm(contractorGps.lat, contractorGps.lon, ca.lat, ca.lon) : Infinity;
-                const db2 = cb ? haversineKm(contractorGps.lat, contractorGps.lon, cb.lat, cb.lon) : Infinity;
+                const da = (ca && ca.lat != null) ? haversineKm(contractorGps.lat, contractorGps.lon, ca.lat, ca.lon) : Infinity;
+                const db2 = (cb && cb.lat != null) ? haversineKm(contractorGps.lat, contractorGps.lon, cb.lat, cb.lon) : Infinity;
+                if (!isFinite(da) && !isFinite(db2)) return 0;
+                if (!isFinite(da)) return 1;
+                if (!isFinite(db2)) return -1;
                 return da - db2;
               }
               if (sortOrders === 'price_asc') return a.price - b.price;
@@ -1208,7 +1237,7 @@ export default function ContractorDashboard() {
                     <span className="text-sm font-medium" style={{ color: c.text }}>Фильтры поиска</span>
                     {hasActiveFilters && (
                       <button
-                        onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterTimeFrom(''); setFilterTimeTo(''); setFilterDistrict(''); }}
+                        onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterTimeFrom(''); setFilterTimeTo(''); setFilterDistrict(''); setFilterDistanceKm(50); setSortOrders('newest'); }}
                         className="text-xs"
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontFamily: 'inherit' }}
                       >Сбросить</button>

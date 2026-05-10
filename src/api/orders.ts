@@ -72,4 +72,8 @@ export const ordersApi = {
   disputeOrder(id: string, reason: string) {
     return api.post<{ ok: boolean }>(`/orders/${id}/dispute`, { reason });
   },
+
+  paymentDispute(id: string) {
+    return api.post<{ ok: boolean }>(`/orders/${id}/payment-dispute`, {});
+  },
 };
