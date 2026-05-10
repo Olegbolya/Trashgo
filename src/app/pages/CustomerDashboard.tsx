@@ -1382,8 +1382,8 @@ export default function CustomerDashboard() {
                         style={{
                           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                           gap: '0.5rem', padding: '1.25rem',
-                          border: `2px dashed ${c.border}`, borderRadius: '0.75rem',
-                          cursor: 'pointer', background: c.subtle,
+                          border: `2px dashed #2196F3`, borderRadius: '0.75rem',
+                          cursor: 'pointer', background: '#2196F308',
                         }}
                       >
                         <input
@@ -1397,7 +1397,7 @@ export default function CustomerDashboard() {
                           }}
                         />
                         <div style={{ fontSize: '1.5rem' }}>📷</div>
-                        <div className="text-sm font-medium" style={{ color: c.textSub }}>Нажмите, чтобы добавить фото</div>
+                        <div className="text-sm font-medium" style={{ color: '#2196F3' }}>Нажмите, чтобы добавить фото</div>
                         <div className="text-xs" style={{ color: c.muted }}>Помогает исполнителю оценить объём. До 5 фото.</div>
                       </label>
                       {(preloadedPhotoUrls.length > 0 || createPhotos.length > 0) && (

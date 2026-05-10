@@ -48,8 +48,15 @@ export default function FindOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [sortType, setSortType] = useState<SortType>('smart');
-  const [filterType, setFilterType] = useState<FilterType>('all');
+  const [sortType, setSortType] = useState<SortType>(() => {
+    try { return (localStorage.getItem('find_orders_sort') as SortType) || 'smart'; } catch { return 'smart'; }
+  });
+  const [filterType, setFilterType] = useState<FilterType>(() => {
+    try { return (localStorage.getItem('find_orders_filter') as FilterType) || 'all'; } catch { return 'all'; }
+  });
+
+  const updateSort = (v: SortType) => { setSortType(v); try { localStorage.setItem('find_orders_sort', v); } catch {} };
+  const updateFilter = (v: FilterType) => { setFilterType(v); try { localStorage.setItem('find_orders_filter', v); } catch {} };
   const [accepting, setAccepting] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
   const userDistrict = user?.district ?? '';
@@ -148,7 +155,7 @@ export default function FindOrders() {
             ] as { key: SortType; label: string }[]).map(s => (
               <button
                 key={s.key}
-                onClick={() => setSortType(s.key)}
+                onClick={() => updateSort(s.key)}
                 style={{
                   padding: '4px 10px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
                   background: sortType === s.key ? accentColor : '#f3f4f6',
@@ -169,7 +176,7 @@ export default function FindOrders() {
             ] as { key: FilterType; label: string }[]).map(f => (
               <button
                 key={f.key}
-                onClick={() => setFilterType(f.key)}
+                onClick={() => updateFilter(f.key)}
                 style={{
                   padding: '4px 10px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
                   background: filterType === f.key ? '#111827' : '#f3f4f6',

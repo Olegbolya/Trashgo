@@ -601,6 +601,12 @@ export default function ContractorDashboard() {
                                   <div className="flex items-center gap-1.5 mb-1">
                                     <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: c.muted }} />
                                     <span className="text-sm font-medium truncate" style={{ color: c.text }}>{job.address}</span>
+                                    <a
+                                      href={`https://yandex.ru/maps/43/kazan/?mode=routes&rtext=~${encodeURIComponent(job.address + ', Казань')}&rtt=auto`}
+                                      target="_blank" rel="noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 2, padding: '1px 6px', borderRadius: 4, background: '#FC3F1D18', color: '#FC3F1D', fontSize: '0.65rem', fontWeight: 600, textDecoration: 'none', border: 'none' }}
+                                    >🗺️</a>
                                   </div>
                                   {job.description && (
                                     <div className="text-xs" style={{ color: c.muted }}>{job.description}</div>
@@ -645,7 +651,7 @@ export default function ContractorDashboard() {
                                         }}
                                       />
                                       <span style={{ fontSize: '1.1rem' }}>📷</span>
-                                      <span className="text-xs" style={{ color: c.textSub }}>
+                                      <span className="text-xs font-medium" style={{ color: (completionPhotos[job.id]?.length ?? 0) > 0 ? c.textSub : '#2196F3' }}>
                                         {(completionPhotos[job.id]?.length ?? 0) > 0
                                           ? `${completionPhotos[job.id].length} фото выбрано`
                                           : 'Добавить фото (до 3)'}

@@ -42,8 +42,10 @@ class ApiClient {
       });
 
       if (!res.ok) {
-        // Refresh token expired — clear auth state
-        this.clearAuth();
+        // Only clear auth on explicit auth rejection (401/403), not server errors
+        if (res.status === 401 || res.status === 403) {
+          this.clearAuth();
+        }
         return null;
       }
 
@@ -63,7 +65,7 @@ class ApiClient {
 
       return token;
     } catch {
-      this.clearAuth();
+      // Network error — don't clear auth, let the original request fail gracefully
       return null;
     }
   }

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="8" fill="#4CAF50"/>
+  <g fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Trash bin body -->
+    <rect x="8" y="12" width="16" height="14" rx="2" fill="white" stroke="none"/>
+    <!-- Lid -->
+    <path d="M6 12h20" stroke="white"/>
+    <path d="M11 12V9a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v3" stroke="white"/>
+    <!-- Lines on bin -->
+    <line x1="13" y1="15" x2="13" y2="23" stroke="#4CAF50" stroke-width="1.5"/>
+    <line x1="16" y1="15" x2="16" y2="23" stroke="#4CAF50" stroke-width="1.5"/>
+    <line x1="19" y1="15" x2="19" y2="23" stroke="#4CAF50" stroke-width="1.5"/>
+  </g>
+</svg>
