@@ -16,6 +16,7 @@ export interface User {
   notifPush: boolean;
   notifEmail: boolean;
   notifEmailAddress: string | null;
+  telegramLinked: boolean;
   createdAt: string;
 }
 

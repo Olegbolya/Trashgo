@@ -71,6 +71,7 @@ export default function ContractorDashboard() {
   const [historyDetailOrder, setHistoryDetailOrder] = useState<Order | null>(null);
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
   const [paymentDisputedIds, setPaymentDisputedIds] = useState<Set<string>>(new Set());
+  const [tgBotUsername, setTgBotUsername] = useState<string | null>(null);
   const [ratingOrder, setRatingOrder] = useState<{ id: string; customerName: string } | null>(null);
   const [editInfoOpen, setEditInfoOpen] = useState(false);
   const [editInfoForm, setEditInfoForm] = useState({ transportMode: 'car' });
@@ -141,11 +142,12 @@ export default function ContractorDashboard() {
     return () => clearInterval(interval);
   }, [activeTab]);
 
-  // Load server achievements on mount
+  // Load server achievements + bot info on mount
   useEffect(() => {
     achievementsApi.getMy().then((list) => {
       setApiUnlockedIds(new Set(list.filter(a => a.unlocked).map(a => a.id)));
     }).catch(() => {});
+    authApi.botInfo().then((d) => setTgBotUsername(d.username ?? null)).catch(() => {});
   }, []);
 
   // Refresh user data (XP, level, balance) and detect changes (item 11)
@@ -1127,6 +1129,34 @@ export default function ContractorDashboard() {
                   </button>
                 ))}
               </div>
+
+              {/* Telegram connect */}
+              {tgBotUsername && (
+                <div style={card}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#229ED918' }}>
+                        <span style={{ fontSize: '1.1rem' }}>✈️</span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium" style={{ color: c.text }}>Telegram-уведомления</div>
+                        <div className="text-xs" style={{ color: c.muted }}>
+                          {user?.telegramLinked ? '✅ Подключён — уведомления в боте' : 'Новые заказы прямо в Telegram'}
+                        </div>
+                      </div>
+                    </div>
+                    {!user?.telegramLinked ? (
+                      <a
+                        href={`https://t.me/${tgBotUsername}?start=${encodeURIComponent(user?.phone ?? '')}`}
+                        target="_blank" rel="noreferrer"
+                        style={{ flexShrink: 0, padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#229ED9', color: 'white', fontSize: '0.75rem', fontWeight: 600, textDecoration: 'none' }}
+                      >Подключить</a>
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: '#4CAF50', fontWeight: 600 }}>Активен</span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Switch to Customer */}
               <button className="w-full flex items-center justify-between p-4 rounded-2xl" style={{ ...card, cursor: 'pointer' }} onClick={() => navigate('/customer')}>

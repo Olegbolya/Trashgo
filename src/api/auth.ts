@@ -103,4 +103,8 @@ export const authApi = {
     const res = await api.patch<{ data: User }>('/users/me', data);
     return res.data;
   },
+
+  async botInfo(): Promise<{ username: string | null }> {
+    return api.get<{ username: string | null }>('/auth/bot-info');
+  },
 };

@@ -74,6 +74,7 @@ export default function CustomerDashboard() {
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [referralCount, setReferralCount] = useState(0);
   const [apiUnlockedIds, setApiUnlockedIds] = useState<Set<string>>(new Set());
+  const [tgBotUsername, setTgBotUsername] = useState<string | null>(null);
 
   const refreshAchievements = () => {
     achievementsApi.getMy().then((list) => {
@@ -245,12 +246,13 @@ export default function CustomerDashboard() {
     }
   }, [selectedOrder?.id]);
 
-  // Load referral count + server achievements
+  // Load referral count + server achievements + bot info
   useEffect(() => {
     referralsApi.getMyReferral().then((d) => setReferralCount(d.count)).catch(() => {});
     achievementsApi.getMy().then((list) => {
       setApiUnlockedIds(new Set(list.filter(a => a.unlocked).map(a => a.id)));
     }).catch(() => {});
+    authApi.botInfo().then((d) => setTgBotUsername(d.username ?? null)).catch(() => {});
   }, []);
 
   // Restore edit mode after page refresh (survives accidental reloads)
@@ -962,6 +964,34 @@ export default function CustomerDashboard() {
                   </button>
                 ))}
               </div>
+
+              {/* Telegram connect */}
+              {tgBotUsername && (
+                <div style={card}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#229ED918' }}>
+                        <span style={{ fontSize: '1.1rem' }}>✈️</span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium" style={{ color: c.text }}>Telegram-уведомления</div>
+                        <div className="text-xs" style={{ color: c.muted }}>
+                          {user?.telegramLinked ? '✅ Подключён — уведомления приходят в бот' : 'Получайте уведомления даже без push'}
+                        </div>
+                      </div>
+                    </div>
+                    {!user?.telegramLinked ? (
+                      <a
+                        href={`https://t.me/${tgBotUsername}?start=${encodeURIComponent(user?.phone ?? '')}`}
+                        target="_blank" rel="noreferrer"
+                        style={{ flexShrink: 0, padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#229ED9', color: 'white', fontSize: '0.75rem', fontWeight: 600, textDecoration: 'none' }}
+                      >Подключить</a>
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: '#4CAF50', fontWeight: 600 }}>Активен</span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Theme toggle */}
               <button className="w-full flex items-center justify-between p-4 rounded-2xl" style={{ ...card, cursor: 'pointer' }} onClick={toggleTheme}>
