@@ -1,5 +1,5 @@
 import { createBrowserRouter } from "react-router";
-import { lazy, Suspense, type ComponentType } from "react";
+import { lazy, Suspense, Component, type ComponentType, type ReactNode, type ErrorInfo } from "react";
 import Layout from "./components/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -44,31 +44,65 @@ function PageLoader() {
   );
 }
 
+// Catches chunk load failures (stale asset hashes after a new deployment) and auto-reloads once.
+class ChunkErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { failed: false };
+  }
+  static getDerivedStateFromError(error: Error) {
+    const isChunk =
+      error?.message?.includes('Failed to fetch dynamically imported module') ||
+      error?.message?.includes('Loading chunk') ||
+      (error as any)?.name === 'ChunkLoadError';
+    if (isChunk) {
+      const key = 'chunk_reload_ts';
+      const last = parseInt(sessionStorage.getItem(key) ?? '0', 10);
+      if (Date.now() - last > 15000) {
+        sessionStorage.setItem(key, String(Date.now()));
+        window.location.reload();
+        return { failed: false };
+      }
+    }
+    return { failed: true };
+  }
+  componentDidCatch(_error: Error, _info: ErrorInfo) {}
+  render() {
+    return this.state.failed ? <PageLoader /> : this.props.children;
+  }
+}
+
 function page(Component: ComponentType) {
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Component />
-    </Suspense>
+    <ChunkErrorBoundary>
+      <Suspense fallback={<PageLoader />}>
+        <Component />
+      </Suspense>
+    </ChunkErrorBoundary>
   );
 }
 
 function guarded(Component: ComponentType, role?: 'customer' | 'contractor') {
   return (
-    <Suspense fallback={<PageLoader />}>
-      <ProtectedRoute requiredRole={role}>
-        <Component />
-      </ProtectedRoute>
-    </Suspense>
+    <ChunkErrorBoundary>
+      <Suspense fallback={<PageLoader />}>
+        <ProtectedRoute requiredRole={role}>
+          <Component />
+        </ProtectedRoute>
+      </Suspense>
+    </ChunkErrorBoundary>
   );
 }
 
 function guardedLayout(Component: ComponentType, role?: 'customer' | 'contractor') {
   return (
-    <Suspense fallback={<PageLoader />}>
-      <ProtectedRoute requiredRole={role}>
-        <Layout><Component /></Layout>
-      </ProtectedRoute>
-    </Suspense>
+    <ChunkErrorBoundary>
+      <Suspense fallback={<PageLoader />}>
+        <ProtectedRoute requiredRole={role}>
+          <Layout><Component /></Layout>
+        </ProtectedRoute>
+      </Suspense>
+    </ChunkErrorBoundary>
   );
 }
 

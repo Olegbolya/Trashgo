@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { getDayLabel } from '../lib/utils';
 import { ordersApi } from '../../api/orders';
 import { referralsApi } from '../../api/referrals';
-import { achievementsApi } from '../../api/achievements';
+import { achievementsApi, type AchievementItem } from '../../api/achievements';
 import type { Order, ChatMessage } from '../../types/order';
 import { HowItWorksModal } from '../components/HowItWorksModal';
 import { RatingModal } from '../components/RatingModal';
@@ -73,22 +73,11 @@ export default function CustomerDashboard() {
   const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '' });
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [referralCount, setReferralCount] = useState(0);
-  const [apiUnlockedIds, setApiUnlockedIds] = useState<Set<string>>(new Set());
+  const [apiAchievements, setApiAchievements] = useState<AchievementItem[]>([]);
   const [tgBotUsername, setTgBotUsername] = useState<string | null>(null);
 
   const refreshAchievements = () => {
-    achievementsApi.getMy().then((list) => {
-      const newIds = new Set(list.filter(a => a.unlocked).map(a => a.id));
-      setApiUnlockedIds(prev => {
-        newIds.forEach(id => {
-          if (!prev.has(id)) {
-            const def = list.find(a => a.id === id);
-            if (def) toast.success(`🏆 Достижение разблокировано: ${def.title}`, { description: `+${def.xp} XP`, duration: 5000 });
-          }
-        });
-        return newIds;
-      });
-    }).catch(() => {});
+    achievementsApi.getMy().then(setApiAchievements).catch(() => {});
   };
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
@@ -246,13 +235,14 @@ export default function CustomerDashboard() {
     }
   }, [selectedOrder?.id]);
 
-  // Load referral count + server achievements + bot info
+  // Load referral count + server achievements + bot info; refresh on achievement_unlocked SSE event
   useEffect(() => {
     referralsApi.getMyReferral().then((d) => setReferralCount(d.count)).catch(() => {});
-    achievementsApi.getMy().then((list) => {
-      setApiUnlockedIds(new Set(list.filter(a => a.unlocked).map(a => a.id)));
-    }).catch(() => {});
+    achievementsApi.getMy().then(setApiAchievements).catch(() => {});
     authApi.botInfo().then((d) => setTgBotUsername(d.username ?? null)).catch(() => {});
+    const onUnlock = () => achievementsApi.getMy().then(setApiAchievements).catch(() => {});
+    window.addEventListener('sse:achievement_unlocked', onUnlock);
+    return () => window.removeEventListener('sse:achievement_unlocked', onUnlock);
   }, []);
 
   // Restore edit mode after page refresh (survives accidental reloads)
@@ -333,44 +323,20 @@ export default function CustomerDashboard() {
     nextLevelXp,
     title: 'Новый клиент',
     rank: '🌱 Новичок',
-    achievements: 0,
+    achievements: apiAchievements.filter(a => a.unlocked).length,
     totalOrders: myOrders.length,
   };
 
-  const completedOrders = myOrders.filter(o => o.status === 'completed').length;
-
-  // Sequential order chain — IDs match backend ACHIEVEMENT_DEFS (customer chain)
-  const orderChain: Achievement[] = [
-    { id: 'customer_first',      icon: '🎊', title: 'Первый заказ',       description: 'Создайте свой первый заказ',  unlocked: myOrders.length >= 1,  progress: Math.min(myOrders.length, 1),  maxProgress: 1,  reward: '+10 XP' },
-    { id: 'customer_orders_5',   icon: '🔄', title: 'Постоянный',         description: 'Создайте 5 заказов',          unlocked: myOrders.length >= 5,  progress: Math.min(myOrders.length, 5),  maxProgress: 5,  reward: '+30 XP' },
-    { id: 'customer_orders_20',  icon: '💎', title: 'Верный клиент',      description: 'Создайте 20 заказов',         unlocked: myOrders.length >= 20, progress: Math.min(myOrders.length, 20), maxProgress: 20, reward: '+100 XP' },
-    { id: 'customer_orders_50',  icon: '👑', title: 'Постоянный клиент',  description: 'Создайте 50 заказов',         unlocked: myOrders.length >= 50, progress: Math.min(myOrders.length, 50), maxProgress: 50, reward: '+250 XP' },
+  // Local-only achievements not tracked in DB (level-based)
+  const localOnlyAchievements: Achievement[] = [
+    { id: 'level_2',  icon: '🌱', title: 'Новый уровень', description: 'Достигните 2-го уровня',  unlocked: (user?.level ?? 1) >= 2,  reward: 'Значок клиента' },
+    { id: 'level_5',  icon: '🌿', title: 'Уровень 5',     description: 'Достигните 5-го уровня',  unlocked: (user?.level ?? 1) >= 5,  progress: user?.level ?? 1, maxProgress: 5,  reward: '+100 XP' },
+    { id: 'level_10', icon: '🌳', title: 'Уровень 10',    description: 'Достигните 10-го уровня', unlocked: (user?.level ?? 1) >= 10, progress: user?.level ?? 1, maxProgress: 10, reward: '—' },
   ];
-  // Show chain achievement only if it's the first, unlocked, or the previous one is unlocked
-  const visibleOrderChain = orderChain.filter((a, i) => i === 0 || orderChain[i - 1].unlocked || a.unlocked);
-
-  const extraAchievements: Achievement[] = [
-    { id: 'eco_1',   icon: '🌱', title: 'Эко-старт',  description: 'Первый вывоз выполнен',           unlocked: completedOrders >= 1,   reward: '+20 XP' },
-    { id: 'eco_10',  icon: '♻️', title: 'Эко-боец',   description: '10 вывозов за чистый город',      unlocked: completedOrders >= 10,  progress: Math.min(completedOrders, 10), maxProgress: 10, reward: '+60 XP' },
-    { id: 'eco_50',  icon: '🌍', title: 'Эко-герой',  description: '50 вывозов — ты меняешь мир',     unlocked: completedOrders >= 50,  progress: Math.min(completedOrders, 50), maxProgress: 50, reward: '+150 XP' },
-    { id: 'first_ref', icon: '👥', title: 'Первый реферал',  description: 'Пригласите соседа',         unlocked: referralCount >= 1,     reward: '+25 XP' },
-    { id: 'refs_3',    icon: '🤝', title: 'Бригадир',        description: 'Пригласите 3 соседей',      unlocked: referralCount >= 3,     progress: Math.min(referralCount, 3), maxProgress: 3, reward: '+75 XP' },
-    { id: 'refs_5',    icon: '🏅', title: 'Король рефералов', description: 'Пригласите 5 соседей',     unlocked: referralCount >= 5,     progress: Math.min(referralCount, 5), maxProgress: 5, reward: '+150 XP' },
-    { id: 'level_2',   icon: '🌱', title: 'Новый уровень',   description: 'Достигните 2-го уровня',   unlocked: (user?.level ?? 1) >= 2, reward: 'Значок клиента' },
-    { id: 'level_5',   icon: '🌿', title: 'Уровень 5',       description: 'Достигните 5-го уровня',   unlocked: (user?.level ?? 1) >= 5, progress: user?.level ?? 1, maxProgress: 5, reward: '+100 XP' },
-    { id: 'level_10',  icon: '🌳', title: 'Уровень 10',      description: 'Достигните 10-го уровня',  unlocked: (user?.level ?? 1) >= 10, progress: user?.level ?? 1, maxProgress: 10, reward: '—' },
+  const achievements: Achievement[] = [
+    ...apiAchievements.map(a => ({ ...a, reward: `+${a.xp} XP` })),
+    ...localOnlyAchievements,
   ];
-
-  // Override unlocked status with authoritative server data for IDs that exist in DB
-  const DB_ACHIEVEMENT_IDS = new Set([
-    'customer_first','customer_orders_5','customer_orders_20','customer_orders_50',
-    'eco_1','eco_10','eco_50',
-    'first_ref','refs_3','refs_5','refs_10',
-  ]);
-  const rawAchievements = [...visibleOrderChain, ...extraAchievements];
-  const achievements: Achievement[] = rawAchievements.map(a =>
-    DB_ACHIEVEMENT_IDS.has(a.id) ? { ...a, unlocked: apiUnlockedIds.has(a.id) } : a
-  );
 
   const stats = {
     totalOrders: myOrders.length,

@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { getDayLabel } from '../lib/utils';
 import { ordersApi } from '../../api/orders';
 import { authApi } from '../../api/auth';
-import { achievementsApi } from '../../api/achievements';
+import { achievementsApi, type AchievementItem } from '../../api/achievements';
 import type { Order, ChatMessage } from '../../types/order';
 import { MapView } from '../components/MapView';
 import { HowItWorksModal } from '../components/HowItWorksModal';
@@ -80,20 +80,11 @@ export default function ContractorDashboard() {
   const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '' });
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [myJobsLoading, setMyJobsLoading] = useState(false);
-  const [apiUnlockedIds, setApiUnlockedIds] = useState<Set<string>>(new Set());
+  const [apiAchievements, setApiAchievements] = useState<AchievementItem[]>([]);
 
   const refreshAchievements = () => {
     achievementsApi.getMy().then((list) => {
-      const newIds = new Set(list.filter(a => a.unlocked).map(a => a.id));
-      setApiUnlockedIds(prev => {
-        newIds.forEach(id => {
-          if (!prev.has(id)) {
-            const def = list.find(a => a.id === id);
-            if (def) toast.success(`🏆 Достижение разблокировано: ${def.title}`, { description: `+${def.xp} XP`, duration: 5000 });
-          }
-        });
-        return newIds;
-      });
+      setApiAchievements(list);
     }).catch(() => {});
   };
 
@@ -142,12 +133,13 @@ export default function ContractorDashboard() {
     return () => clearInterval(interval);
   }, [activeTab]);
 
-  // Load server achievements + bot info on mount
+  // Load server achievements + bot info on mount; refresh on achievement_unlocked SSE event
   useEffect(() => {
-    achievementsApi.getMy().then((list) => {
-      setApiUnlockedIds(new Set(list.filter(a => a.unlocked).map(a => a.id)));
-    }).catch(() => {});
+    achievementsApi.getMy().then(setApiAchievements).catch(() => {});
     authApi.botInfo().then((d) => setTgBotUsername(d.username ?? null)).catch(() => {});
+    const onUnlock = () => achievementsApi.getMy().then(setApiAchievements).catch(() => {});
+    window.addEventListener('sse:achievement_unlocked', onUnlock);
+    return () => window.removeEventListener('sse:achievement_unlocked', onUnlock);
   }, []);
 
   // Refresh user data (XP, level, balance) and detect changes (item 11)
@@ -284,52 +276,18 @@ export default function ContractorDashboard() {
 
   const completedJobsCount = completedJobs.length;
 
-  const asapJobsCount = myJobs.filter(j => j.status === 'completed' && j.asap).length;
-
-  // Sequential completion chain — IDs match backend ACHIEVEMENT_DEFS
-  const jobChain: Achievement[] = [
-    { id: 'first_order',  icon: '🎉', title: 'Первый шаг',      description: 'Выполните свой первый заказ',          unlocked: completedJobsCount >= 1,   progress: Math.min(completedJobsCount, 1),   maxProgress: 1,   reward: '+15 XP' },
-    { id: 'orders_5',     icon: '⭐', title: 'В ритме',          description: 'Выполните 5 заказов',                  unlocked: completedJobsCount >= 5,   progress: Math.min(completedJobsCount, 5),   maxProgress: 5,   reward: '+30 XP' },
-    { id: 'orders_10',    icon: '🔟', title: 'Опытный',          description: 'Выполните 10 заказов',                 unlocked: completedJobsCount >= 10,  progress: Math.min(completedJobsCount, 10),  maxProgress: 10,  reward: '+60 XP' },
-    { id: 'orders_25',    icon: '💪', title: 'Ветеран',          description: 'Выполните 25 заказов',                 unlocked: completedJobsCount >= 25,  progress: Math.min(completedJobsCount, 25),  maxProgress: 25,  reward: '+100 XP' },
-    { id: 'orders_50',    icon: '🔥', title: 'Профи',            description: 'Выполните 50 заказов',                 unlocked: completedJobsCount >= 50,  progress: Math.min(completedJobsCount, 50),  maxProgress: 50,  reward: '+200 XP' },
-    { id: 'orders_100',   icon: '💎', title: 'Сотня',            description: 'Выполните 100 заказов',                unlocked: completedJobsCount >= 100, progress: Math.min(completedJobsCount, 100), maxProgress: 100, reward: '+350 XP' },
-    { id: 'orders_250',   icon: '👑', title: 'Мастер',           description: 'Выполните 250 заказов',                unlocked: completedJobsCount >= 250, progress: Math.min(completedJobsCount, 250), maxProgress: 250, reward: '+500 XP' },
-    { id: 'orders_500',   icon: '🌠', title: 'Легенда',          description: 'Выполните 500 заказов',                unlocked: completedJobsCount >= 500, progress: Math.min(completedJobsCount, 500), maxProgress: 500, reward: '+1000 XP' },
+  // Local-only achievements not tracked in DB (balance/level-based)
+  const localOnlyAchievements: Achievement[] = [
+    { id: 'earner_1k',  icon: '💰', title: 'Первый заработок', description: 'Заработайте 1000₽ за всё время',  unlocked: (user?.balance ?? 0) >= 1000,  reward: '—' },
+    { id: 'earner_10k', icon: '💵', title: 'Десятка тысяч',   description: 'Заработайте 10 000₽ за всё время', unlocked: (user?.balance ?? 0) >= 10000, progress: Math.min(user?.balance ?? 0, 10000), maxProgress: 10000, reward: '—' },
+    { id: 'level_3',    icon: '🌱', title: 'Уровень 3',        description: 'Достигните 3-го уровня',           unlocked: currentLevel >= 3,             reward: '—' },
+    { id: 'level_5',    icon: '🌿', title: 'Уровень 5',        description: 'Достигните 5-го уровня',           unlocked: currentLevel >= 5,             progress: currentLevel, maxProgress: 5,  reward: '+100 XP' },
+    { id: 'level_10',   icon: '🌳', title: 'Уровень 10',       description: 'Достигните 10-го уровня',          unlocked: currentLevel >= 10,            progress: currentLevel, maxProgress: 10, reward: '—' },
   ];
-  const visibleJobChain = jobChain.filter((a, i) => i === 0 || jobChain[i - 1].unlocked || a.unlocked);
-
-  const extraAchievements: Achievement[] = [
-    { id: 'first_rating', icon: '💬', title: 'Первый отзыв',     description: 'Получите первую оценку от заказчика',  unlocked: (user?.avgRating != null),      reward: '+10 XP' },
-    { id: 'perfect_5',    icon: '🌟', title: 'Пятёрочник',       description: 'Получите оценку 5 звёзд',              unlocked: false,                          reward: '+10 XP' },
-    { id: 'ratings_10',   icon: '💛', title: 'Любимчик',         description: 'Получите 10 оценок',                   unlocked: (user?.ratingCount ?? 0) >= 10, progress: Math.min(user?.ratingCount ?? 0, 10), maxProgress: 10, reward: '+40 XP' },
-    { id: 'asap_job_1',   icon: '⚡', title: 'Срочный вывоз',    description: 'Выполните срочный заказ',              unlocked: asapJobsCount >= 1,             reward: '+10 XP' },
-    { id: 'asap_job_10',  icon: '🚀', title: 'Мистер ASAP',      description: 'Выполните 10 срочных заказов',         unlocked: asapJobsCount >= 10,            progress: Math.min(asapJobsCount, 10), maxProgress: 10, reward: '+50 XP' },
-    { id: 'first_ref',    icon: '🤝', title: 'Наставник',        description: 'Пригласите коллегу в сервис',          unlocked: false,                          reward: '+25 XP' },
-    { id: 'refs_3',       icon: '👷', title: 'Бригадир',         description: 'Пригласите 3 коллег',                  unlocked: false,                          reward: '+75 XP' },
-    { id: 'earner_1k',    icon: '💰', title: 'Первый заработок', description: 'Заработайте 1000₽ за всё время',       unlocked: (user?.balance ?? 0) >= 1000,   reward: '—' },
-    { id: 'earner_10k',   icon: '💵', title: 'Десятка тысяч',   description: 'Заработайте 10 000₽ за всё время',      unlocked: (user?.balance ?? 0) >= 10000,  progress: Math.min(user?.balance ?? 0, 10000), maxProgress: 10000, reward: '—' },
-    { id: 'level_3',      icon: '🌱', title: 'Уровень 3',        description: 'Достигните 3-го уровня',               unlocked: currentLevel >= 3,              reward: '—' },
-    { id: 'level_5',      icon: '🌿', title: 'Уровень 5',        description: 'Достигните 5-го уровня',               unlocked: currentLevel >= 5,              progress: currentLevel, maxProgress: 5, reward: '+100 XP' },
-    { id: 'level_10',     icon: '🌳', title: 'Уровень 10',       description: 'Достигните 10-го уровня',              unlocked: currentLevel >= 10,             progress: currentLevel, maxProgress: 10, reward: '—' },
+  const achievements: Achievement[] = [
+    ...apiAchievements.map(a => ({ ...a, reward: `+${a.xp} XP` })),
+    ...localOnlyAchievements,
   ];
-
-  const DB_ACHIEVEMENT_IDS = new Set([
-    'first_order','orders_5','orders_10','orders_25','orders_50','orders_100','orders_250','orders_500',
-    'first_rating','perfect_5','ratings_10','ratings_50',
-    'quality_4_5','quality_4_8','quality_5_0',
-    'first_ref','refs_3','refs_5','refs_10',
-    'asap_job_1','asap_job_10','asap_job_50',
-    'volume_10','volume_50','volume_200','volume_500',
-    'districts_2','districts_4','districts_7',
-    'morning_1','morning_5','night_1','night_5','weekend_3','weekend_10',
-    'vehicle_car','vehicle_truck',
-    'tenure_30','tenure_180',
-  ]);
-  const rawAchievements = [...visibleJobChain, ...extraAchievements];
-  const achievements: Achievement[] = rawAchievements.map(a =>
-    DB_ACHIEVEMENT_IDS.has(a.id) ? { ...a, unlocked: apiUnlockedIds.has(a.id) } : a
-  );
 
   const levelData: LevelData = {
     level: currentLevel,
@@ -337,7 +295,7 @@ export default function ContractorDashboard() {
     nextLevelXp,
     title: 'Исполнитель TrashGo',
     rank: '🌱 Новичок',
-    achievements: achievements.filter(a => a.unlocked).length,
+    achievements: apiAchievements.filter(a => a.unlocked).length,
     totalOrders: completedJobsCount,
   };
 

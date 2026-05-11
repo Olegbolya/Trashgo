@@ -26,9 +26,17 @@ export function connectSSE(token: string) {
   es.addEventListener('message', (e) => {
     if (!e.data) return;
     try {
-      const event = JSON.parse(e.data) as { type: string; title?: string; message?: string; orderId?: string };
+      const event = JSON.parse(e.data) as { type: string; title?: string; message?: string; orderId?: string; icon?: string; xp?: number; id?: string };
       if (event.type === 'connected') {
         reconnectDelay = 3000;
+        return;
+      }
+      if (event.type === 'achievement_unlocked') {
+        toast(`${event.icon ?? '🏆'} ${event.title ?? 'Достижение разблокировано!'}`, {
+          description: `+${event.xp} XP`,
+          duration: 5000,
+        });
+        window.dispatchEvent(new CustomEvent('sse:achievement_unlocked', { detail: { id: event.id } }));
         return;
       }
       if (event.type === 'order_status' || event.type === 'chat' || event.type === 'xp') {

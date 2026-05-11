@@ -6,8 +6,11 @@ export interface AchievementItem {
   description: string;
   icon: string;
   xp: number;
+  chain?: string;
   unlocked: boolean;
   unlockedAt: string | null;
+  progress?: number;
+  maxProgress?: number;
 }
 
 export const achievementsApi = {
