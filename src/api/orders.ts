@@ -40,13 +40,15 @@ export const ordersApi = {
     return api.patch<Order>(`/orders/${id}/status`, { status: 'accepted' });
   },
 
-  available(district?: string) {
-    const qs = district ? `?district=${district}` : '';
-    return api.get<ApiResponse<Order[]>>(`/orders/available${qs}`);
+  available(district?: string, cursor?: string, limit = 20) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (district) params.set('district', district);
+    if (cursor) params.set('cursor', cursor);
+    return api.get<ApiResponse<Order[]> & { meta: { hasMore: boolean; nextCursor: string | null } }>(`/orders/available?${params}`);
   },
 
-  myJobs() {
-    return api.get<ApiResponse<Order[]>>('/orders?mode=contractor');
+  myJobs(offset = 0, limit = 20) {
+    return api.get<ApiResponse<Order[]> & { meta: { hasMore: boolean; nextOffset: number | null } }>(`/orders?mode=contractor&offset=${offset}&limit=${limit}`);
   },
 
   completeOrder(id: string, completionPhotoUrls: string[]) {

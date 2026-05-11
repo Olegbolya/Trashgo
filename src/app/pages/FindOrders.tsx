@@ -58,20 +58,45 @@ export default function FindOrders() {
   const updateSort = (v: SortType) => { setSortType(v); try { localStorage.setItem('find_orders_sort', v); } catch {} };
   const updateFilter = (v: FilterType) => { setFilterType(v); try { localStorage.setItem('find_orders_filter', v); } catch {} };
   const [accepting, setAccepting] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
   const userDistrict = user?.district ?? '';
 
+  // silent=true → auto-refresh (replaces list from start); silent=false → initial load
   const fetchOrders = async (silent = false) => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
-      const res = await ordersApi.available();
+      const res = await ordersApi.available(undefined, undefined, 20);
       setOrders(res.data ?? []);
+      setHasMore(res.meta?.hasMore ?? false);
+      setNextCursor(res.meta?.nextCursor ?? null);
     } catch {
       if (!silent) toast.error('Не удалось загрузить заказы');
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await ordersApi.available(undefined, nextCursor, 20);
+      setOrders(prev => {
+        const existingIds = new Set(prev.map(o => o.id));
+        const newOrders = (res.data ?? []).filter(o => !existingIds.has(o.id));
+        return [...prev, ...newOrders];
+      });
+      setHasMore(res.meta?.hasMore ?? false);
+      setNextCursor(res.meta?.nextCursor ?? null);
+    } catch {
+      toast.error('Не удалось загрузить ещё');
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -284,8 +309,25 @@ export default function FindOrders() {
           </div>
         )}
 
+        {/* Load more */}
+        {!loading && hasMore && (
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            style={{
+              display: 'block', width: '100%', marginTop: '0.75rem', padding: '0.75rem',
+              background: '#fff', border: `2px solid ${accentColor}`, borderRadius: '0.875rem',
+              color: accentColor, fontWeight: 700, fontSize: '0.875rem',
+              cursor: loadingMore ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+              opacity: loadingMore ? 0.6 : 1,
+            }}
+          >
+            {loadingMore ? '⏳ Загружаем...' : '↓ Загрузить ещё заказы'}
+          </button>
+        )}
+
         <div style={{ textAlign: 'center', fontSize: '0.72rem', color: '#d1d5db', padding: '1.5rem 0 0.5rem' }}>
-          Обновляется каждые 15 секунд
+          {hasMore ? `Показано ${orders.length} заказов` : 'Обновляется каждые 15 секунд'}
         </div>
       </div>
 
