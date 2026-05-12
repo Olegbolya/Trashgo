@@ -65,7 +65,8 @@ export default function CustomerDashboard() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
-  const [orderContact, setOrderContact] = useState<{ contractorPhone: string; contractorName: string } | null>(null);
+  const [orderContact, setOrderContact] = useState<{ contractorPhone: string; contractorName: string; contractorAvgRating?: number | null; contractorRatingCount?: number; contractorCompletedOrders?: number; acceptedAt?: string | null } | null>(null);
+  const [cancelSecondsLeft, setCancelSecondsLeft] = useState<number | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [ratingOrder, setRatingOrder] = useState<{ id: string; contractorName: string } | null>(null);
@@ -230,10 +231,29 @@ export default function CustomerDashboard() {
     if (selectedOrder && (selectedOrder.status === 'active' || selectedOrder.status === 'pending')) {
       ordersApi.getById(selectedOrder.id).then((res: any) => {
         const d = res?.data ?? res;
-        if (d?.contractorPhone) setOrderContact({ contractorPhone: d.contractorPhone, contractorName: d.contractorName ?? '' });
+        if (d?.contractorPhone) setOrderContact({
+          contractorPhone: d.contractorPhone,
+          contractorName: d.contractorName ?? '',
+          contractorAvgRating: d.contractorAvgRating ?? null,
+          contractorRatingCount: d.contractorRatingCount,
+          contractorCompletedOrders: d.contractorCompletedOrders,
+          acceptedAt: d.acceptedAt ?? null,
+        });
       }).catch(() => {});
     }
   }, [selectedOrder?.id]);
+
+  // Live countdown for 10-minute cancel window
+  useEffect(() => {
+    if (!orderContact?.acceptedAt) { setCancelSecondsLeft(null); return; }
+    const update = () => {
+      const elapsed = (Date.now() - new Date(orderContact.acceptedAt!).getTime()) / 1000;
+      setCancelSecondsLeft(Math.max(0, Math.floor(600 - elapsed)));
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [orderContact?.acceptedAt]);
 
   // Load referral count + server achievements + bot info; refresh on achievement_unlocked SSE event
   useEffect(() => {
@@ -1654,6 +1674,24 @@ export default function CustomerDashboard() {
               </div>
             )}
 
+            {/* Contractor profile card — shown when order is accepted */}
+            {selectedOrder.status === 'active' && orderContact?.contractorName && (
+              <div style={{ background: c.subtle, borderRadius: '0.625rem', padding: '0.625rem 0.875rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${ACCENT}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>👷</div>
+                <div className="flex-1 min-w-0">
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: c.text, marginBottom: '0.125rem' }}>{orderContact.contractorName}</div>
+                  <div style={{ fontSize: '0.72rem', color: c.muted, display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {orderContact.contractorAvgRating != null ? (
+                      <span>⭐ {orderContact.contractorAvgRating.toFixed(1)} ({orderContact.contractorRatingCount} отз.)</span>
+                    ) : <span>Нет оценок</span>}
+                    {(orderContact.contractorCompletedOrders ?? 0) > 0 && (
+                      <span>· {orderContact.contractorCompletedOrders} выполнено</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Chat panel */}
             {chatOpen && selectedOrder && (
               <div style={{ marginBottom: '1rem', border: `1.5px solid ${c.border}`, borderRadius: '0.875rem', overflow: 'hidden' }}>
@@ -1923,6 +1961,35 @@ export default function CustomerDashboard() {
                         }}
                       >
                         {cancelingId === selectedOrder.id ? '⏳ Отмена...' : 'Отменить заказ'}
+                      </button>
+                    )}
+                    {selectedOrder.status === 'active' && cancelSecondsLeft !== null && cancelSecondsLeft > 0 && (
+                      <button
+                        className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+                        disabled={cancelingId === selectedOrder.id}
+                        style={{ border: `1px solid #fca5a5`, background: 'transparent', color: '#ef4444', cursor: cancelingId === selectedOrder.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: cancelingId === selectedOrder.id ? 0.6 : 1 }}
+                        onClick={async () => {
+                          setCancelingId(selectedOrder.id);
+                          try {
+                            await ordersApi.updateStatus(selectedOrder.id, 'cancelled');
+                            setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
+                            setSelectedOrder(null);
+                            toast.success('Заказ отменён');
+                          } catch (err: any) {
+                            const code = err?.response?.data?.error?.code ?? err?.code;
+                            if (code === 'CANCEL_WINDOW_EXPIRED') {
+                              toast.error('Окно отмены истекло', { description: 'Исполнителя можно отменить только в первые 10 минут' });
+                            } else {
+                              toast.error(err?.message || 'Ошибка отмены');
+                            }
+                          } finally {
+                            setCancelingId(null);
+                          }
+                        }}
+                      >
+                        {cancelingId === selectedOrder.id
+                          ? '⏳ Отмена...'
+                          : `Отменить исполнителя (${Math.floor(cancelSecondsLeft / 60)}:${String(cancelSecondsLeft % 60).padStart(2, '0')})`}
                       </button>
                     )}
                   </div>

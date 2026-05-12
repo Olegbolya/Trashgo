@@ -593,6 +593,23 @@ export default function ContractorDashboard() {
                                   <div className="text-xs" style={{ color: c.muted }}>{job.volume} мешк.</div>
                                 </div>
                               </div>
+                              {/* Customer profile card — shown when job is accepted */}
+                              {job.status === 'accepted' && job.customerName && (
+                                <div style={{ background: c.subtle, borderRadius: '0.625rem', padding: '0.5rem 0.75rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${ACCENT}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>👤</div>
+                                  <div className="flex-1 min-w-0">
+                                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: c.text }}>{job.customerName}</div>
+                                    <div style={{ fontSize: '0.7rem', color: c.muted, display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                      {job.customerAvgRating != null ? (
+                                        <span>⭐ {job.customerAvgRating.toFixed(1)} ({job.customerRatingCount} отз.)</span>
+                                      ) : <span>Нет оценок</span>}
+                                      {(job.customerCompletedOrders ?? 0) > 0 && (
+                                        <span>· {job.customerCompletedOrders} заказов</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                               <div className="flex gap-2 flex-col">
                                 {job.status === 'accepted' && (
                                   <button

@@ -14,8 +14,15 @@ export interface Order {
   contractorId: string | null;
   customerName?: string;
   customerPhone?: string;
+  customerAvgRating?: number | null;
+  customerRatingCount?: number;
+  customerCompletedOrders?: number;
   contractorPhone?: string;
   contractorName?: string;
+  contractorAvgRating?: number | null;
+  contractorRatingCount?: number;
+  contractorCompletedOrders?: number;
+  acceptedAt?: string | null;
   address: string;
   district: string;
   status: OrderStatus;
