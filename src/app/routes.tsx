@@ -32,6 +32,7 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Admin = lazy(() => import("./pages/Admin"));
 
 function PageLoader() {
   return (
@@ -141,6 +142,9 @@ export const router = createBrowserRouter([
   { path: "/find-orders", element: guardedLayout(FindOrders, 'contractor') },
   { path: "/order/:id", element: guardedLayout(OrderDetail) },
   { path: "/leaderboard", element: guarded(Leaderboard) },
+
+  // Admin panel (public, protected by ?secret=)
+  { path: "/admin", element: page(Admin) },
 
   // 404
   { path: "*", element: page(NotFound) },
