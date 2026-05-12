@@ -15,6 +15,7 @@ import type { Order, ChatMessage } from '../../types/order';
 import { HowItWorksModal } from '../components/HowItWorksModal';
 import { RatingModal } from '../components/RatingModal';
 import { OrderTimeline } from '../components/OrderTimeline';
+import { OnboardingSlider } from '../components/OnboardingSlider';
 import { NotificationBell } from '../components/NotificationBell';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import { searchKazanStreets } from '../../data/kazanStreets';
@@ -56,6 +57,7 @@ export default function CustomerDashboard() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('trashgo_onboarded'));
   const [isPublishing, setIsPublishing] = useState(false);
   const publishingRef = useRef(false);
   const isEditingRef = useRef(false);
@@ -1376,6 +1378,7 @@ export default function CustomerDashboard() {
                           <div className="flex-1 text-center text-sm font-medium" style={{ color: c.text }}>{createForm.volume}</div>
                           <button onClick={() => setCreateForm({ ...createForm, volume: createForm.volume + 1 })} style={{ padding: '0.625rem 0.75rem', background: 'transparent', border: 'none', color: c.muted, cursor: 'pointer', fontSize: '1.25rem', fontFamily: 'inherit' }}>+</button>
                         </div>
+                        <p className="text-xs mt-1.5" style={{ color: c.muted }}>💡 1 мешок ≈ 35–50 л</p>
                       </div>
                       <div>
                         <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: c.muted }}>Цена, ₽ <span style={{ color: '#ef4444' }}>*</span></label>
@@ -1386,7 +1389,10 @@ export default function CustomerDashboard() {
                           onChange={(e) => { setCreateForm({ ...createForm, price: parseInt(e.target.value) || 0 }); setCreateErrors({ ...createErrors, price: '' }); }}
                           style={inputStyle(!!createErrors.price)}
                         />
-                        {createErrors.price && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{createErrors.price}</p>}
+                        {createErrors.price
+                          ? <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{createErrors.price}</p>
+                          : <p className="text-xs mt-1.5" style={{ color: c.muted }}>💡 В Казани ~50–80₽/мешок</p>
+                        }
                       </div>
                     </div>
 
@@ -2247,6 +2253,17 @@ export default function CustomerDashboard() {
             </button>
           </div>
         </div>
+      )}
+
+      {showOnboarding && (
+        <OnboardingSlider
+          role="customer"
+          isDark={isDark}
+          onFinish={() => {
+            localStorage.setItem('trashgo_onboarded', '1');
+            setShowOnboarding(false);
+          }}
+        />
       )}
     </div>
   );

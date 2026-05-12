@@ -15,6 +15,7 @@ import { MapView } from '../components/MapView';
 import { HowItWorksModal } from '../components/HowItWorksModal';
 import { RatingModal } from '../components/RatingModal';
 import { OrderTimeline } from '../components/OrderTimeline';
+import { OnboardingSlider } from '../components/OnboardingSlider';
 import { NotificationBell } from '../components/NotificationBell';
 import { useNotificationsStore } from '../../stores/notifications.store';
 
@@ -77,6 +78,7 @@ export default function ContractorDashboard() {
   const [paymentDisputedIds, setPaymentDisputedIds] = useState<Set<string>>(new Set());
   const [tgBotUsername, setTgBotUsername] = useState<string | null>(null);
   const [ratingOrder, setRatingOrder] = useState<{ id: string; customerName: string } | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('trashgo_onboarded'));
   const [editInfoOpen, setEditInfoOpen] = useState(false);
   const [editInfoForm, setEditInfoForm] = useState({ transportMode: 'car' });
   const [editInfoSaving, setEditInfoSaving] = useState(false);
@@ -1769,6 +1771,17 @@ export default function ContractorDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {showOnboarding && (
+        <OnboardingSlider
+          role="contractor"
+          isDark={isDark}
+          onFinish={() => {
+            localStorage.setItem('trashgo_onboarded', '1');
+            setShowOnboarding(false);
+          }}
+        />
       )}
     </div>
   );
