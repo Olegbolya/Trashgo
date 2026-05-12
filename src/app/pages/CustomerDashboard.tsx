@@ -14,6 +14,7 @@ import { achievementsApi, type AchievementItem } from '../../api/achievements';
 import type { Order, ChatMessage } from '../../types/order';
 import { HowItWorksModal } from '../components/HowItWorksModal';
 import { RatingModal } from '../components/RatingModal';
+import { OrderTimeline } from '../components/OrderTimeline';
 import { NotificationBell } from '../components/NotificationBell';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import { searchKazanStreets } from '../../data/kazanStreets';
@@ -65,7 +66,7 @@ export default function CustomerDashboard() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
-  const [orderContact, setOrderContact] = useState<{ contractorPhone: string; contractorName: string; contractorAvgRating?: number | null; contractorRatingCount?: number; contractorCompletedOrders?: number; acceptedAt?: string | null } | null>(null);
+  const [orderContact, setOrderContact] = useState<{ contractorPhone: string; contractorName: string; contractorAvgRating?: number | null; contractorRatingCount?: number; contractorCompletedOrders?: number; acceptedAt?: string | null; history?: Array<{ status: string; createdAt: string; note: string }> } | null>(null);
   const [cancelSecondsLeft, setCancelSecondsLeft] = useState<number | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
@@ -228,16 +229,17 @@ export default function CustomerDashboard() {
     setChatMessages([]);
     setChatInput('');
     setOrderContact(null);
-    if (selectedOrder && (selectedOrder.status === 'active' || selectedOrder.status === 'pending')) {
+    if (selectedOrder) {
       ordersApi.getById(selectedOrder.id).then((res: any) => {
         const d = res?.data ?? res;
-        if (d?.contractorPhone) setOrderContact({
-          contractorPhone: d.contractorPhone,
-          contractorName: d.contractorName ?? '',
-          contractorAvgRating: d.contractorAvgRating ?? null,
-          contractorRatingCount: d.contractorRatingCount,
-          contractorCompletedOrders: d.contractorCompletedOrders,
-          acceptedAt: d.acceptedAt ?? null,
+        setOrderContact({
+          contractorPhone: d?.contractorPhone ?? '',
+          contractorName: d?.contractorName ?? '',
+          contractorAvgRating: d?.contractorAvgRating ?? null,
+          contractorRatingCount: d?.contractorRatingCount,
+          contractorCompletedOrders: d?.contractorCompletedOrders,
+          acceptedAt: d?.acceptedAt ?? null,
+          history: d?.history ?? [],
         });
       }).catch(() => {});
     }
@@ -1824,6 +1826,9 @@ export default function CustomerDashboard() {
 
               {/* Создан */}
               <div className="text-xs text-center" style={{ color: c.muted }}>Создан {selectedOrder.createdAt}</div>
+
+              {/* Timeline */}
+              <OrderTimeline history={orderContact?.history as any} isDark={isDark} />
             </div>
 
             <div className="flex flex-col gap-2 mt-5">

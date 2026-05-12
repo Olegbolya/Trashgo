@@ -14,6 +14,7 @@ import type { Order, ChatMessage } from '../../types/order';
 import { MapView } from '../components/MapView';
 import { HowItWorksModal } from '../components/HowItWorksModal';
 import { RatingModal } from '../components/RatingModal';
+import { OrderTimeline } from '../components/OrderTimeline';
 import { NotificationBell } from '../components/NotificationBell';
 import { useNotificationsStore } from '../../stores/notifications.store';
 
@@ -125,6 +126,14 @@ export default function ContractorDashboard() {
               duration: 6000,
             });
             addNotification({ type: 'order_status', title: 'Заявка подтверждена!', message: `Заказчик подтвердил выполнение: ${job.address}`, orderId: job.id });
+            if (!job.ratingByContractor) {
+              ordersApi.getById(job.id).then((res: any) => {
+                const d = res?.data ?? res;
+                setRatingOrder({ id: job.id, customerName: d?.customerName || 'Заказчик' });
+              }).catch(() => {
+                setRatingOrder({ id: job.id, customerName: 'Заказчик' });
+              });
+            }
           }
         });
         prevJobStatusesRef.current = Object.fromEntries(jobs.map(j => [j.id, j.status]));
@@ -985,6 +994,8 @@ export default function ContractorDashboard() {
                       <div className="flex gap-2 text-sm"><span style={{ color: c.muted }}>Описание:</span><span style={{ color: c.text }}>{historyDetailOrder.description}</span></div>
                     )}
                   </div>
+                  <OrderTimeline history={(historyDetailOrder as any).history} isDark={isDark} />
+
                   {historyDetailOrder.status === 'completed' && !(historyDetailOrder as any).ratingByContractor && (
                     <button
                       className="w-full h-10 rounded-xl text-sm font-medium"

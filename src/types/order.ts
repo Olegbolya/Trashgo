@@ -37,6 +37,7 @@ export interface Order {
   updatedAt: string;
   ratingByCustomer: number | null;
   ratingByContractor: number | null;
+  history?: Array<{ status: OrderStatus; createdAt: string; note: string }>;
 }
 
 export interface CreateOrderInput {
