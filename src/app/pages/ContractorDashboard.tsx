@@ -58,13 +58,16 @@ export default function ContractorDashboard() {
   const [showMap, setShowMap] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [filterDateFrom, setFilterDateFrom] = useState('');
-  const [filterDateTo, setFilterDateTo] = useState('');
-  const [filterTimeFrom, setFilterTimeFrom] = useState('');
-  const [filterTimeTo, setFilterTimeTo] = useState('');
-  const [filterDistrict, setFilterDistrict] = useState('');
-  const [filterDistanceKm, setFilterDistanceKm] = useState(50);
-  const [sortOrders, setSortOrders] = useState<'newest' | 'price_asc' | 'price_desc' | 'date_asc' | 'date_desc' | 'distance_asc'>('newest');
+
+  // Persistent filters — survive page close / week-long absence
+  const _lsFilters = (() => { try { return JSON.parse(localStorage.getItem('cdb_find_filters') ?? 'null') ?? {}; } catch { return {}; } })();
+  const [filterDateFrom, setFilterDateFrom] = useState<string>(_lsFilters.dateFrom ?? '');
+  const [filterDateTo, setFilterDateTo] = useState<string>(_lsFilters.dateTo ?? '');
+  const [filterTimeFrom, setFilterTimeFrom] = useState<string>(_lsFilters.timeFrom ?? '');
+  const [filterTimeTo, setFilterTimeTo] = useState<string>(_lsFilters.timeTo ?? '');
+  const [filterDistrict, setFilterDistrict] = useState<string>(_lsFilters.district ?? '');
+  const [filterDistanceKm, setFilterDistanceKm] = useState<number>(_lsFilters.distanceKm ?? 50);
+  const [sortOrders, setSortOrders] = useState<'newest' | 'price_asc' | 'price_desc' | 'date_asc' | 'date_desc' | 'distance_asc'>(_lsFilters.sort ?? 'newest');
   const [contractorGps, setContractorGps] = useState<{ lat: number; lon: number } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [orderCoords, setOrderCoords] = useState<Map<string, { lat: number; lon: number } | null>>(new Map());
@@ -132,6 +135,18 @@ export default function ContractorDashboard() {
     const interval = setInterval(load, 10000);
     return () => clearInterval(interval);
   }, [activeTab]);
+
+  // Persist filters to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('cdb_find_filters', JSON.stringify({
+        dateFrom: filterDateFrom, dateTo: filterDateTo,
+        timeFrom: filterTimeFrom, timeTo: filterTimeTo,
+        district: filterDistrict, distanceKm: filterDistanceKm,
+        sort: sortOrders,
+      }));
+    } catch {}
+  }, [filterDateFrom, filterDateTo, filterTimeFrom, filterTimeTo, filterDistrict, filterDistanceKm, sortOrders]);
 
   // Load server achievements + bot info on mount; refresh on achievement_unlocked SSE event
   useEffect(() => {
@@ -1225,7 +1240,7 @@ export default function ContractorDashboard() {
                     <span className="text-sm font-medium" style={{ color: c.text }}>Фильтры поиска</span>
                     {hasActiveFilters && (
                       <button
-                        onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterTimeFrom(''); setFilterTimeTo(''); setFilterDistrict(''); setFilterDistanceKm(50); setSortOrders('newest'); }}
+                        onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterTimeFrom(''); setFilterTimeTo(''); setFilterDistrict(''); setFilterDistanceKm(50); setSortOrders('newest'); try { localStorage.removeItem('cdb_find_filters'); } catch {} }}
                         className="text-xs"
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontFamily: 'inherit' }}
                       >Сбросить</button>
