@@ -134,6 +134,7 @@ export default function CustomerDashboard() {
   const [ordersError, setOrdersError] = useState(false);
   const [ordersHasMore, setOrdersHasMore] = useState(false);
   const [ordersLoadingMore, setOrdersLoadingMore] = useState(false);
+  const [historySort, setHistorySort] = useState<'date' | 'price'>('date');
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [geocodeSuggestions, setGeocodeSuggestions] = useState<{ label: string; full: string }[]>([]);
@@ -302,7 +303,7 @@ export default function CustomerDashboard() {
     }).catch(() => { sessionStorage.removeItem('trashgo_pending_edit'); isEditingRef.current = false; });
   }, []);
 
-  // Poll chat messages every 5s while chat is open
+  // Poll chat messages while chat is open + SSE push for instant updates
   const prevChatCountsRef = useRef<Record<string, number>>({});
   useEffect(() => {
     if (!chatOpen || !selectedOrder) return;
@@ -313,8 +314,18 @@ export default function CustomerDashboard() {
       setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     }).catch(() => {});
     fetch();
-    const interval = setInterval(fetch, 5000);
-    return () => clearInterval(interval);
+    const interval = setInterval(fetch, 15000);
+
+    const sseHandler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.orderId === selectedOrder.id) fetch();
+    };
+    window.addEventListener('sse:chat', sseHandler);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('sse:chat', sseHandler);
+    };
   }, [chatOpen, selectedOrder?.id]);
 
   // Detect new chat messages on active orders when chat is closed
@@ -776,11 +787,21 @@ export default function CustomerDashboard() {
 
           {/* CALENDAR TAB */}
           {activeTab === 'calendar' && (() => {
-            const historyOrders = myOrders.filter(o => o.status === 'completed' || o.status === 'cancelled');
+            const historyOrders = [...myOrders.filter(o => o.status === 'completed' || o.status === 'cancelled')]
+              .sort((a, b) => historySort === 'price' ? b.price - a.price : 0);
             return (
             <div className="max-w-4xl mx-auto space-y-6">
               <div>
-                <h2 className="text-lg font-semibold mb-4" style={{ color: c.text }}>История заказов</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold" style={{ color: c.text }}>История заказов</h2>
+                  <div className="flex gap-1.5">
+                    {(['date', 'price'] as const).map(s => (
+                      <button key={s} onClick={() => setHistorySort(s)} style={{ padding: '0.25rem 0.625rem', borderRadius: '0.5rem', border: `1px solid ${historySort === s ? ACCENT : c.border}`, background: historySort === s ? `${ACCENT}18` : 'transparent', color: historySort === s ? ACCENT : c.muted, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'inherit', fontWeight: historySort === s ? 600 : 400 }}>
+                        {s === 'date' ? 'По дате' : 'По цене'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {ordersLoading ? (
                   <div className="text-center py-12" style={{ ...card }}>
                     <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-t-transparent animate-spin" style={{ borderColor: `${c.border} ${c.border} ${c.border} ${ACCENT}` }} />

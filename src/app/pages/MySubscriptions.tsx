@@ -238,7 +238,7 @@ function SubCard({ sub, isDark, cardClass, text, muted, subtext, toggling, delet
           onClick={onDelete}
           disabled={deleting}
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="w-4 h-4 mr-1" />{deleting ? 'Удаляем...' : 'Удалить'}
         </Button>
       </div>
     </div>

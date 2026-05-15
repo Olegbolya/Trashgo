@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import {
   MapPin, Clock, Package, ArrowLeft, User, CheckCircle,
-  AlertTriangle, Star, Phone, Zap, MessageCircle,
+  AlertTriangle, Star, Phone, Zap, MessageCircle, Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ordersApi } from '../../api/orders';
@@ -288,9 +288,16 @@ export default function OrderDetail() {
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium" style={{ color: c.text }}>{order.contractorName ?? 'Исполнитель'}</div>
                 {order.contractorPhone && (
-                  <div className="flex items-center gap-1 mt-0.5">
+                  <div className="flex items-center gap-2 mt-0.5">
                     <Phone className="w-3 h-3" style={{ color: c.muted }} />
                     <span className="text-xs" style={{ color: c.muted }}>{order.contractorPhone}</span>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(order.contractorPhone!); toast.success('Номер скопирован'); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', color: c.muted, display: 'flex', alignItems: 'center' }}
+                      title="Скопировать номер"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
                   </div>
                 )}
               </div>
@@ -308,9 +315,16 @@ export default function OrderDetail() {
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium" style={{ color: c.text }}>{order.customerName ?? 'Заказчик'}</div>
                 {order.customerPhone && (
-                  <div className="flex items-center gap-1 mt-0.5">
+                  <div className="flex items-center gap-2 mt-0.5">
                     <Phone className="w-3 h-3" style={{ color: c.muted }} />
                     <span className="text-xs" style={{ color: c.muted }}>{order.customerPhone}</span>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(order.customerPhone!); toast.success('Номер скопирован'); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', color: c.muted, display: 'flex', alignItems: 'center' }}
+                      title="Скопировать номер"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
                   </div>
                 )}
               </div>
