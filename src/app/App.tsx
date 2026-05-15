@@ -7,6 +7,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { useAuthStore } from '../stores/auth.store';
 import { connectSSE } from '../services/sse';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import { InstallBanner } from './components/InstallBanner';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,6 +51,7 @@ export default function App() {
       <ThemeProvider>
         <SSEConnector />
         <OfflineBanner />
+        <InstallBanner />
         <RouterProvider router={router} />
         <Toaster richColors position="top-center" />
       </ThemeProvider>
