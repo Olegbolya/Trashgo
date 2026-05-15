@@ -132,6 +132,8 @@ export default function CustomerDashboard() {
   const [selectedOrder, setSelectedOrder] = useState<MyOrder | null>(null);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState(false);
+  const [ordersHasMore, setOrdersHasMore] = useState(false);
+  const [ordersLoadingMore, setOrdersLoadingMore] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [geocodeSuggestions, setGeocodeSuggestions] = useState<{ label: string; full: string }[]>([]);
@@ -168,12 +170,23 @@ export default function CustomerDashboard() {
       // Don't overwrite local state while user is editing an order (race condition fix)
       if (isEditingRef.current) return;
       setMyOrders(mapped);
+      setOrdersHasMore(res?.meta?.hasMore ?? false);
       setSelectedOrder(prev => {
         if (!prev) return prev;
         const updated = mapped.find(o => o.id === prev.id);
         return updated ?? prev;
       });
     }).catch(() => { if (!silent) setOrdersError(true); }).finally(() => { if (!silent) setOrdersLoading(false); });
+  };
+
+  const loadMoreOrders = () => {
+    if (ordersLoadingMore || !ordersHasMore) return;
+    setOrdersLoadingMore(true);
+    ordersApi.list({ offset: myOrders.length }).then((res: any) => {
+      const more: Order[] = res?.data ?? [];
+      setMyOrders(prev => [...prev, ...more.map((o: Order) => apiOrderToMyOrder(o))]);
+      setOrdersHasMore(res?.meta?.hasMore ?? false);
+    }).catch(() => {}).finally(() => setOrdersLoadingMore(false));
   };
 
   useEffect(() => {
@@ -823,6 +836,16 @@ export default function CustomerDashboard() {
                         )}
                       </div>
                     ))}
+                    {ordersHasMore && (
+                      <button
+                        onClick={loadMoreOrders}
+                        disabled={ordersLoadingMore}
+                        className="w-full py-3 rounded-xl text-sm font-medium mt-2"
+                        style={{ background: c.subtle, color: c.text, border: `1px solid ${c.border}`, cursor: ordersLoadingMore ? 'not-allowed' : 'pointer', opacity: ordersLoadingMore ? 0.6 : 1, fontFamily: 'inherit' }}
+                      >
+                        {ordersLoadingMore ? 'Загружаем...' : '↓ Загрузить ещё'}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

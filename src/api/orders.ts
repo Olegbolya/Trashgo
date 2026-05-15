@@ -10,14 +10,13 @@ interface OrdersQuery {
 }
 
 export const ordersApi = {
-  list(query?: OrdersQuery) {
+  list(query?: OrdersQuery & { offset?: number }) {
     const params = new URLSearchParams();
     if (query?.status) params.set('status', query.status);
     if (query?.district) params.set('district', query.district);
-    if (query?.page) params.set('page', String(query.page));
-    if (query?.limit) params.set('limit', String(query.limit));
-    const qs = params.toString();
-    return api.get<ApiResponse<Order[]>>(`/orders${qs ? `?${qs}` : ''}`);
+    params.set('limit', String(query?.limit ?? 20));
+    if (query?.offset) params.set('offset', String(query.offset));
+    return api.get<ApiResponse<Order[]> & { meta: { hasMore: boolean; nextOffset: number | null } }>(`/orders?${params}`);
   },
 
   getById(id: string) {
