@@ -38,6 +38,7 @@ function getRankLabel(level: number): string {
 }
 
 type FilterType = 'all' | 'top-rated' | 'my-district';
+type SortType = 'default' | 'rating' | 'orders';
 
 export default function FindContractors() {
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ export default function FindContractors() {
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<FilterType>('all');
+  const [sortType, setSortType] = useState<SortType>('default');
 
   useEffect(() => {
     contractorsApi.list()
@@ -54,16 +56,26 @@ export default function FindContractors() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = contractors.filter(c => {
+  const filtered = [...contractors.filter(c => {
     if (filterType === 'top-rated') return (c.avgRating ?? 0) >= 4.5;
     if (filterType === 'my-district') return c.district === user?.district;
     return true;
+  })].sort((a, b) => {
+    if (sortType === 'rating') return (b.avgRating ?? 0) - (a.avgRating ?? 0);
+    if (sortType === 'orders') return b.completedOrders - a.completedOrders;
+    return 0;
   });
 
   const filterButtons: { key: FilterType; label: string }[] = [
     { key: 'all', label: `Все (${contractors.length})` },
     { key: 'top-rated', label: '⭐ Рейтинг 4.5+' },
     { key: 'my-district', label: '📍 Мой район' },
+  ];
+
+  const sortButtons: { key: SortType; label: string }[] = [
+    { key: 'default', label: 'По умолч.' },
+    { key: 'rating', label: '⭐ По рейтингу' },
+    { key: 'orders', label: '📦 По заказам' },
   ];
 
   return (
@@ -93,9 +105,9 @@ export default function FindContractors() {
         </div>
       </div>
 
-      {/* Filter tabs */}
+      {/* Filter + sort tabs */}
       <div style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 52, zIndex: 40 }}>
-        <div style={{ maxWidth: 600, margin: '0 auto', padding: '0.625rem 1rem', display: 'flex', gap: 6, overflowX: 'auto' }}>
+        <div style={{ maxWidth: 600, margin: '0 auto', padding: '0.5rem 1rem 0', display: 'flex', gap: 6, overflowX: 'auto' }}>
           {filterButtons.map(f => (
             <button
               key={f.key}
@@ -110,6 +122,25 @@ export default function FindContractors() {
               }}
             >
               {f.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ maxWidth: 600, margin: '0 auto', padding: '0.375rem 1rem 0.5rem', display: 'flex', gap: 6, overflowX: 'auto' }}>
+          <span style={{ fontSize: '0.72rem', color: '#9ca3af', display: 'flex', alignItems: 'center', marginRight: 2 }}>Сортировка:</span>
+          {sortButtons.map(s => (
+            <button
+              key={s.key}
+              onClick={() => setSortType(s.key)}
+              style={{
+                padding: '4px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600,
+                whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: 'inherit',
+                border: `1px solid ${sortType === s.key ? accent : '#e5e7eb'}`,
+                background: sortType === s.key ? `${accent}15` : 'transparent',
+                color: sortType === s.key ? accent : '#9ca3af',
+                transition: 'all 0.15s',
+              }}
+            >
+              {s.label}
             </button>
           ))}
         </div>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Нет соединения — TrashGo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f9fafb;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: #111827;
+      padding: 1.5rem;
+    }
+    .card {
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+    }
+    .icon {
+      width: 80px;
+      height: 80px;
+      background: #f3f4f6;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+      font-size: 2.5rem;
+    }
+    h1 { font-size: 1.375rem; font-weight: 700; margin-bottom: 0.5rem; }
+    p { font-size: 0.9375rem; color: #6b7280; line-height: 1.6; margin-bottom: 2rem; }
+    button {
+      width: 100%;
+      padding: 0.875rem;
+      background: #66BB6A;
+      color: white;
+      border: none;
+      border-radius: 0.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    button:active { opacity: 0.85; }
+    .hint { margin-top: 1rem; font-size: 0.8125rem; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">📡</div>
+    <h1>Нет соединения</h1>
+    <p>Проверьте подключение к интернету и попробуйте снова.</p>
+    <button onclick="location.reload()">Попробовать снова</button>
+    <div class="hint">TrashGo · Казань</div>
+  </div>
+</body>
+</html>
