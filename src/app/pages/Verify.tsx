@@ -26,6 +26,8 @@ export default function Verify() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [tgLink, setTgLink] = useState<string | undefined>(telegramBotLink);
+  const [tgLoading, setTgLoading] = useState(false);
   const setAuth = useAuthStore((s) => s.setAuth);
   const accent = useRoleStore((s) => s.accentColor);
 
@@ -104,10 +106,10 @@ export default function Verify() {
           }
         </p>
 
-        {/* Telegram link — shown when user hasn't linked Telegram yet */}
-        {telegramBotLink && (
+        {/* Telegram link — shown when bot link is available (initial or via fallback) */}
+        {tgLink && (
           <a
-            href={telegramBotLink}
+            href={tgLink}
             target="_blank"
             rel="noreferrer"
             style={{
@@ -124,6 +126,41 @@ export default function Verify() {
             </div>
             <span style={{ marginLeft: 'auto', fontSize: '0.9rem', color: '#229ED9' }}>→</span>
           </a>
+        )}
+
+        {/* SMS fallback: request code via Telegram if SMS didn't arrive */}
+        {channel === 'sms' && !tgLink && (
+          <button
+            type="button"
+            onClick={async () => {
+              setTgLoading(true);
+              try {
+                const res = await authApi.requestTelegram(phone);
+                setTgLink(res.telegramBotLink);
+              } catch {
+                toast.error('Telegram бот недоступен');
+              } finally {
+                setTgLoading(false);
+              }
+            }}
+            disabled={tgLoading}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              background: c.hint, border: `1px solid ${c.border}`,
+              borderRadius: '0.75rem', padding: '0.875rem 1rem',
+              marginBottom: '1.25rem', cursor: tgLoading ? 'not-allowed' : 'pointer',
+              width: '100%', textAlign: 'left', fontFamily: 'inherit',
+              opacity: tgLoading ? 0.6 : 1,
+            }}
+          >
+            <span style={{ fontSize: '1.5rem' }}>✈️</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: c.text }}>
+                {tgLoading ? 'Получаем ссылку...' : 'SMS не пришло? Войти через Telegram'}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: c.muted, marginTop: '0.125rem' }}>Бот пришлёт тот же код в Telegram</div>
+            </div>
+          </button>
         )}
 
         {/* Dev hint — never shown in production */}

@@ -1,4 +1,4 @@
-export type OrderStatus = 'new' | 'accepted' | 'in_progress' | 'pending_confirmation' | 'completed' | 'cancelled';
+export type OrderStatus = 'new' | 'accepted' | 'in_progress' | 'pending_confirmation' | 'pending_payment' | 'completed' | 'cancelled';
 
 export interface ChatMessage {
   id: string;

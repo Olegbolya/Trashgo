@@ -95,7 +95,7 @@ export default function CustomerDashboard() {
     id: string; address: string; entrance: string; floor: string; apartment: string;
     date: string; time: string; asap: boolean; volume: number; price: number;
     description: string; photoUrls: string[]; completionPhotoUrls: string[];
-    status: 'waiting' | 'active' | 'pending' | 'cancelled' | 'completed';
+    status: 'waiting' | 'active' | 'pending' | 'payment' | 'cancelled' | 'completed';
     responses: number; createdAt: string; ratingByCustomer: number | null;
     contractorName?: string;
   };
@@ -105,6 +105,7 @@ export default function CustomerDashboard() {
       : o.status === 'cancelled' ? 'cancelled'
       : o.status === 'completed' ? 'completed'
       : o.status === 'pending_confirmation' ? 'pending'
+      : o.status === 'pending_payment' ? 'payment'
       : 'active';
     return {
       id: o.id,
@@ -161,7 +162,15 @@ export default function CustomerDashboard() {
           } else if (order.status === 'cancelled') {
             toast.error('❌ Заявка была отменена', { duration: 4000 });
             addNotification({ type: 'order_status', title: 'Заявка отменена', message: order.address, orderId: order.id });
+          } else if (prev === 'pending' && order.status === 'payment') {
+            // customer triggered this themselves, no need for notification
+          } else if (prev === 'payment' && order.status === 'completed') {
+            toast.success('✅ Заказ завершён!', { description: `Исполнитель подтвердил получение оплаты: ${order.address}`, duration: 5000 });
+            addNotification({ type: 'order_status', title: 'Заказ завершён!', message: `Исполнитель подтвердил оплату: ${order.address}`, orderId: order.id });
+            setRatingOrder({ id: order.id, contractorName: orderContact?.contractorName || 'Исполнитель' });
+            setTimeout(refreshAchievements, 1000);
           } else if (prev === 'pending' && order.status === 'completed') {
+            // auto-completed order (legacy path)
             addNotification({ type: 'order_status', title: 'Заявка завершена!', message: `Спасибо за использование TrashGo: ${order.address}`, orderId: order.id });
           }
         });
@@ -196,14 +205,17 @@ export default function CustomerDashboard() {
 
   const doConfirmOrder = async (orderId: string) => {
     setConfirmingId(orderId);
-    setSbpModal(null);
     try {
-      await ordersApi.confirmOrder(orderId);
-      setMyOrders((prev) => prev.map(o => o.id === orderId ? { ...o, status: 'completed' as const } : o));
-      setSelectedOrder(null);
-      toast.success('Заказ завершён!', { description: 'Оплата исполнителю подтверждена', duration: 3000 });
-      setRatingOrder({ id: orderId, contractorName: orderContact?.contractorName || 'Исполнитель' });
-      setTimeout(refreshAchievements, 1000);
+      await ordersApi.confirmOrder(orderId); // → pending_payment
+      setMyOrders((prev) => prev.map(o => o.id === orderId ? { ...o, status: 'payment' as const } : o));
+      setSelectedOrder(prev => prev ? { ...prev, status: 'payment' as const } : prev);
+      const price = myOrders.find(o => o.id === orderId)?.price ?? selectedOrder?.price ?? 0;
+      setSbpModal({
+        orderId,
+        phone: orderContact?.contractorPhone || '',
+        amount: price,
+        contractorName: orderContact?.contractorName || 'Исполнитель',
+      });
     } catch (err: any) {
       toast.error(err?.message || 'Ошибка подтверждения');
     } finally {
@@ -330,7 +342,7 @@ export default function CustomerDashboard() {
 
   // Detect new chat messages on active orders when chat is closed
   useEffect(() => {
-    const activeOrders = myOrders.filter(o => o.status === 'active' || o.status === 'pending');
+    const activeOrders = myOrders.filter(o => o.status === 'active' || o.status === 'pending' || o.status === 'payment');
     if (!activeOrders.length || chatOpen) return;
     const poll = () => {
       activeOrders.forEach(order => {
@@ -388,7 +400,7 @@ export default function CustomerDashboard() {
 
   const stats = {
     totalOrders: myOrders.length,
-    activeOrders: myOrders.filter(o => o.status === 'waiting' || o.status === 'active' || o.status === 'pending').length,
+    activeOrders: myOrders.filter(o => o.status === 'waiting' || o.status === 'active' || o.status === 'pending' || o.status === 'payment').length,
     completedOrders: myOrders.filter(o => o.status === 'completed').length,
     referrals: referralCount,
   };
@@ -647,7 +659,7 @@ export default function CustomerDashboard() {
 
               {/* My orders */}
               {(() => {
-                const activeOrders = myOrders.filter(o => o.status === 'waiting' || o.status === 'active' || o.status === 'pending');
+                const activeOrders = myOrders.filter(o => o.status === 'waiting' || o.status === 'active' || o.status === 'pending' || o.status === 'payment');
                 return (
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -719,6 +731,10 @@ export default function CustomerDashboard() {
                             ) : order.status === 'pending' ? (
                               <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#FBBF2418', color: '#92400e', border: '1px solid #fbbf2450' }}>
                                 <span>⏳ Ждёт подтверждения</span>
+                              </div>
+                            ) : order.status === 'payment' ? (
+                              <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #86efac' }}>
+                                <span>💳 Ожидание оплаты СБП</span>
                               </div>
                             ) : order.status === 'active' ? (
                               <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: `${ACCENT}18`, color: ACCENT }}>
@@ -1683,30 +1699,25 @@ export default function CustomerDashboard() {
                 onClick={(e) => {
                   e.stopPropagation();
                   if (confirmingId) return;
-                  setSbpModal({
-                    orderId: selectedOrder.id,
-                    phone: orderContact?.contractorPhone || '',
-                    amount: selectedOrder.price,
-                    contractorName: orderContact?.contractorName || 'Исполнитель',
-                  });
+                  doConfirmOrder(selectedOrder.id);
                 }}
               >
-                {confirmingId === selectedOrder.id ? '⏳ Подтверждаем...' : '✅ Подтвердить выполнение'}
+                {confirmingId === selectedOrder.id ? '⏳ Подтверждаем...' : '✅ Работа выполнена — к оплате'}
               </button>
             )}
 
             <div className="flex items-start justify-between gap-2 mb-4 flex-wrap">
               <h2 className="text-base font-bold" style={{ color: c.text }}>Заказ #{selectedOrder.id.slice(-6)}</h2>
               <span className="text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap" style={{
-                background: selectedOrder.status === 'waiting' ? '#F97316' + '18' : selectedOrder.status === 'pending' ? '#FBBF2420' : `${ACCENT}18`,
-                color: selectedOrder.status === 'waiting' ? '#F97316' : selectedOrder.status === 'pending' ? '#92400e' : ACCENT,
+                background: selectedOrder.status === 'waiting' ? '#F97316' + '18' : selectedOrder.status === 'pending' ? '#FBBF2420' : selectedOrder.status === 'payment' ? '#dcfce7' : `${ACCENT}18`,
+                color: selectedOrder.status === 'waiting' ? '#F97316' : selectedOrder.status === 'pending' ? '#92400e' : selectedOrder.status === 'payment' ? '#166534' : ACCENT,
               }}>
-                {selectedOrder.status === 'waiting' ? `${selectedOrder.responses} откл.` : selectedOrder.status === 'pending' ? '⏳ Подтверждение' : 'Принят'}
+                {selectedOrder.status === 'waiting' ? `${selectedOrder.responses} откл.` : selectedOrder.status === 'pending' ? '⏳ Подтверждение' : selectedOrder.status === 'payment' ? '💳 Ожидание оплаты' : 'Принят'}
               </span>
             </div>
 
             {/* Call + Chat bar — shown when contractor is assigned */}
-            {(selectedOrder.status === 'active' || selectedOrder.status === 'pending') && (
+            {(selectedOrder.status === 'active' || selectedOrder.status === 'pending' || selectedOrder.status === 'payment') && (
               <div className="flex gap-2 mb-4">
                 <a
                   href={orderContact?.contractorPhone ? `tel:${orderContact.contractorPhone}` : undefined}
@@ -1890,15 +1901,10 @@ export default function CustomerDashboard() {
                     style={{ background: ACCENT, color: 'white', border: 'none', cursor: confirmingId === selectedOrder.id ? 'not-allowed' : 'pointer', opacity: confirmingId === selectedOrder.id ? 0.7 : 1, fontFamily: 'inherit', transition: 'opacity 0.15s' }}
                     onClick={() => {
                       if (confirmingId) return;
-                      setSbpModal({
-                        orderId: selectedOrder.id,
-                        phone: orderContact?.contractorPhone || '',
-                        amount: selectedOrder.price,
-                        contractorName: orderContact?.contractorName || 'Исполнитель',
-                      });
+                      doConfirmOrder(selectedOrder.id);
                     }}
                   >
-                    {confirmingId === selectedOrder.id ? '⏳ Подтверждаем...' : '✅ Подтвердить выполнение'}
+                    {confirmingId === selectedOrder.id ? '⏳ Подтверждаем...' : '✅ Работа выполнена — к оплате'}
                   </button>
                   {!disputeOpen ? (
                     <button
@@ -1956,6 +1962,35 @@ export default function CustomerDashboard() {
                     className="w-full py-2.5 rounded-xl text-sm font-medium"
                     style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
                     onClick={() => { setSelectedOrder(null); setDisputeOpen(false); setDisputeReason(''); }}
+                  >
+                    Закрыть
+                  </button>
+                </>
+              ) : selectedOrder.status === 'payment' ? (
+                <>
+                  <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: '0.875rem', padding: '0.875rem 1rem', marginBottom: '0.5rem' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#166534', marginBottom: '0.25rem' }}>💳 Ожидание подтверждения оплаты</div>
+                    <div style={{ fontSize: '0.8rem', color: '#15803d' }}>
+                      Исполнитель получит уведомление и подтвердит получение {selectedOrder.price}₽ по СБП.
+                      После этого заказ завершится.
+                    </div>
+                  </div>
+                  <button
+                    className="w-full py-2.5 rounded-xl text-sm font-medium"
+                    style={{ border: '1px solid #86efac', background: '#f0fdf4', color: '#166534', cursor: 'pointer', fontFamily: 'inherit' }}
+                    onClick={() => setSbpModal({
+                      orderId: selectedOrder.id,
+                      phone: orderContact?.contractorPhone || '',
+                      amount: selectedOrder.price,
+                      contractorName: orderContact?.contractorName || 'Исполнитель',
+                    })}
+                  >
+                    📋 Реквизиты для СБП
+                  </button>
+                  <button
+                    className="w-full py-2.5 rounded-xl text-sm font-medium"
+                    style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
+                    onClick={() => setSelectedOrder(null)}
                   >
                     Закрыть
                   </button>
@@ -2229,7 +2264,7 @@ export default function CustomerDashboard() {
                 Оплатите через СБП
               </div>
               <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                Переведите исполнителю напрямую — без комиссии
+                После оплаты исполнитель подтвердит получение и заказ завершится
               </div>
             </div>
 
@@ -2276,25 +2311,20 @@ export default function CustomerDashboard() {
             </div>
 
             <button
-              disabled={!!confirmingId}
-              onClick={() => doConfirmOrder(sbpModal.orderId)}
+              onClick={() => setSbpModal(null)}
               style={{
                 display: 'block', width: '100%', padding: '0.875rem',
                 background: ACCENT, color: 'white', border: 'none',
                 borderRadius: '0.875rem', fontSize: '0.9375rem', fontWeight: 700,
-                cursor: confirmingId ? 'not-allowed' : 'pointer',
-                opacity: confirmingId ? 0.7 : 1, fontFamily: 'inherit',
+                cursor: 'pointer', fontFamily: 'inherit',
                 marginBottom: '0.625rem',
               }}
             >
-              {confirmingId ? '⏳ Подтверждаем...' : '✅ Я оплатил — завершить заказ'}
+              ✅ Понятно — жду подтверждения исполнителя
             </button>
-            <button
-              onClick={() => setSbpModal(null)}
-              style={{ display: 'block', width: '100%', padding: '0.625rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', color: '#9ca3af', fontFamily: 'inherit' }}
-            >
-              Отмена
-            </button>
+            <div style={{ fontSize: '0.75rem', color: '#9ca3af', textAlign: 'center' }}>
+              Заказ завершится автоматически после того, как исполнитель подтвердит получение оплаты
+            </div>
           </div>
         </div>
       )}

@@ -76,6 +76,7 @@ export default function ContractorDashboard() {
   const [historyDetailOrder, setHistoryDetailOrder] = useState<Order | null>(null);
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
   const [paymentDisputedIds, setPaymentDisputedIds] = useState<Set<string>>(new Set());
+  const [confirmingPaymentId, setConfirmingPaymentId] = useState<string | null>(null);
   const [tgBotUsername, setTgBotUsername] = useState<string | null>(null);
   const [ratingOrder, setRatingOrder] = useState<{ id: string; customerName: string } | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('trashgo_onboarded'));
@@ -119,15 +120,22 @@ export default function ContractorDashboard() {
     const load = () => {
       ordersApi.myJobs().then((res: any) => {
         const jobs: Order[] = res?.data ?? [];
-        // Detect pending_confirmation → completed transitions
+        // Detect status transitions
         jobs.forEach(job => {
           const prev = prevJobStatusesRef.current[job.id];
-          if (prev === 'pending_confirmation' && job.status === 'completed') {
-            toast.success('✅ Выполнение заявки подтверждено', {
-              description: `Заказ по адресу ${job.address} подтверждён заказчиком`,
+          if (prev === 'pending_confirmation' && job.status === 'pending_payment') {
+            toast.info('💳 Заказчик подтвердил работу', {
+              description: `Ожидайте перевод ${job.price}₽ по СБП — затем нажмите «Деньги получены»`,
+              duration: 8000,
+            });
+            addNotification({ type: 'order_status', title: 'Работа подтверждена!', message: `Ожидайте оплату ${job.price}₽ по СБП: ${job.address}`, orderId: job.id });
+          }
+          if (prev === 'pending_payment' && job.status === 'completed') {
+            toast.success('✅ Заказ завершён', {
+              description: `Заказ по адресу ${job.address} завершён`,
               duration: 6000,
             });
-            addNotification({ type: 'order_status', title: 'Заявка подтверждена!', message: `Заказчик подтвердил выполнение: ${job.address}`, orderId: job.id });
+            addNotification({ type: 'order_status', title: 'Заказ завершён!', message: `Заказ выполнен: ${job.address}`, orderId: job.id });
             if (!job.ratingByContractor) {
               ordersApi.getById(job.id).then((res: any) => {
                 const d = res?.data ?? res;
@@ -544,7 +552,7 @@ export default function ContractorDashboard() {
 
               {/* Active jobs */}
               {(() => {
-                const activeJobs = myJobs.filter(j => j.status === 'accepted' || j.status === 'in_progress' || j.status === 'pending_confirmation');
+                const activeJobs = myJobs.filter(j => j.status === 'accepted' || j.status === 'in_progress' || j.status === 'pending_confirmation' || j.status === 'pending_payment');
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -567,8 +575,8 @@ export default function ContractorDashboard() {
                           const dt = job.scheduledAt ? new Date(job.scheduledAt) : null;
                           const timeStr = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
                           const dateStr = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
-                          const statusLabel = job.status === 'accepted' ? 'Принят' : job.status === 'in_progress' ? 'В работе' : 'Ждёт подтверждения';
-                          const statusColor = job.status === 'accepted' ? ACCENT : job.status === 'in_progress' ? '#FBBF24' : '#F97316';
+                          const statusLabel = job.status === 'accepted' ? 'Принят' : job.status === 'in_progress' ? 'В работе' : job.status === 'pending_payment' ? 'Ожидание оплаты' : 'Ждёт подтверждения';
+                          const statusColor = job.status === 'accepted' ? ACCENT : job.status === 'in_progress' ? '#FBBF24' : job.status === 'pending_payment' ? '#22c55e' : '#F97316';
                           return (
                             <div key={job.id} style={{ ...card, padding: '0.875rem' }}>
                               <div className="flex items-start justify-between mb-2">
@@ -708,6 +716,30 @@ export default function ContractorDashboard() {
                                 {job.status === 'pending_confirmation' && (
                                   <div className="w-full h-8 rounded-lg flex items-center justify-center text-xs font-semibold" style={{ background: '#FFF3CD', color: '#856404', border: '1px solid #ffc107' }}>
                                     ⏳ Ждёт подтверждения заказчика
+                                  </div>
+                                )}
+                                {job.status === 'pending_payment' && (
+                                  <div className="space-y-2">
+                                    <div className="w-full rounded-lg px-3 py-2 text-xs" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #86efac' }}>
+                                      💳 Заказчик подтвердил работу — ожидайте перевод <strong>{job.price}₽</strong> по СБП
+                                    </div>
+                                    <button
+                                      className="w-full text-xs font-semibold h-9 rounded-lg"
+                                      disabled={confirmingPaymentId === job.id}
+                                      style={{ background: '#22c55e', color: 'white', border: 'none', cursor: confirmingPaymentId === job.id ? 'not-allowed' : 'pointer', opacity: confirmingPaymentId === job.id ? 0.6 : 1, fontFamily: 'inherit' }}
+                                      onClick={async () => {
+                                        setConfirmingPaymentId(job.id);
+                                        try {
+                                          await ordersApi.confirmPayment(job.id);
+                                          setMyJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'completed' as const } : j));
+                                          toast.success('✅ Оплата подтверждена!', { description: `+${job.price}₽ начислено на баланс`, duration: 5000 });
+                                          setTimeout(refreshAchievements, 1000);
+                                        } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
+                                        finally { setConfirmingPaymentId(null); }
+                                      }}
+                                    >
+                                      {confirmingPaymentId === job.id ? 'Подтверждаем...' : '💰 Деньги получены'}
+                                    </button>
                                   </div>
                                 )}
                                 {/* Call + Chat */}

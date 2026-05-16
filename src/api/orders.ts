@@ -77,4 +77,8 @@ export const ordersApi = {
   paymentDispute(id: string) {
     return api.post<{ ok: boolean }>(`/orders/${id}/payment-dispute`, {});
   },
+
+  confirmPayment(id: string) {
+    return api.post<{ data: unknown }>(`/orders/${id}/confirm-payment`, {});
+  },
 };
