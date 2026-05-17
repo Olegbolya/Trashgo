@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Bell, CheckCheck, Trash2, MessageCircle, Package, Zap, CheckCircle, Settings, Mail, Smartphone } from 'lucide-react';
+import { ArrowLeft, Bell, CheckCheck, Trash2, MessageCircle, Package, Zap, CheckCircle, Settings, Mail, Smartphone, Send, ExternalLink } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNotificationsStore, type AppNotification } from '../../stores/notifications.store';
 import { useAuthStore } from '../../stores/auth.store';
@@ -58,7 +58,14 @@ export default function Notifications() {
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingEmailToggle, setSavingEmailToggle] = useState(false);
   const [savingPushToggle, setSavingPushToggle] = useState(false);
+  const [botUsername, setBotUsername] = useState<string | null>(null);
   const emailEnabled = user?.notifEmail ?? settings?.emailEnabled ?? false;
+
+  useEffect(() => {
+    if (tab === 'settings' && !user?.telegramLinked) {
+      authApi.botInfo().then(({ username }) => setBotUsername(username)).catch(() => {});
+    }
+  }, [tab, user?.telegramLinked]);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -212,8 +219,32 @@ export default function Notifications() {
                 </div>
               )}
             </div>
+            {/* Telegram */}
+            <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Send className="w-4 h-4" style={{ color: '#2196F3' }} />
+                  <span className="text-sm font-semibold" style={{ color: c.text }}>Telegram</span>
+                </div>
+                {user?.telegramLinked
+                  ? <span className="text-xs font-semibold px-2 py-1 rounded-lg" style={{ background: '#d1fae5', color: '#065f46' }}>✓ Привязан</span>
+                  : (
+                    botUsername
+                      ? <a href={`https://t.me/${botUsername}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#2196F3', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.25rem 0.75rem', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}>
+                          Привязать <ExternalLink className="w-3 h-3" />
+                        </a>
+                      : <span className="text-xs" style={{ color: c.muted }}>Не привязан</span>
+                  )}
+              </div>
+              <div className="px-4 pb-3 text-xs" style={{ color: c.muted }}>
+                {user?.telegramLinked
+                  ? 'Уведомления о заказах, чатах и статусах будут приходить в Telegram — даже когда приложение закрыто.'
+                  : 'Привяжите Telegram-бот, чтобы получать уведомления когда приложение закрыто.'}
+              </div>
+            </div>
+
             <div className="rounded-xl px-4 py-3 text-xs" style={{ background: `${ACCENT}10`, color: c.muted }}>
-              Email-настройки сохраняются на сервере и будут применяться на всех устройствах
+              Настройки сохраняются на сервере и применяются на всех устройствах
             </div>
           </div>
         )}

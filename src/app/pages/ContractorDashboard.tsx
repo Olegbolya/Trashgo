@@ -1133,9 +1133,36 @@ export default function ContractorDashboard() {
                         <Edit className="w-3 h-3 inline mr-1" />Изменить
                       </button>
                     </div>
-                    <div className="rounded-lg p-3" style={{ background: c.subtle }}>
+                    <div className="rounded-lg p-3 mb-2" style={{ background: c.subtle }}>
                       <div className="text-xs mb-1" style={{ color: c.muted }}>Способ передвижения</div>
                       <div className="text-sm font-medium" style={{ color: c.text }}>{transportLabel[tMode] || '🚗 Автомобиль'}</div>
+                    </div>
+                    {/* Availability toggle */}
+                    <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: (user?.isAvailable ?? true) ? '#d1fae520' : `${c.subtle}`, border: `1px solid ${(user?.isAvailable ?? true) ? '#6ee7b7' : c.border}` }}>
+                      <div>
+                        <div className="text-sm font-medium" style={{ color: c.text }}>
+                          {(user?.isAvailable ?? true) ? '🟢 Принимаю заказы' : '🔴 Недоступен'}
+                        </div>
+                        <div className="text-xs" style={{ color: c.muted }}>
+                          {(user?.isAvailable ?? true) ? 'Виден заказчикам и получаю уведомления' : 'Скрыт из списка, уведомления не приходят'}
+                        </div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const newVal = !(user?.isAvailable ?? true);
+                          updateUser({ isAvailable: newVal });
+                          try {
+                            const updated = await authApi.updateProfile({ isAvailable: newVal });
+                            updateUser({ isAvailable: (updated as any).isAvailable ?? newVal });
+                          } catch {
+                            updateUser({ isAvailable: !newVal });
+                            toast.error('Не удалось сохранить');
+                          }
+                        }}
+                        style={{ width: '2.75rem', height: '1.5rem', borderRadius: '9999px', border: 'none', background: (user?.isAvailable ?? true) ? '#4CAF50' : '#d1d5db', cursor: 'pointer', position: 'relative', transition: 'background 0.2s ease', flexShrink: 0 }}
+                      >
+                        <span style={{ position: 'absolute', top: '0.125rem', left: (user?.isAvailable ?? true) ? 'calc(100% - 1.375rem)' : '0.125rem', width: '1.25rem', height: '1.25rem', borderRadius: '9999px', background: 'white', transition: 'left 0.2s ease', display: 'block' }} />
+                      </button>
                     </div>
                   </div>
                 );
