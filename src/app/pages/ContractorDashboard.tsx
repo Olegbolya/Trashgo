@@ -469,7 +469,7 @@ export default function ContractorDashboard() {
             <button
               onClick={() => { setActiveTab('profile'); setMobileMenuOpen(false); }}
               className="w-full flex items-center gap-3 p-4 text-left"
-              style={{ borderBottom: `1px solid ${c.border}`, background: 'none', border: 'none', borderBottom: `1px solid ${c.border}`, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ borderBottom: `1px solid ${c.border}`, background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
             >
               <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base flex-shrink-0" style={{ background: `${ACCENT}20`, color: ACCENT }}>
                 {(user?.name || 'U').charAt(0).toUpperCase()}

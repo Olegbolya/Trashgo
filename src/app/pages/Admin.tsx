@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 
-const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3000/api/v1';
+const API_URL = (import.meta.env.VITE_API_URL as string) || (import.meta.env.PROD ? '/api/v1' : 'http://localhost:3000/api/v1');
 
 interface Stats {
   users: number;
