@@ -89,7 +89,9 @@ export default function Help() {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [loadingChat, setLoadingChat] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
   const threadEndRef = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -101,27 +103,42 @@ export default function Help() {
     subtle:  isDark ? '#1f2937' : '#f3f4f6',
   };
 
-  const loadMessages = useCallback(async () => {
-    setLoadingChat(true);
+  const loadMessages = useCallback(async (silent = false) => {
+    if (!silent) setLoadingChat(true);
     try {
       const r = await api.get<{ data: SupportMessage[] }>('/support');
-      setMessages(r.data.slice().reverse());
+      const sorted = r.data.slice().reverse();
+      setMessages(sorted);
+      // mark unread: any message with a reply that arrived after we last checked
+      setHasUnread(sorted.some(m => m.reply !== null));
     } catch {
       // ignore
     } finally {
-      setLoadingChat(false);
+      if (!silent) setLoadingChat(false);
     }
   }, []);
 
+  // Check for unread on mount (without opening chat)
+  useEffect(() => {
+    loadMessages(true);
+  }, [loadMessages]);
+
+  // Load messages and start polling when chat opens
   useEffect(() => {
     if (chatOpen) {
       loadMessages();
+      setHasUnread(false);
+      pollRef.current = setInterval(() => loadMessages(true), 15000);
+      return () => {
+        if (pollRef.current) clearInterval(pollRef.current);
+      };
     }
   }, [chatOpen, loadMessages]);
 
+  // Scroll to bottom when new messages arrive
   useEffect(() => {
-    if (chatOpen) {
-      setTimeout(() => threadEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    if (chatOpen && messages.length > 0) {
+      setTimeout(() => threadEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
     }
   }, [messages, chatOpen]);
 
@@ -147,6 +164,7 @@ export default function Help() {
       title: 'Написать в чат',
       sub: 'Ответим в течение 15 минут',
       action: () => setChatOpen(true),
+      badge: hasUnread,
     },
     {
       icon: Phone,
@@ -154,6 +172,7 @@ export default function Help() {
       title: '+7 (800) 000-00-00',
       sub: 'Бесплатно, пн–вс 9:00–21:00',
       action: () => { window.location.href = 'tel:+78000000000'; },
+      badge: false,
     },
     {
       icon: Mail,
@@ -161,6 +180,7 @@ export default function Help() {
       title: 'support@trashgo.ru',
       sub: 'Ответ в течение 2 часов',
       action: () => { window.location.href = 'mailto:support@trashgo.ru'; },
+      badge: false,
     },
   ];
 
@@ -218,13 +238,19 @@ export default function Help() {
                   key={i}
                   onClick={item.action}
                   className="w-full flex items-center gap-3 p-3 rounded-xl"
-                  style={{ background: c.subtle, border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                  style={{ background: item.badge ? `${GREEN}0d` : c.subtle, border: item.badge ? `1px solid ${GREEN}50` : 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
                 >
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${item.color}18` }}>
+                  <div className="relative w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${item.color}18` }}>
                     <Icon className="w-5 h-5" style={{ color: item.color }} />
+                    {item.badge && (
+                      <span style={{ position: 'absolute', top: '-3px', right: '-3px', width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444', border: `2px solid ${c.surface}` }} />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold" style={{ color: c.text }}>{item.title}</div>
+                    <div className="text-sm font-semibold" style={{ color: c.text }}>
+                      {item.title}
+                      {item.badge && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', background: '#ef4444', color: '#fff', borderRadius: '0.75rem', padding: '0.1rem 0.4rem', fontWeight: 700 }}>Новый ответ</span>}
+                    </div>
                     <div className="text-xs" style={{ color: c.muted }}>{item.sub}</div>
                   </div>
                   <ExternalLink className="w-4 h-4 flex-shrink-0" style={{ color: c.muted }} />
@@ -253,7 +279,6 @@ export default function Help() {
         <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
           <h2 className="text-base font-semibold mb-3" style={{ color: c.text }}>Частые вопросы</h2>
 
-          {/* Tab switcher */}
           <div className="flex gap-1 p-1 rounded-xl mb-4" style={{ background: c.subtle }}>
             {(['customer', 'contractor'] as const).map((tab) => (
               <button
@@ -315,7 +340,6 @@ export default function Help() {
           </div>
         </div>
 
-        {/* App version */}
         <div className="text-center text-xs py-2" style={{ color: c.muted }}>
           TrashGo v1.3.0 · Казань
         </div>
@@ -325,12 +349,10 @@ export default function Help() {
       {/* Support chat drawer */}
       {chatOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', flexDirection: 'column' }}>
-          {/* Backdrop */}
           <div
             style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }}
             onClick={() => setChatOpen(false)}
           />
-          {/* Panel */}
           <div style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,
             background: c.surface, borderRadius: '1.25rem 1.25rem 0 0',
@@ -346,7 +368,7 @@ export default function Help() {
                 </div>
                 <div>
                   <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: c.text }}>Чат поддержки</div>
-                  <div style={{ fontSize: '0.75rem', color: c.muted }}>Ответим в течение 15 минут</div>
+                  <div style={{ fontSize: '0.75rem', color: c.muted }}>Обновляется каждые 15 секунд</div>
                 </div>
               </div>
               <button
@@ -405,13 +427,13 @@ export default function Help() {
               <div ref={threadEndRef} />
             </div>
 
-            {/* Input */}
+            {/* Input — always visible */}
             <div style={{ padding: '0.75rem 1rem', borderTop: `1px solid ${c.border}`, display: 'flex', gap: '0.5rem', flexShrink: 0, paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
               <input
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                placeholder="Опишите проблему..."
+                placeholder="Напишите сообщение..."
                 style={{ flex: 1, height: '2.5rem', padding: '0 0.875rem', borderRadius: '0.75rem', border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, fontSize: '0.9375rem', outline: 'none', fontFamily: 'inherit' }}
                 autoFocus
               />

@@ -511,54 +511,77 @@ export default function Admin() {
             </div>
             {supportMsgs.length === 0 ? (
               <div style={{ textAlign: 'center', color: muted, padding: '3rem' }}>Нет обращений</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {supportMsgs.map(m => (
-                  <div key={m.id} style={{ background: surface, border: `1px solid ${m.status === 'open' ? '#38bdf840' : border}`, borderRadius: '0.875rem', padding: '1.125rem 1.25rem' }}>
-                    {/* User info */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.625rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 700, color: text }}>{m.userName || '—'}</span>
-                      <span style={{ fontSize: '0.8rem', color: muted }}>{m.userPhone}</span>
-                      {m.telegramChatId && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#2563eb20', color: '#60a5fa' }}>TG</span>}
-                      <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: muted }}>{fmt(m.createdAt)}</span>
-                      <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: '0.25rem', background: m.status === 'open' ? '#38bdf820' : '#33415520', color: m.status === 'open' ? accent : muted, border: `1px solid ${m.status === 'open' ? accent + '50' : border}` }}>
-                        {m.status === 'open' ? 'открыто' : 'закрыто'}
-                      </span>
-                    </div>
-                    {/* User message */}
-                    <div style={{ background: bg, borderRadius: '0.5rem', padding: '0.75rem', fontSize: '0.875rem', color: text, marginBottom: '0.75rem', lineHeight: 1.55, wordBreak: 'break-word' }}>
-                      {m.message}
-                    </div>
-                    {/* Existing reply */}
-                    {m.reply && (
-                      <div style={{ background: '#16253620', borderLeft: `3px solid ${accent}`, borderRadius: '0 0.5rem 0.5rem 0', padding: '0.625rem 0.75rem', marginBottom: '0.75rem' }}>
-                        <div style={{ fontSize: '0.7rem', color: accent, fontWeight: 600, marginBottom: '0.25rem' }}>Ответ администратора · {m.repliedAt ? fmt(m.repliedAt) : ''}</div>
-                        <div style={{ fontSize: '0.875rem', color: text, lineHeight: 1.5, wordBreak: 'break-word' }}>{m.reply}</div>
+            ) : (() => {
+              // Group by userId, preserving order of first appearance
+              const grouped: Map<string, SupportMsg[]> = new Map();
+              for (const m of supportMsgs) {
+                if (!grouped.has(m.userId)) grouped.set(m.userId, []);
+                grouped.get(m.userId)!.push(m);
+              }
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {Array.from(grouped.entries()).map(([userId, msgs]) => {
+                    const first = msgs[0];
+                    const hasOpen = msgs.some(m => m.status === 'open');
+                    return (
+                      <div key={userId} style={{ background: surface, border: `1px solid ${hasOpen ? '#38bdf840' : border}`, borderRadius: '1rem', overflow: 'hidden' }}>
+                        {/* User header */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', padding: '0.875rem 1.125rem', borderBottom: `1px solid ${border}`, flexWrap: 'wrap', background: hasOpen ? '#38bdf808' : 'transparent' }}>
+                          <span style={{ fontWeight: 700, color: text }}>{first.userName || '—'}</span>
+                          <span style={{ fontSize: '0.8rem', color: muted }}>{first.userPhone}</span>
+                          {first.telegramChatId && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#2563eb20', color: '#60a5fa' }}>TG</span>}
+                          <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: muted }}>{msgs.length} сообщ.</span>
+                          {hasOpen && <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: '0.25rem', background: '#38bdf820', color: accent, border: `1px solid ${accent}50` }}>есть открытые</span>}
+                        </div>
+                        {/* Messages */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                          {msgs.map((m, idx) => (
+                            <div key={m.id} style={{ padding: '0.875rem 1.125rem', borderBottom: idx < msgs.length - 1 ? `1px solid ${border}` : 'none' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                <span style={{ fontSize: '0.7rem', color: muted }}>{fmt(m.createdAt)}</span>
+                                <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.35rem', borderRadius: '0.25rem', background: m.status === 'open' ? '#38bdf820' : '#33415520', color: m.status === 'open' ? accent : muted, border: `1px solid ${m.status === 'open' ? accent + '40' : border}` }}>
+                                  {m.status === 'open' ? 'открыто' : 'закрыто'}
+                                </span>
+                              </div>
+                              {/* User message */}
+                              <div style={{ background: bg, borderRadius: '0.5rem', padding: '0.625rem 0.75rem', fontSize: '0.875rem', color: text, marginBottom: '0.5rem', lineHeight: 1.55, wordBreak: 'break-word' }}>
+                                {m.message}
+                              </div>
+                              {/* Existing reply */}
+                              {m.reply && (
+                                <div style={{ background: `${accent}10`, borderLeft: `3px solid ${accent}`, borderRadius: '0 0.375rem 0.375rem 0', padding: '0.5rem 0.75rem', marginBottom: '0.5rem' }}>
+                                  <div style={{ fontSize: '0.6875rem', color: accent, fontWeight: 600, marginBottom: '0.2rem' }}>Ответ · {m.repliedAt ? fmt(m.repliedAt) : ''}</div>
+                                  <div style={{ fontSize: '0.875rem', color: text, lineHeight: 1.5, wordBreak: 'break-word' }}>{m.reply}</div>
+                                </div>
+                              )}
+                              {/* Reply input */}
+                              {m.status === 'open' && (
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                  <input
+                                    value={replyTexts[m.id] ?? ''}
+                                    onChange={e => setReplyTexts(prev => ({ ...prev, [m.id]: e.target.value }))}
+                                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSupportReply(m.id); } }}
+                                    placeholder="Введите ответ..."
+                                    style={{ flex: 1, height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.5rem', border: `1px solid ${border}`, background: bg, color: text, fontSize: '0.875rem', outline: 'none', fontFamily: 'inherit' }}
+                                  />
+                                  <button
+                                    disabled={sendingReply === m.id || !replyTexts[m.id]?.trim()}
+                                    onClick={() => handleSupportReply(m.id)}
+                                    style={{ padding: '0 1rem', borderRadius: '0.5rem', background: sendingReply === m.id || !replyTexts[m.id]?.trim() ? border : accent, color: sendingReply === m.id || !replyTexts[m.id]?.trim() ? muted : '#0f172a', border: 'none', cursor: sendingReply === m.id || !replyTexts[m.id]?.trim() ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.8125rem', fontFamily: 'inherit', flexShrink: 0 }}
+                                  >
+                                    {sendingReply === m.id ? '...' : 'Ответить'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    )}
-                    {/* Reply input */}
-                    {m.status === 'open' && (
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <input
-                          value={replyTexts[m.id] ?? ''}
-                          onChange={e => setReplyTexts(prev => ({ ...prev, [m.id]: e.target.value }))}
-                          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSupportReply(m.id); } }}
-                          placeholder="Введите ответ..."
-                          style={{ flex: 1, height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.5rem', border: `1px solid ${border}`, background: bg, color: text, fontSize: '0.875rem', outline: 'none', fontFamily: 'inherit' }}
-                        />
-                        <button
-                          disabled={sendingReply === m.id || !replyTexts[m.id]?.trim()}
-                          onClick={() => handleSupportReply(m.id)}
-                          style={{ padding: '0 1rem', borderRadius: '0.5rem', background: sendingReply === m.id || !replyTexts[m.id]?.trim() ? `${border}` : accent, color: sendingReply === m.id || !replyTexts[m.id]?.trim() ? muted : '#0f172a', border: 'none', cursor: sendingReply === m.id || !replyTexts[m.id]?.trim() ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.8125rem', fontFamily: 'inherit', flexShrink: 0 }}
-                        >
-                          {sendingReply === m.id ? '...' : 'Ответить'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
