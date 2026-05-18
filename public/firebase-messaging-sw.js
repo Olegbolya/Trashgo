@@ -42,6 +42,57 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+// ── Background Sync — queue API POST requests while offline ──────────────────
+const SYNC_TAG = 'trashgo-api-sync';
+const SYNC_DB_NAME = 'trashgo-bg-sync';
+const SYNC_STORE_NAME = 'pending-requests';
+
+function openSyncDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(SYNC_DB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      e.target.result.createObjectStore(SYNC_STORE_NAME, { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+self.addEventListener('sync', (event) => {
+  if (event.tag === SYNC_TAG) {
+    event.waitUntil(replaySyncQueue());
+  }
+});
+
+async function replaySyncQueue() {
+  const db = await openSyncDb();
+  const items = await new Promise((resolve) => {
+    const tx = db.transaction(SYNC_STORE_NAME, 'readonly');
+    const req = tx.objectStore(SYNC_STORE_NAME).getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve([]);
+  });
+
+  for (const item of items) {
+    try {
+      const res = await fetch(item.url, {
+        method: item.method,
+        headers: JSON.parse(item.headers),
+        body: item.body,
+      });
+      if (res.ok) {
+        const tx = db.transaction(SYNC_STORE_NAME, 'readwrite');
+        tx.objectStore(SYNC_STORE_NAME).delete(item.id);
+        // Notify open tabs that a queued message was sent
+        self.clients.matchAll({ type: 'window' }).then(clients => {
+          clients.forEach(c => c.postMessage({ type: 'SYNC_COMPLETE', url: item.url }));
+        });
+      }
+    } catch {
+      // Network still down, keep in queue
+    }
+  }
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Firebase Cloud Messaging service worker

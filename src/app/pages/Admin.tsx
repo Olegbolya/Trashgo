@@ -66,7 +66,16 @@ interface SupportMsg {
   userName: string | null;
   userPhone: string | null;
   telegramChatId: string | null;
+  category: string | null;
+  readAt: string | null;
 }
+
+const CATEGORY_LABELS: Record<string, string> = {
+  order: '🚛 Заказ',
+  payment: '💳 Оплата',
+  tech: '⚙️ Техника',
+  other: '💬 Другое',
+};
 
 type Tab = 'stats' | 'frozen' | 'disputes' | 'payment' | 'users' | 'support';
 
@@ -537,11 +546,21 @@ export default function Admin() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                           {msgs.map((m, idx) => (
                             <div key={m.id} style={{ padding: '0.875rem 1.125rem', borderBottom: idx < msgs.length - 1 ? `1px solid ${border}` : 'none' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                                 <span style={{ fontSize: '0.7rem', color: muted }}>{fmt(m.createdAt)}</span>
                                 <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.35rem', borderRadius: '0.25rem', background: m.status === 'open' ? '#38bdf820' : '#33415520', color: m.status === 'open' ? accent : muted, border: `1px solid ${m.status === 'open' ? accent + '40' : border}` }}>
                                   {m.status === 'open' ? 'открыто' : 'закрыто'}
                                 </span>
+                                {m.category && CATEGORY_LABELS[m.category] && (
+                                  <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#a78bfa20', color: '#a78bfa', border: '1px solid #a78bfa40' }}>
+                                    {CATEGORY_LABELS[m.category]}
+                                  </span>
+                                )}
+                                {m.reply && (
+                                  <span style={{ marginLeft: 'auto', fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: m.readAt ? '#4ade8020' : '#f9731620', color: m.readAt ? '#4ade80' : '#f97316', border: `1px solid ${m.readAt ? '#4ade8040' : '#f9731640'}` }}>
+                                    {m.readAt ? '✓ Прочитано' : '👁 Не прочитано'}
+                                  </span>
+                                )}
                               </div>
                               {/* User message */}
                               <div style={{ background: bg, borderRadius: '0.5rem', padding: '0.625rem 0.75rem', fontSize: '0.875rem', color: text, marginBottom: '0.5rem', lineHeight: 1.55, wordBreak: 'break-word' }}>
