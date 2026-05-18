@@ -68,6 +68,8 @@ interface SupportMsg {
   telegramChatId: string | null;
   category: string | null;
   readAt: string | null;
+  isBotReply: boolean;
+  escalated: boolean;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -114,7 +116,7 @@ export default function Admin() {
   const [userOrders, setUserOrders] = useState<{ userId: string; orders: UserOrder[] } | null>(null);
   const [closingDispute, setClosingDispute] = useState<string | null>(null);
   const [supportMsgs, setSupportMsgs] = useState<SupportMsg[]>([]);
-  const [supportFilter, setSupportFilter] = useState<'open' | 'all'>('open');
+  const [supportFilter, setSupportFilter] = useState<'open' | 'escalated' | 'all'>('open');
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
   const [sendingReply, setSendingReply] = useState<string | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -175,7 +177,7 @@ export default function Admin() {
     finally { setLoadingUsers(false); }
   }, [apiFetch]);
 
-  const loadSupport = useCallback(async (status: 'open' | 'all') => {
+  const loadSupport = useCallback(async (status: 'open' | 'escalated' | 'all') => {
     setLoading(true); setError('');
     try {
       const r = await apiFetch(`/admin/support?status=${status}`);
@@ -265,7 +267,7 @@ export default function Admin() {
     finally { setSendingReply(null); }
   };
 
-  const handleSupportFilterChange = (f: 'open' | 'all') => {
+  const handleSupportFilterChange = (f: 'open' | 'escalated' | 'all') => {
     setSupportFilter(f);
     loadSupport(f);
   };
@@ -510,10 +512,10 @@ export default function Admin() {
         {/* SUPPORT TAB */}
         {!loading && tab === 'support' && (
           <div>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-              {(['open', 'all'] as const).map(f => (
-                <button key={f} onClick={() => handleSupportFilterChange(f)} style={{ padding: '0.375rem 0.875rem', borderRadius: '0.5rem', background: supportFilter === f ? `${accent}25` : 'transparent', border: `1px solid ${supportFilter === f ? accent : border}`, color: supportFilter === f ? accent : muted, cursor: 'pointer', fontSize: '0.8125rem', fontFamily: 'inherit' }}>
-                  {f === 'open' ? '🔵 Открытые' : '📋 Все'}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {(['open', 'escalated', 'all'] as const).map(f => (
+                <button key={f} onClick={() => handleSupportFilterChange(f)} style={{ padding: '0.375rem 0.875rem', borderRadius: '0.5rem', background: supportFilter === f ? `${f === 'escalated' ? '#f97316' : accent}25` : 'transparent', border: `1px solid ${supportFilter === f ? (f === 'escalated' ? '#f97316' : accent) : border}`, color: supportFilter === f ? (f === 'escalated' ? '#f97316' : accent) : muted, cursor: 'pointer', fontSize: '0.8125rem', fontFamily: 'inherit' }}>
+                  {f === 'open' ? '🔵 Открытые' : f === 'escalated' ? '🚨 Эскалированные' : '📋 Все'}
                 </button>
               ))}
               <span style={{ marginLeft: 'auto', color: muted, fontSize: '0.8125rem', alignSelf: 'center' }}>{supportMsgs.length} сообщений</span>
@@ -532,25 +534,35 @@ export default function Admin() {
                   {Array.from(grouped.entries()).map(([userId, msgs]) => {
                     const first = msgs[0];
                     const hasOpen = msgs.some(m => m.status === 'open');
+                    const hasEscalated = msgs.some(m => m.escalated);
+                    const borderColor = hasEscalated ? '#f9731640' : hasOpen ? '#38bdf840' : border;
+                    const headerBg = hasEscalated ? '#f9731808' : hasOpen ? '#38bdf808' : 'transparent';
                     return (
-                      <div key={userId} style={{ background: surface, border: `1px solid ${hasOpen ? '#38bdf840' : border}`, borderRadius: '1rem', overflow: 'hidden' }}>
+                      <div key={userId} style={{ background: surface, border: `1px solid ${borderColor}`, borderRadius: '1rem', overflow: 'hidden' }}>
                         {/* User header */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', padding: '0.875rem 1.125rem', borderBottom: `1px solid ${border}`, flexWrap: 'wrap', background: hasOpen ? '#38bdf808' : 'transparent' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', padding: '0.875rem 1.125rem', borderBottom: `1px solid ${border}`, flexWrap: 'wrap', background: headerBg }}>
                           <span style={{ fontWeight: 700, color: text }}>{first.userName || '—'}</span>
                           <span style={{ fontSize: '0.8rem', color: muted }}>{first.userPhone}</span>
                           {first.telegramChatId && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#2563eb20', color: '#60a5fa' }}>TG</span>}
                           <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: muted }}>{msgs.length} сообщ.</span>
-                          {hasOpen && <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: '0.25rem', background: '#38bdf820', color: accent, border: `1px solid ${accent}50` }}>есть открытые</span>}
+                          {hasEscalated && <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: '0.25rem', background: '#f9731820', color: '#f97316', border: '1px solid #f9731640' }}>🚨 нужен оператор</span>}
+                          {!hasEscalated && hasOpen && <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: '0.25rem', background: '#38bdf820', color: accent, border: `1px solid ${accent}50` }}>есть открытые</span>}
                         </div>
                         {/* Messages */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                           {msgs.map((m, idx) => (
-                            <div key={m.id} style={{ padding: '0.875rem 1.125rem', borderBottom: idx < msgs.length - 1 ? `1px solid ${border}` : 'none' }}>
+                            <div key={m.id} style={{ padding: '0.875rem 1.125rem', borderBottom: idx < msgs.length - 1 ? `1px solid ${border}` : 'none', background: m.escalated ? '#f9731804' : 'transparent' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                                 <span style={{ fontSize: '0.7rem', color: muted }}>{fmt(m.createdAt)}</span>
                                 <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.35rem', borderRadius: '0.25rem', background: m.status === 'open' ? '#38bdf820' : '#33415520', color: m.status === 'open' ? accent : muted, border: `1px solid ${m.status === 'open' ? accent + '40' : border}` }}>
                                   {m.status === 'open' ? 'открыто' : 'закрыто'}
                                 </span>
+                                {m.isBotReply && (
+                                  <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#a78bfa20', color: '#a78bfa', border: '1px solid #a78bfa40' }}>🤖 бот</span>
+                                )}
+                                {m.escalated && (
+                                  <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#f9731820', color: '#f97316', border: '1px solid #f9731640' }}>🚨 эскалировано</span>
+                                )}
                                 {m.category && CATEGORY_LABELS[m.category] && (
                                   <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#a78bfa20', color: '#a78bfa', border: '1px solid #a78bfa40' }}>
                                     {CATEGORY_LABELS[m.category]}
@@ -568,25 +580,27 @@ export default function Admin() {
                               </div>
                               {/* Existing reply */}
                               {m.reply && (
-                                <div style={{ background: `${accent}10`, borderLeft: `3px solid ${accent}`, borderRadius: '0 0.375rem 0.375rem 0', padding: '0.5rem 0.75rem', marginBottom: '0.5rem' }}>
-                                  <div style={{ fontSize: '0.6875rem', color: accent, fontWeight: 600, marginBottom: '0.2rem' }}>Ответ · {m.repliedAt ? fmt(m.repliedAt) : ''}</div>
-                                  <div style={{ fontSize: '0.875rem', color: text, lineHeight: 1.5, wordBreak: 'break-word' }}>{m.reply}</div>
+                                <div style={{ background: m.isBotReply ? '#a78bfa10' : `${accent}10`, borderLeft: `3px solid ${m.isBotReply ? '#a78bfa' : accent}`, borderRadius: '0 0.375rem 0.375rem 0', padding: '0.5rem 0.75rem', marginBottom: '0.5rem' }}>
+                                  <div style={{ fontSize: '0.6875rem', color: m.isBotReply ? '#a78bfa' : accent, fontWeight: 600, marginBottom: '0.2rem' }}>
+                                    {m.isBotReply ? '🤖 Автоответ' : '👤 Ответ оператора'} · {m.repliedAt ? fmt(m.repliedAt) : ''}
+                                  </div>
+                                  <div style={{ fontSize: '0.875rem', color: text, lineHeight: 1.5, wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{m.reply}</div>
                                 </div>
                               )}
-                              {/* Reply input */}
+                              {/* Reply input — always available for open tickets; highlighted for escalated */}
                               {m.status === 'open' && (
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                   <input
                                     value={replyTexts[m.id] ?? ''}
                                     onChange={e => setReplyTexts(prev => ({ ...prev, [m.id]: e.target.value }))}
                                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSupportReply(m.id); } }}
-                                    placeholder="Введите ответ..."
-                                    style={{ flex: 1, height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.5rem', border: `1px solid ${border}`, background: bg, color: text, fontSize: '0.875rem', outline: 'none', fontFamily: 'inherit' }}
+                                    placeholder={m.escalated ? '🚨 Пользователь ждёт ответа оператора...' : 'Введите ответ...'}
+                                    style={{ flex: 1, height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.5rem', border: `1px solid ${m.escalated ? '#f9731660' : border}`, background: bg, color: text, fontSize: '0.875rem', outline: 'none', fontFamily: 'inherit' }}
                                   />
                                   <button
                                     disabled={sendingReply === m.id || !replyTexts[m.id]?.trim()}
                                     onClick={() => handleSupportReply(m.id)}
-                                    style={{ padding: '0 1rem', borderRadius: '0.5rem', background: sendingReply === m.id || !replyTexts[m.id]?.trim() ? border : accent, color: sendingReply === m.id || !replyTexts[m.id]?.trim() ? muted : '#0f172a', border: 'none', cursor: sendingReply === m.id || !replyTexts[m.id]?.trim() ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.8125rem', fontFamily: 'inherit', flexShrink: 0 }}
+                                    style={{ padding: '0 1rem', borderRadius: '0.5rem', background: sendingReply === m.id || !replyTexts[m.id]?.trim() ? border : (m.escalated ? '#f97316' : accent), color: sendingReply === m.id || !replyTexts[m.id]?.trim() ? muted : '#0f172a', border: 'none', cursor: sendingReply === m.id || !replyTexts[m.id]?.trim() ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.8125rem', fontFamily: 'inherit', flexShrink: 0 }}
                                   >
                                     {sendingReply === m.id ? '...' : 'Ответить'}
                                   </button>

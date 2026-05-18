@@ -32,6 +32,8 @@ interface SupportMessage {
   createdAt: string;
   category: string | null;
   readAt: string | null;
+  isBotReply: boolean;
+  escalated: boolean;
 }
 
 const faqCustomer: FaqItem[] = [
@@ -123,6 +125,8 @@ export default function Help() {
   const [loadingChat, setLoadingChat] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [escalating, setEscalating] = useState<string | null>(null);
+  const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
   const threadEndRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -195,6 +199,18 @@ export default function Help() {
     } catch { return null; }
   };
 
+  const handleEscalate = async (msgId: string) => {
+    setEscalating(msgId);
+    try {
+      await api.post(`/support/${msgId}/escalate`);
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, escalated: true } : m));
+    } catch {
+      // ignore
+    } finally {
+      setEscalating(null);
+    }
+  };
+
   const handleSend = async () => {
     const text = newMessage.trim();
     if (!text || sending) return;
@@ -221,6 +237,8 @@ export default function Help() {
           createdAt: new Date().toISOString(),
           category: selectedCategory,
           readAt: null,
+          isBotReply: false,
+          escalated: false,
         }]);
         setNewMessage('');
         setSelectedCategory(null);
@@ -408,15 +426,41 @@ export default function Help() {
                         </div>
                       </div>
                     </div>
-                    {/* Admin reply */}
+                    {/* Reply bubble */}
                     {m.reply && (
                       <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                        <div style={{ maxWidth: '80%' }}>
-                          <div style={{ fontSize: '0.6875rem', color: c.muted, marginBottom: '0.25rem' }}>Поддержка TrashGo</div>
-                          <div style={{ background: c.subtle, border: `1px solid ${c.border}`, color: c.text, borderRadius: '0.25rem 1rem 1rem 1rem', padding: '0.625rem 0.875rem', fontSize: '0.875rem', lineHeight: 1.5, wordBreak: 'break-word' }}>
+                        <div style={{ maxWidth: '85%' }}>
+                          <div style={{ fontSize: '0.6875rem', color: m.isBotReply ? '#a78bfa' : c.muted, marginBottom: '0.25rem' }}>
+                            {m.isBotReply ? '🤖 Бот TrashGo' : '👤 Оператор TrashGo'}
+                          </div>
+                          <div style={{ background: m.isBotReply ? '#a78bfa12' : c.subtle, border: `1px solid ${m.isBotReply ? '#a78bfa40' : c.border}`, color: c.text, borderRadius: '0.25rem 1rem 1rem 1rem', padding: '0.625rem 0.875rem', fontSize: '0.875rem', lineHeight: 1.5, wordBreak: 'break-word', whiteSpace: 'pre-line' }}>
                             {m.reply}
                           </div>
                           {m.repliedAt && <div style={{ fontSize: '0.6875rem', color: c.muted, marginTop: '0.25rem' }}>{fmtTime(m.repliedAt)}</div>}
+                          {/* Bot action buttons */}
+                          {m.isBotReply && !m.escalated && !resolvedIds.has(m.id) && (
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                              <button
+                                onClick={() => setResolvedIds(prev => new Set([...prev, m.id]))}
+                                style={{ padding: '0.3rem 0.75rem', borderRadius: '0.75rem', border: `1px solid ${GREEN}60`, background: `${GREEN}10`, color: GREEN, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                              >
+                                ✓ Помогло
+                              </button>
+                              <button
+                                onClick={() => handleEscalate(m.id)}
+                                disabled={escalating === m.id}
+                                style={{ padding: '0.3rem 0.75rem', borderRadius: '0.75rem', border: `1px solid ${ACCENT}60`, background: `${ACCENT}10`, color: ACCENT, fontSize: '0.75rem', cursor: escalating === m.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: escalating === m.id ? 0.6 : 1 }}
+                              >
+                                {escalating === m.id ? '...' : '🙋 Нужен оператор'}
+                              </button>
+                            </div>
+                          )}
+                          {m.isBotReply && resolvedIds.has(m.id) && (
+                            <div style={{ fontSize: '0.75rem', color: GREEN, marginTop: '0.5rem' }}>✓ Отлично, рады помочь!</div>
+                          )}
+                          {m.escalated && (
+                            <div style={{ fontSize: '0.75rem', color: '#f97316', marginTop: '0.5rem' }}>🚨 Запрос передан оператору — ответим в рабочее время (пн–пт 9:00–21:00)</div>
+                          )}
                         </div>
                       </div>
                     )}
