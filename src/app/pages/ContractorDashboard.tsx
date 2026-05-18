@@ -1825,10 +1825,18 @@ export default function ContractorDashboard() {
                 onClick={async () => {
                   setEditProfileSaving(true);
                   try {
-                    const updated = await authApi.updateProfile({
-                      name: editProfileForm.name.trim(),
-                      ...(editProfileForm.inn.length === 12 ? { inn: editProfileForm.inn } : {}),
-                    });
+                    if (editProfileForm.inn.length === 12 && editProfileForm.inn !== user?.inn) {
+                      // Verify INN via FNS when it changes
+                      try {
+                        const { selfEmployed } = await authApi.verifyInn(editProfileForm.inn);
+                        updateUser({ inn: editProfileForm.inn, innVerified: selfEmployed });
+                        if (selfEmployed) toast.success('ИНН подтверждён — статус самозанятого ✓');
+                        else toast.info('ИНН сохранён — в реестре ФНС не найден');
+                      } catch {
+                        await authApi.updateProfile({ inn: editProfileForm.inn });
+                      }
+                    }
+                    const updated = await authApi.updateProfile({ name: editProfileForm.name.trim() });
                     updateUser(updated);
                     setEditProfileOpen(false);
                     toast.success('Профиль обновлён');

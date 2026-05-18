@@ -33,6 +33,7 @@ export default function Payment() {
   const [innModalOpen, setInnModalOpen] = useState(false);
   const [innInput, setInnInput] = useState(user?.inn ?? '');
   const [innSaving, setInnSaving] = useState(false);
+  const [innVerifying, setInnVerifying] = useState(false);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -135,10 +136,39 @@ export default function Payment() {
                   </div>
                 </div>
                 {user?.inn ? (
-                  <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: `${GREEN}10`, border: `1px solid ${GREEN}30` }}>
-                    <CheckCircle className="w-4 h-4" style={{ color: GREEN }} />
-                    <span className="text-sm font-medium" style={{ color: GREEN }}>ИНН: {user.inn}</span>
-                    <button onClick={() => { setInnInput(user.inn ?? ''); setInnModalOpen(true); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '0.75rem', marginLeft: 'auto', fontFamily: 'inherit' }}>изменить</button>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: `${GREEN}10`, border: `1px solid ${GREEN}30` }}>
+                      <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: GREEN }} />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium" style={{ color: GREEN }}>ИНН: {user.inn}</div>
+                        {user.innVerified ? (
+                          <div className="text-xs" style={{ color: GREEN }}>✓ Самозанятый подтверждён через ФНС</div>
+                        ) : (
+                          <div className="text-xs" style={{ color: c.muted }}>Статус не проверен</div>
+                        )}
+                      </div>
+                      <button onClick={() => { setInnInput(user.inn ?? ''); setInnModalOpen(true); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '0.75rem', fontFamily: 'inherit' }}>изменить</button>
+                    </div>
+                    {!user.innVerified && (
+                      <button
+                        disabled={innVerifying}
+                        onClick={async () => {
+                          setInnVerifying(true);
+                          try {
+                            const { selfEmployed } = await authApi.verifyInn(user.inn!);
+                            updateUser({ innVerified: selfEmployed });
+                            if (selfEmployed) toast.success('Статус самозанятого подтверждён ✓');
+                            else toast.error('ИНН не найден в реестре ФНС — проверьте номер или зарегистрируйтесь через «Мой налог»');
+                          } catch (e: any) {
+                            toast.error(e?.message || 'Ошибка проверки');
+                          } finally { setInnVerifying(false); }
+                        }}
+                        className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl text-sm font-medium"
+                        style={{ background: `${ACCENT}10`, border: `1px solid ${ACCENT}30`, cursor: innVerifying ? 'not-allowed' : 'pointer', color: ACCENT, fontFamily: 'inherit', opacity: innVerifying ? 0.7 : 1 }}
+                      >
+                        {innVerifying ? <><div className="w-3.5 h-3.5 border-2 rounded-full animate-spin" style={{ borderColor: ACCENT, borderTopColor: 'transparent' }} />Проверяем...</> : '🔍 Проверить статус в ФНС'}
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <button
@@ -282,11 +312,19 @@ export default function Payment() {
               onClick={async () => {
                 setInnSaving(true);
                 try {
-                  const updated = await authApi.updateProfile({ inn: innInput });
-                  updateUser(updated);
+                  // Save INN and auto-verify via FNS
+                  const { selfEmployed } = await authApi.verifyInn(innInput);
+                  updateUser({ inn: innInput, innVerified: selfEmployed });
                   setInnModalOpen(false);
-                  toast.success('ИНН сохранён');
-                } catch { toast.error('Не удалось сохранить ИНН'); }
+                  if (selfEmployed) toast.success('ИНН сохранён — статус самозанятого подтверждён ✓');
+                  else toast.success('ИНН сохранён. Статус в ФНС не найден — проверьте через «Мой налог»');
+                } catch (e: any) {
+                  if (e?.code === 'FNS_UNAVAILABLE') {
+                    // Save anyway, mark as unverified
+                    try { const updated = await authApi.updateProfile({ inn: innInput }); updateUser(updated); setInnModalOpen(false); toast.info('ИНН сохранён. Проверьте статус позже — сервис ФНС недоступен'); }
+                    catch { toast.error('Не удалось сохранить ИНН'); }
+                  } else { toast.error('Не удалось сохранить ИНН'); }
+                }
                 finally { setInnSaving(false); }
               }}
               className="w-full h-11 rounded-xl text-sm font-semibold"

@@ -115,4 +115,9 @@ export const authApi = {
     const res = await api.post<{ data: { telegramBotLink: string } }>('/auth/request-telegram', { phone });
     return res.data;
   },
+
+  async verifyInn(inn: string): Promise<{ inn: string; selfEmployed: boolean }> {
+    const res = await api.post<{ data: { inn: string; selfEmployed: boolean } }>('/users/verify-inn', { inn });
+    return res.data;
+  },
 };

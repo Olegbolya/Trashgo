@@ -19,6 +19,7 @@ export interface User {
   telegramLinked: boolean;
   isAvailable: boolean;
   inn: string | null;
+  innVerified: boolean;
   createdAt: string;
 }
 
