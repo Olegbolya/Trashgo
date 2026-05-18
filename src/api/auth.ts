@@ -101,6 +101,7 @@ export const authApi = {
     notifEmailAddress?: string | null;
     fcmToken?: string | null;
     isAvailable?: boolean;
+    inn?: string | null;
   }): Promise<User> {
     const res = await api.patch<{ data: User }>('/users/me', data);
     return res.data;

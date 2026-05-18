@@ -26,10 +26,13 @@ function formatDate(iso: string) {
 export default function Payment() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const isContractor = user?.role === 'contractor';
   const [history, setHistory] = useState<PaymentEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [innModalOpen, setInnModalOpen] = useState(false);
+  const [innInput, setInnInput] = useState(user?.inn ?? '');
+  const [innSaving, setInnSaving] = useState(false);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -131,17 +134,25 @@ export default function Payment() {
                     <div className="text-xs" style={{ color: c.muted }}>Самостоятельно уплачивайте налог 4% через приложение «Мой налог»</div>
                   </div>
                 </div>
-                <button
-                  onClick={() => toast.info('Укажите ИНН в настройках профиля для ведения учёта')}
-                  className="w-full flex items-center justify-between p-3 rounded-xl"
-                  style={{ background: `${ACCENT}08`, border: `1px solid ${ACCENT}20`, cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Info className="w-4 h-4" style={{ color: ACCENT }} />
-                    <span className="text-sm" style={{ color: ACCENT }}>Привязать ИНН для учёта доходов</span>
+                {user?.inn ? (
+                  <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: `${GREEN}10`, border: `1px solid ${GREEN}30` }}>
+                    <CheckCircle className="w-4 h-4" style={{ color: GREEN }} />
+                    <span className="text-sm font-medium" style={{ color: GREEN }}>ИНН: {user.inn}</span>
+                    <button onClick={() => { setInnInput(user.inn ?? ''); setInnModalOpen(true); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '0.75rem', marginLeft: 'auto', fontFamily: 'inherit' }}>изменить</button>
                   </div>
-                  <ChevronRight className="w-4 h-4" style={{ color: ACCENT }} />
-                </button>
+                ) : (
+                  <button
+                    onClick={() => { setInnInput(''); setInnModalOpen(true); }}
+                    className="w-full flex items-center justify-between p-3 rounded-xl"
+                    style={{ background: `${ACCENT}08`, border: `1px solid ${ACCENT}20`, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Info className="w-4 h-4" style={{ color: ACCENT }} />
+                      <span className="text-sm" style={{ color: ACCENT }}>Привязать ИНН для учёта доходов</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4" style={{ color: ACCENT }} />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -246,6 +257,46 @@ export default function Payment() {
           </>
         )}
       </div>
+
+      {/* INN modal */}
+      {innModalOpen && (
+        <div className="fixed inset-0 z-[90] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setInnModalOpen(false)}>
+          <div className="w-full lg:max-w-sm rounded-t-2xl lg:rounded-2xl p-5" style={{ background: c.surface }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-base font-bold" style={{ color: c.text }}>ИНН самозанятого</div>
+              <button onClick={() => setInnModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '1.1rem' }}>✕</button>
+            </div>
+            <div className="text-xs mb-3" style={{ color: c.muted }}>Укажите ИНН для ведения учёта доходов. Налог уплачивается самостоятельно через «Мой налог».</div>
+            <input
+              value={innInput}
+              onChange={e => setInnInput(e.target.value.replace(/\D/g, '').slice(0, 12))}
+              placeholder="12 цифр ИНН"
+              maxLength={12}
+              inputMode="numeric"
+              style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${innInput.length > 0 && innInput.length < 12 ? '#f59e0b' : innInput.length === 12 ? GREEN : c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.subtle, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit', marginBottom: '0.5rem' }}
+            />
+            {innInput.length > 0 && innInput.length < 12 && <div className="text-xs mb-3" style={{ color: '#f59e0b' }}>Введите все 12 цифр</div>}
+            {innInput.length === 12 && <div className="text-xs mb-3" style={{ color: GREEN }}>✓ ИНН принят</div>}
+            <button
+              disabled={innSaving || innInput.length !== 12}
+              onClick={async () => {
+                setInnSaving(true);
+                try {
+                  const updated = await authApi.updateProfile({ inn: innInput });
+                  updateUser(updated);
+                  setInnModalOpen(false);
+                  toast.success('ИНН сохранён');
+                } catch { toast.error('Не удалось сохранить ИНН'); }
+                finally { setInnSaving(false); }
+              }}
+              className="w-full h-11 rounded-xl text-sm font-semibold"
+              style={{ background: innInput.length === 12 ? ACCENT : c.border, color: 'white', border: 'none', cursor: innInput.length !== 12 || innSaving ? 'not-allowed' : 'pointer', opacity: innInput.length !== 12 || innSaving ? 0.6 : 1, fontFamily: 'inherit' }}
+            >
+              {innSaving ? 'Сохраняем...' : 'Сохранить'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

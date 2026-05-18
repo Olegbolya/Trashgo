@@ -19,6 +19,7 @@ import { OnboardingSlider } from '../components/OnboardingSlider';
 import { NotificationBell } from '../components/NotificationBell';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import { searchKazanStreets } from '../../data/kazanStreets';
+import { uploadPhotoWithFallback } from '../../api/upload';
 
 const ACCENT = '#66BB6A';
 
@@ -1082,13 +1083,6 @@ export default function CustomerDashboard() {
               boxSizing: 'border-box', fontFamily: 'inherit',
             });
 
-            const toBase64 = (file: File): Promise<string> =>
-              new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.readAsDataURL(file);
-              });
-
             const handlePublish = async () => {
               if (publishingRef.current) return;
               const errors: Record<string, string> = {};
@@ -1101,7 +1095,7 @@ export default function CustomerDashboard() {
 
               publishingRef.current = true;
               setIsPublishing(true);
-              const newPhotoUrls = await Promise.all(createPhotos.map(toBase64));
+              const newPhotoUrls = await Promise.all(createPhotos.map(f => uploadPhotoWithFallback(f, 'orders')));
               const photoUrls = [...preloadedPhotoUrls, ...newPhotoUrls].slice(0, 5);
 
               let fullAddress = createForm.address.trim();

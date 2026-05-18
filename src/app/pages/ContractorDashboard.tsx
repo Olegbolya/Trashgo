@@ -18,6 +18,7 @@ import { OrderTimeline } from '../components/OrderTimeline';
 import { OnboardingSlider } from '../components/OnboardingSlider';
 import { NotificationBell } from '../components/NotificationBell';
 import { useNotificationsStore } from '../../stores/notifications.store';
+import { uploadPhotoWithFallback } from '../../api/upload';
 
 const ACCENT = '#2196F3';
 
@@ -84,7 +85,7 @@ export default function ContractorDashboard() {
   const [editInfoForm, setEditInfoForm] = useState({ transportMode: 'car' });
   const [editInfoSaving, setEditInfoSaving] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
-  const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '' });
+  const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '', inn: '' });
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [myJobsLoading, setMyJobsLoading] = useState(false);
   const [apiAchievements, setApiAchievements] = useState<AchievementItem[]>([]);
@@ -694,12 +695,7 @@ export default function ContractorDashboard() {
                                         }
                                         setSubmittingId(job.id);
                                         try {
-                                          const toBase64 = (f: File) => new Promise<string>((resolve) => {
-                                            const r = new FileReader();
-                                            r.onload = () => resolve(r.result as string);
-                                            r.readAsDataURL(f);
-                                          });
-                                          const urls = await Promise.all(photos.map(toBase64));
+                                          const urls = await Promise.all(photos.map(f => uploadPhotoWithFallback(f, 'completions')));
                                           await ordersApi.completeOrder(job.id, urls);
                                           setMyJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'pending_confirmation' as const } : j));
                                           setCompletionPhotos(prev => { const n = { ...prev }; delete n[job.id]; return n; });
@@ -1064,7 +1060,7 @@ export default function ContractorDashboard() {
                   <button
                     className="h-8 px-3 rounded-lg text-xs flex-shrink-0"
                     style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
-                    onClick={() => { setEditProfileForm({ name: user?.name || '', district: '' }); setEditProfileOpen(true); }}
+                    onClick={() => { setEditProfileForm({ name: user?.name || '', district: '', inn: user?.inn || '' }); setEditProfileOpen(true); }}
                   >
                     <Edit className="w-3.5 h-3.5 inline mr-1" />Изменить
                   </button>
@@ -1807,12 +1803,32 @@ export default function ContractorDashboard() {
                   style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                 />
               </div>
+              <div className="mb-4">
+                <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>ИНН самозанятого <span style={{ fontWeight: 400, color: c.muted }}>(необязательно)</span></div>
+                <input
+                  value={editProfileForm.inn}
+                  onChange={e => setEditProfileForm(f => ({ ...f, inn: e.target.value.replace(/\D/g, '').slice(0, 12) }))}
+                  placeholder="12 цифр"
+                  maxLength={12}
+                  inputMode="numeric"
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${editProfileForm.inn.length > 0 && editProfileForm.inn.length < 12 ? '#f59e0b' : editProfileForm.inn.length === 12 ? '#22c55e' : c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                />
+                {editProfileForm.inn.length > 0 && editProfileForm.inn.length < 12 && (
+                  <div className="text-xs mt-1" style={{ color: '#f59e0b' }}>Введите все 12 цифр</div>
+                )}
+                {editProfileForm.inn.length === 12 && (
+                  <div className="text-xs mt-1" style={{ color: '#22c55e' }}>✓ ИНН принят</div>
+                )}
+              </div>
               <button
-                disabled={editProfileSaving || !editProfileForm.name.trim()}
+                disabled={editProfileSaving || !editProfileForm.name.trim() || (editProfileForm.inn.length > 0 && editProfileForm.inn.length < 12)}
                 onClick={async () => {
                   setEditProfileSaving(true);
                   try {
-                    const updated = await authApi.updateProfile({ name: editProfileForm.name.trim() });
+                    const updated = await authApi.updateProfile({
+                      name: editProfileForm.name.trim(),
+                      ...(editProfileForm.inn.length === 12 ? { inn: editProfileForm.inn } : {}),
+                    });
                     updateUser(updated);
                     setEditProfileOpen(false);
                     toast.success('Профиль обновлён');

@@ -18,6 +18,7 @@ export interface User {
   notifEmailAddress: string | null;
   telegramLinked: boolean;
   isAvailable: boolean;
+  inn: string | null;
   createdAt: string;
 }
 
