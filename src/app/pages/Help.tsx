@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, HelpCircle, MessageCircle, Phone, Mail, ChevronDown, ChevronUp, ExternalLink, Zap, Shield, Package, Clock, Star, Trash2 } from 'lucide-react';
+import { ArrowLeft, HelpCircle, MessageCircle, Phone, Mail, ChevronDown, ChevronUp, ExternalLink, Zap, Shield, Package, Clock, Star, Trash2, Send, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { toast } from 'sonner';
+import { api } from '../../api/client';
 
 const ACCENT = '#2196F3';
 const GREEN  = '#4CAF50';
@@ -10,6 +10,15 @@ const GREEN  = '#4CAF50';
 interface FaqItem {
   q: string;
   a: string;
+}
+
+interface SupportMessage {
+  id: string;
+  message: string;
+  reply: string | null;
+  repliedAt: string | null;
+  status: string;
+  createdAt: string;
 }
 
 const faqCustomer: FaqItem[] = [
@@ -67,10 +76,20 @@ function FaqSection({ items }: { items: FaqItem[] }) {
   );
 }
 
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
 export default function Help() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState<'customer' | 'contractor'>('customer');
+  const [chatOpen, setChatOpen] = useState(false);
+  const [messages, setMessages] = useState<SupportMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [loadingChat, setLoadingChat] = useState(false);
+  const threadEndRef = useRef<HTMLDivElement>(null);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -82,13 +101,52 @@ export default function Help() {
     subtle:  isDark ? '#1f2937' : '#f3f4f6',
   };
 
+  const loadMessages = useCallback(async () => {
+    setLoadingChat(true);
+    try {
+      const r = await api.get<{ data: SupportMessage[] }>('/support');
+      setMessages(r.data.slice().reverse());
+    } catch {
+      // ignore
+    } finally {
+      setLoadingChat(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (chatOpen) {
+      loadMessages();
+    }
+  }, [chatOpen, loadMessages]);
+
+  useEffect(() => {
+    if (chatOpen) {
+      setTimeout(() => threadEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    }
+  }, [messages, chatOpen]);
+
+  const handleSend = async () => {
+    const text = newMessage.trim();
+    if (!text || sending) return;
+    setSending(true);
+    try {
+      const r = await api.post<{ data: SupportMessage }>('/support', { message: text });
+      setMessages(prev => [...prev, r.data]);
+      setNewMessage('');
+    } catch {
+      // ignore
+    } finally {
+      setSending(false);
+    }
+  };
+
   const contacts = [
     {
       icon: MessageCircle,
       color: GREEN,
       title: 'Написать в чат',
       sub: 'Ответим в течение 15 минут',
-      action: () => toast.info('Чат поддержки', { description: 'Скоро будет доступен в приложении' }),
+      action: () => setChatOpen(true),
     },
     {
       icon: Phone,
@@ -263,6 +321,111 @@ export default function Help() {
         </div>
 
       </div>
+
+      {/* Support chat drawer */}
+      {chatOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', flexDirection: 'column' }}>
+          {/* Backdrop */}
+          <div
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }}
+            onClick={() => setChatOpen(false)}
+          />
+          {/* Panel */}
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            background: c.surface, borderRadius: '1.25rem 1.25rem 0 0',
+            display: 'flex', flexDirection: 'column',
+            maxHeight: '85vh', overflow: 'hidden',
+            boxShadow: '0 -8px 32px rgba(0,0,0,0.25)',
+          }}>
+            {/* Panel header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', borderBottom: `1px solid ${c.border}`, flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                <div style={{ width: '2rem', height: '2rem', borderRadius: '0.625rem', background: `${GREEN}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <MessageCircle style={{ width: '1rem', height: '1rem', color: GREEN }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: c.text }}>Чат поддержки</div>
+                  <div style={{ fontSize: '0.75rem', color: c.muted }}>Ответим в течение 15 минут</div>
+                </div>
+              </div>
+              <button
+                onClick={() => setChatOpen(false)}
+                style={{ background: c.subtle, border: 'none', borderRadius: '0.5rem', width: '2rem', height: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <X style={{ width: '1rem', height: '1rem', color: c.muted }} />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              {loadingChat && (
+                <div style={{ textAlign: 'center', color: c.muted, padding: '2rem', fontSize: '0.875rem' }}>Загрузка...</div>
+              )}
+              {!loadingChat && messages.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '2rem', color: c.muted }}>
+                  <MessageCircle style={{ width: '2.5rem', height: '2.5rem', margin: '0 auto 0.75rem', opacity: 0.4 }} />
+                  <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: c.text, marginBottom: '0.375rem' }}>Напишите нам</div>
+                  <div style={{ fontSize: '0.8125rem' }}>Опишите проблему и мы ответим как можно скорее</div>
+                </div>
+              )}
+              {messages.map(m => (
+                <div key={m.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {/* User bubble */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ maxWidth: '80%' }}>
+                      <div style={{ background: ACCENT, color: '#fff', borderRadius: '1rem 1rem 0.25rem 1rem', padding: '0.625rem 0.875rem', fontSize: '0.875rem', lineHeight: 1.5, wordBreak: 'break-word' }}>
+                        {m.message}
+                      </div>
+                      <div style={{ fontSize: '0.6875rem', color: c.muted, textAlign: 'right', marginTop: '0.25rem' }}>{fmtTime(m.createdAt)}</div>
+                    </div>
+                  </div>
+                  {/* Admin reply bubble */}
+                  {m.reply && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                      <div style={{ maxWidth: '80%' }}>
+                        <div style={{ fontSize: '0.6875rem', color: c.muted, marginBottom: '0.25rem' }}>Поддержка TrashGo</div>
+                        <div style={{ background: c.subtle, border: `1px solid ${c.border}`, color: c.text, borderRadius: '0.25rem 1rem 1rem 1rem', padding: '0.625rem 0.875rem', fontSize: '0.875rem', lineHeight: 1.5, wordBreak: 'break-word' }}>
+                          {m.reply}
+                        </div>
+                        {m.repliedAt && <div style={{ fontSize: '0.6875rem', color: c.muted, marginTop: '0.25rem' }}>{fmtTime(m.repliedAt)}</div>}
+                      </div>
+                    </div>
+                  )}
+                  {/* Awaiting reply indicator */}
+                  {!m.reply && m.status === 'open' && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                      <div style={{ fontSize: '0.75rem', color: c.muted, padding: '0.375rem 0.75rem', background: c.subtle, borderRadius: '0.75rem' }}>
+                        ⏳ Ожидает ответа
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+              <div ref={threadEndRef} />
+            </div>
+
+            {/* Input */}
+            <div style={{ padding: '0.75rem 1rem', borderTop: `1px solid ${c.border}`, display: 'flex', gap: '0.5rem', flexShrink: 0, paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+              <input
+                value={newMessage}
+                onChange={e => setNewMessage(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                placeholder="Опишите проблему..."
+                style={{ flex: 1, height: '2.5rem', padding: '0 0.875rem', borderRadius: '0.75rem', border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, fontSize: '0.9375rem', outline: 'none', fontFamily: 'inherit' }}
+                autoFocus
+              />
+              <button
+                onClick={handleSend}
+                disabled={sending || !newMessage.trim()}
+                style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', background: sending || !newMessage.trim() ? c.subtle : ACCENT, border: 'none', cursor: sending || !newMessage.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+              >
+                <Send style={{ width: '1rem', height: '1rem', color: sending || !newMessage.trim() ? c.muted : '#fff' }} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -55,7 +55,20 @@ interface DisputeRow {
   contractorId: string | null;
 }
 
-type Tab = 'stats' | 'frozen' | 'disputes' | 'payment' | 'users';
+interface SupportMsg {
+  id: string;
+  userId: string;
+  message: string;
+  reply: string | null;
+  repliedAt: string | null;
+  status: string;
+  createdAt: string;
+  userName: string | null;
+  userPhone: string | null;
+  telegramChatId: string | null;
+}
+
+type Tab = 'stats' | 'frozen' | 'disputes' | 'payment' | 'users' | 'support';
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -86,8 +99,15 @@ export default function Admin() {
   const [freezing, setFreezing] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState('');
   const [userResults, setUserResults] = useState<UserRow[]>([]);
+  const [usersHasMore, setUsersHasMore] = useState(false);
+  const [usersOffset, setUsersOffset] = useState(0);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [userOrders, setUserOrders] = useState<{ userId: string; orders: UserOrder[] } | null>(null);
   const [closingDispute, setClosingDispute] = useState<string | null>(null);
+  const [supportMsgs, setSupportMsgs] = useState<SupportMsg[]>([]);
+  const [supportFilter, setSupportFilter] = useState<'open' | 'all'>('open');
+  const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
+  const [sendingReply, setSendingReply] = useState<string | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const apiFetch = useCallback(async (path: string, opts?: RequestInit) => {
@@ -135,12 +155,34 @@ export default function Admin() {
     finally { setLoading(false); }
   }, [apiFetch]);
 
+  const loadAllUsers = useCallback(async (offset: number, append = false) => {
+    setLoadingUsers(true); setError('');
+    try {
+      const r = await apiFetch(`/admin/users?offset=${offset}`);
+      setUserResults(prev => append ? [...prev, ...r.data] : r.data);
+      setUsersHasMore(r.meta?.hasMore ?? false);
+      setUsersOffset(offset + r.data.length);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoadingUsers(false); }
+  }, [apiFetch]);
+
+  const loadSupport = useCallback(async (status: 'open' | 'all') => {
+    setLoading(true); setError('');
+    try {
+      const r = await apiFetch(`/admin/support?status=${status}`);
+      setSupportMsgs(r.data);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }, [apiFetch]);
+
   useEffect(() => {
     if (!secret) return;
     if (tab === 'stats') loadStats();
     else if (tab === 'frozen') loadFrozen();
     else if (tab === 'disputes' || tab === 'payment') loadDisputes();
-  }, [tab, secret, loadStats, loadFrozen, loadDisputes]);
+    else if (tab === 'users') { setUserSearch(''); loadAllUsers(0); }
+    else if (tab === 'support') loadSupport(supportFilter);
+  }, [tab, secret]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUnfreeze = async (id: string) => {
     setUnfreezing(id);
@@ -167,12 +209,18 @@ export default function Admin() {
   const handleUserSearch = (q: string) => {
     setUserSearch(q);
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (!q.trim()) { setUserResults([]); return; }
+    if (!q.trim()) {
+      loadAllUsers(0);
+      return;
+    }
     searchTimer.current = setTimeout(async () => {
+      setLoadingUsers(true);
       try {
-        const r = await apiFetch(`/admin/users?phone=${encodeURIComponent(q.trim())}`);
+        const r = await apiFetch(`/admin/users?q=${encodeURIComponent(q.trim())}`);
         setUserResults(r.data);
+        setUsersHasMore(false);
       } catch (e: any) { setError(e.message); }
+      finally { setLoadingUsers(false); }
     }, 400);
   };
 
@@ -194,6 +242,23 @@ export default function Admin() {
       else setDisputes(prev => prev.filter(d => d.id !== disputeId));
     } catch (e: any) { setError(e.message); }
     finally { setClosingDispute(null); }
+  };
+
+  const handleSupportReply = async (msgId: string) => {
+    const reply = replyTexts[msgId]?.trim();
+    if (!reply) return;
+    setSendingReply(msgId);
+    try {
+      await apiFetch(`/admin/support/${msgId}/reply`, { method: 'POST', body: JSON.stringify({ reply }) });
+      setSupportMsgs(prev => prev.map(m => m.id === msgId ? { ...m, reply, status: 'closed', repliedAt: new Date().toISOString() } : m));
+      setReplyTexts(prev => { const next = { ...prev }; delete next[msgId]; return next; });
+    } catch (e: any) { setError(e.message); }
+    finally { setSendingReply(null); }
+  };
+
+  const handleSupportFilterChange = (f: 'open' | 'all') => {
+    setSupportFilter(f);
+    loadSupport(f);
   };
 
   const bg = '#0f172a';
@@ -258,7 +323,7 @@ export default function Admin() {
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '1.5rem' }}>
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-          {([['stats', '📊 Статистика'], ['users', '👤 Пользователи'], ['frozen', '🔒 Замороженные'], ['disputes', '⚠️ Споры'], ['payment', '💸 Платёжные споры']] as [Tab, string][]).map(([id, label]) => (
+          {([['stats', '📊 Статистика'], ['users', '👤 Пользователи'], ['frozen', '🔒 Замороженные'], ['disputes', '⚠️ Споры'], ['payment', '💸 Платёжные споры'], ['support', '💬 Поддержка']] as [Tab, string][]).map(([id, label]) => (
             <button key={id} style={tabStyle(tab === id)} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
@@ -356,7 +421,8 @@ export default function Admin() {
               style={{ width: '100%', height: '2.75rem', padding: '0 0.875rem', borderRadius: '0.625rem', border: `1.5px solid ${border}`, background: bg, color: text, fontSize: '0.9375rem', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: '1rem' }}
               autoFocus
             />
-            {userResults.length === 0 && userSearch.trim() && (
+            {loadingUsers && <div style={{ textAlign: 'center', color: muted, padding: '1.5rem' }}>Загрузка...</div>}
+            {!loadingUsers && userResults.length === 0 && userSearch.trim() && (
               <div style={{ textAlign: 'center', color: muted, padding: '2rem' }}>Ничего не найдено</div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -409,6 +475,16 @@ export default function Admin() {
                 </div>
               ))}
             </div>
+            {!loadingUsers && usersHasMore && (
+              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <button
+                  onClick={() => loadAllUsers(usersOffset, true)}
+                  style={{ padding: '0.625rem 1.5rem', borderRadius: '0.5rem', background: `${accent}15`, border: `1px solid ${accent}40`, color: accent, cursor: 'pointer', fontSize: '0.875rem', fontFamily: 'inherit' }}
+                >
+                  Загрузить ещё
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -420,6 +496,70 @@ export default function Admin() {
         {/* PAYMENT DISPUTES TAB */}
         {!loading && tab === 'payment' && (
           <DisputeList rows={paymentDisputes} title="Платёжные споры исполнителей" emptyText="Платёжных споров нет" surface={surface} border={border} text={text} muted={muted} accent="#f87171" isPayment={true} onClose={(id) => handleCloseDispute(id, true)} closingId={closingDispute} />
+        )}
+
+        {/* SUPPORT TAB */}
+        {!loading && tab === 'support' && (
+          <div>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              {(['open', 'all'] as const).map(f => (
+                <button key={f} onClick={() => handleSupportFilterChange(f)} style={{ padding: '0.375rem 0.875rem', borderRadius: '0.5rem', background: supportFilter === f ? `${accent}25` : 'transparent', border: `1px solid ${supportFilter === f ? accent : border}`, color: supportFilter === f ? accent : muted, cursor: 'pointer', fontSize: '0.8125rem', fontFamily: 'inherit' }}>
+                  {f === 'open' ? '🔵 Открытые' : '📋 Все'}
+                </button>
+              ))}
+              <span style={{ marginLeft: 'auto', color: muted, fontSize: '0.8125rem', alignSelf: 'center' }}>{supportMsgs.length} сообщений</span>
+            </div>
+            {supportMsgs.length === 0 ? (
+              <div style={{ textAlign: 'center', color: muted, padding: '3rem' }}>Нет обращений</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {supportMsgs.map(m => (
+                  <div key={m.id} style={{ background: surface, border: `1px solid ${m.status === 'open' ? '#38bdf840' : border}`, borderRadius: '0.875rem', padding: '1.125rem 1.25rem' }}>
+                    {/* User info */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.625rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 700, color: text }}>{m.userName || '—'}</span>
+                      <span style={{ fontSize: '0.8rem', color: muted }}>{m.userPhone}</span>
+                      {m.telegramChatId && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#2563eb20', color: '#60a5fa' }}>TG</span>}
+                      <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: muted }}>{fmt(m.createdAt)}</span>
+                      <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: '0.25rem', background: m.status === 'open' ? '#38bdf820' : '#33415520', color: m.status === 'open' ? accent : muted, border: `1px solid ${m.status === 'open' ? accent + '50' : border}` }}>
+                        {m.status === 'open' ? 'открыто' : 'закрыто'}
+                      </span>
+                    </div>
+                    {/* User message */}
+                    <div style={{ background: bg, borderRadius: '0.5rem', padding: '0.75rem', fontSize: '0.875rem', color: text, marginBottom: '0.75rem', lineHeight: 1.55, wordBreak: 'break-word' }}>
+                      {m.message}
+                    </div>
+                    {/* Existing reply */}
+                    {m.reply && (
+                      <div style={{ background: '#16253620', borderLeft: `3px solid ${accent}`, borderRadius: '0 0.5rem 0.5rem 0', padding: '0.625rem 0.75rem', marginBottom: '0.75rem' }}>
+                        <div style={{ fontSize: '0.7rem', color: accent, fontWeight: 600, marginBottom: '0.25rem' }}>Ответ администратора · {m.repliedAt ? fmt(m.repliedAt) : ''}</div>
+                        <div style={{ fontSize: '0.875rem', color: text, lineHeight: 1.5, wordBreak: 'break-word' }}>{m.reply}</div>
+                      </div>
+                    )}
+                    {/* Reply input */}
+                    {m.status === 'open' && (
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input
+                          value={replyTexts[m.id] ?? ''}
+                          onChange={e => setReplyTexts(prev => ({ ...prev, [m.id]: e.target.value }))}
+                          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSupportReply(m.id); } }}
+                          placeholder="Введите ответ..."
+                          style={{ flex: 1, height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.5rem', border: `1px solid ${border}`, background: bg, color: text, fontSize: '0.875rem', outline: 'none', fontFamily: 'inherit' }}
+                        />
+                        <button
+                          disabled={sendingReply === m.id || !replyTexts[m.id]?.trim()}
+                          onClick={() => handleSupportReply(m.id)}
+                          style={{ padding: '0 1rem', borderRadius: '0.5rem', background: sendingReply === m.id || !replyTexts[m.id]?.trim() ? `${border}` : accent, color: sendingReply === m.id || !replyTexts[m.id]?.trim() ? muted : '#0f172a', border: 'none', cursor: sendingReply === m.id || !replyTexts[m.id]?.trim() ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.8125rem', fontFamily: 'inherit', flexShrink: 0 }}
+                        >
+                          {sendingReply === m.id ? '...' : 'Ответить'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
