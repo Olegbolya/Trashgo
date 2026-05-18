@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, MapPin, Clock, RefreshCw, Calendar, Pause, Play, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, RefreshCw, Calendar, Pause, Play, Plus, Trash2, User } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useTheme } from '../context/ThemeContext';
 import { subscriptionsApi, type Subscription } from '../../api/subscriptions';
@@ -213,6 +213,13 @@ function SubCard({ sub, isDark, cardClass, text, muted, subtext, toggling, delet
           </div>
         </div>
       </div>
+
+      {sub.contractorName && (
+        <div className={`flex items-center gap-1.5 text-xs mb-2 px-2 py-1 rounded-lg w-fit ${isDark ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>
+          <User className="w-3 h-3" />
+          <span>Исполнитель: {sub.contractorName}</span>
+        </div>
+      )}
 
       {sub.description ? (
         <div className={`text-xs ${muted} mb-3`}>{sub.description}</div>

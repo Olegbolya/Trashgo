@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSearchParams } from 'react-router';
 
 const API_URL = (import.meta.env.VITE_API_URL as string) || (import.meta.env.PROD ? '/api/v1' : 'http://localhost:3000/api/v1');
 
@@ -95,9 +94,17 @@ function StatCard({ label, value, accent }: { label: string; value: string | num
 }
 
 export default function Admin() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [secret, setSecret] = useState(() => sessionStorage.getItem('admin_secret') ?? '');
   const [secretInput, setSecretInput] = useState('');
-  const secret = searchParams.get('secret') ?? '';
+
+  const applySecret = (value: string) => {
+    sessionStorage.setItem('admin_secret', value);
+    setSecret(value);
+  };
+  const clearSecret = () => {
+    sessionStorage.removeItem('admin_secret');
+    setSecret('');
+  };
 
   const [tab, setTab] = useState<Tab>('stats');
   const [stats, setStats] = useState<Stats | null>(null);
@@ -122,11 +129,14 @@ export default function Admin() {
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const apiFetch = useCallback(async (path: string, opts?: RequestInit) => {
-    const sep = path.includes('?') ? '&' : '?';
-    const url = `${API_URL}${path}${secret ? `${sep}secret=${encodeURIComponent(secret)}` : ''}`;
+    const url = `${API_URL}${path}`;
     const res = await fetch(url, {
       ...opts,
-      headers: { 'Content-Type': 'application/json', ...(opts?.headers ?? {}) },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(secret ? { 'Authorization': `Bearer ${secret}` } : {}),
+        ...(opts?.headers ?? {}),
+      },
     });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
@@ -300,13 +310,13 @@ export default function Admin() {
             type="password"
             value={secretInput}
             onChange={e => setSecretInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && secretInput.trim()) setSearchParams({ secret: secretInput.trim() }); }}
+            onKeyDown={e => { if (e.key === 'Enter' && secretInput.trim()) applySecret(secretInput.trim()); }}
             placeholder="ADMIN_SECRET"
             style={{ width: '100%', height: '2.75rem', padding: '0 0.875rem', borderRadius: '0.625rem', border: `1.5px solid ${border}`, background: bg, color: text, fontSize: '0.9375rem', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: '0.75rem' }}
             autoFocus
           />
           <button
-            onClick={() => { if (secretInput.trim()) setSearchParams({ secret: secretInput.trim() }); }}
+            onClick={() => { if (secretInput.trim()) applySecret(secretInput.trim()); }}
             style={{ width: '100%', height: '2.75rem', borderRadius: '0.625rem', background: accent, color: '#0f172a', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.9375rem', fontFamily: 'inherit' }}
           >
             Войти
@@ -324,7 +334,7 @@ export default function Admin() {
       <div style={{ borderBottom: `1px solid ${border}`, padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: '1.125rem', fontWeight: 700 }}>🛡️ TrashGo Admin</div>
         <button
-          onClick={() => setSearchParams({})}
+          onClick={clearSecret}
           style={{ background: 'none', border: `1px solid ${border}`, borderRadius: '0.5rem', padding: '0.375rem 0.75rem', color: muted, cursor: 'pointer', fontSize: '0.8125rem', fontFamily: 'inherit' }}
         >
           Выйти

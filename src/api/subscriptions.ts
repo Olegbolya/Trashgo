@@ -3,10 +3,13 @@ import { api } from './client';
 export interface Subscription {
   id: string;
   customerId: string;
+  contractorId: string | null;
+  contractorName: string | null;
   address: string;
   district: string;
   days: number[];
   time: string;
+  volume: number;
   price: number;
   description: string;
   active: boolean;
@@ -18,8 +21,10 @@ export interface CreateSubscriptionInput {
   district?: string;
   days: number[];
   time?: string;
+  volume?: number;
   price: number;
   description?: string;
+  contractorId?: string | null;
 }
 
 export const subscriptionsApi = {
@@ -31,7 +36,7 @@ export const subscriptionsApi = {
     return api.post<{ data: Subscription }>('/subscriptions', data);
   },
 
-  update(id: string, data: Partial<CreateSubscriptionInput & { active: boolean }>) {
+  update(id: string, data: Partial<CreateSubscriptionInput & { active: boolean; contractorId: string | null }>) {
     return api.patch<{ data: Subscription }>(`/subscriptions/${id}`, data);
   },
 
