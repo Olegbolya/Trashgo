@@ -87,6 +87,7 @@ export default function CustomerDashboard() {
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeSending, setDisputeSending] = useState(false);
+  const [sentDisputeOrders, setSentDisputeOrders] = useState<string[]>([]);
   const [addAddressOpen, setAddAddressOpen] = useState(false);
   const [newAddress, setNewAddress] = useState('');
   const [sbpModal, setSbpModal] = useState<{ orderId: string; phone: string; amount: number; contractorName: string } | null>(null);
@@ -99,6 +100,7 @@ export default function CustomerDashboard() {
     status: 'waiting' | 'active' | 'pending' | 'payment' | 'cancelled' | 'completed';
     responses: number; createdAt: string; ratingByCustomer: number | null;
     contractorName?: string;
+    pickedUp?: boolean;
   };
 
   function apiOrderToMyOrder(o: Order, inMemoryPhotos?: string[]): MyOrder {
@@ -127,6 +129,7 @@ export default function CustomerDashboard() {
       createdAt: new Date(o.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }),
       ratingByCustomer: o.ratingByCustomer ?? null,
       contractorName: o.contractorName ?? '',
+      pickedUp: o.status === 'in_progress' || o.status === 'pending_confirmation' || o.status === 'pending_payment',
     };
   }
 
@@ -1327,6 +1330,11 @@ export default function CustomerDashboard() {
                       {geocodeNoResults && !createErrors.address && createForm.address.length >= 4 && (
                         <p className="text-xs mt-1" style={{ color: '#f59e0b' }}>⚠️ Адрес не найден. Проверьте написание или введите вручную.</p>
                       )}
+                      {createForm.address.length > 5 && !/\d/.test(createForm.address) && (
+                        <div style={{ fontSize: '0.72rem', color: '#f59e0b', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          ⚠️ Укажите номер дома — например, «ул. Баумана, 58»
+                        </div>
+                      )}
                     </div>
 
                     {/* Подъезд + Этаж + Квартира — необязательные без пометки */}
@@ -1936,6 +1944,7 @@ export default function CustomerDashboard() {
                             try {
                               await ordersApi.disputeOrder(selectedOrder.id, disputeReason);
                               toast.success('Жалоба отправлена', { description: 'Поддержка рассмотрит в течение 7 дней' });
+                              setSentDisputeOrders(prev => [...prev, selectedOrder.id]);
                               setDisputeOpen(false);
                               setDisputeReason('');
                               setSelectedOrder(null);
@@ -1951,6 +1960,19 @@ export default function CustomerDashboard() {
                       </div>
                       <div className="text-xs mt-2 text-center" style={{ color: '#9ca3af' }}>Поддержка рассмотрит в течение 7 дней</div>
                     </div>
+                  )}
+                  {sentDisputeOrders.includes(selectedOrder.id) && !disputeOpen && (
+                    <button
+                      className="w-full py-2.5 rounded-xl text-sm font-medium"
+                      style={{ border: '1px solid #86efac', background: 'transparent', color: '#16a34a', cursor: 'pointer', fontFamily: 'inherit' }}
+                      onClick={() => {
+                        setSentDisputeOrders(prev => prev.filter(id => id !== selectedOrder.id));
+                        toast.success('Рады что вопрос решился!', { description: 'Обратитесь в поддержку если нужна помощь с выплатой.' });
+                        setSelectedOrder(null);
+                      }}
+                    >
+                      ✅ Спор решён
+                    </button>
                   )}
                   <button
                     className="w-full py-2.5 rounded-xl text-sm font-medium"
@@ -2047,7 +2069,7 @@ export default function CustomerDashboard() {
                         {cancelingId === selectedOrder.id ? '⏳ Отмена...' : 'Отменить заказ'}
                       </button>
                     )}
-                    {selectedOrder.status === 'active' && cancelSecondsLeft !== null && cancelSecondsLeft > 0 && (
+                    {selectedOrder.status === 'active' && !selectedOrder.pickedUp && cancelSecondsLeft !== null && cancelSecondsLeft > 0 && (
                       <button
                         className="flex-1 py-2.5 rounded-xl text-sm font-medium"
                         disabled={cancelingId === selectedOrder.id}

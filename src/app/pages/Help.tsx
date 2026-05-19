@@ -182,7 +182,7 @@ export default function Help() {
       loadMessages();
       setHasUnread(false);
       api.patch('/support/read-all').catch(() => {});
-      pollRef.current = setInterval(() => loadMessages(true), 15000);
+      pollRef.current = setInterval(() => loadMessages(true), 5000);
       return () => { if (pollRef.current) clearInterval(pollRef.current); };
     }
   }, [chatOpen, loadMessages]);
