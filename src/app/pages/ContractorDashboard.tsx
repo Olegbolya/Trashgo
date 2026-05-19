@@ -603,7 +603,11 @@ export default function ContractorDashboard() {
                                     target="_blank" rel="noreferrer"
                                     onClick={(e) => e.stopPropagation()}
                                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.4rem 0.75rem', borderRadius: '0.5rem', background: '#FC3F1D', color: 'white', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none', marginBottom: '0.375rem' }}
-                                  >🗺️ Маршрут до адреса</a>
+                                  >🗺️ Открыть в Яндекс Картах</a>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(job.address + ', Казань').catch(() => {}); toast.success('Адрес скопирован', { description: 'Вставьте в Яндекс Карты или навигатор', duration: 2500 }); }}
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', width: '100%', marginBottom: '0.375rem' }}
+                                  >📋 Скопировать адрес</button>
                                   {job.description && (
                                     <div className="text-xs" style={{ color: c.muted }}>{job.description}</div>
                                   )}
@@ -647,6 +651,22 @@ export default function ContractorDashboard() {
                                     }}
                                   >
                                     {startingId === job.id ? 'Отмечаем...' : '✅ Получено — иду к баку'}
+                                  </button>
+                                )}
+                                {job.status === 'accepted' && (
+                                  <button
+                                    className="w-full text-xs font-semibold h-9 rounded-lg"
+                                    style={{ background: 'transparent', border: '1px solid #fca5a5', color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit' }}
+                                    onClick={async () => {
+                                      if (!confirm('Отказаться от заказа? Это повлияет на ваш рейтинг.')) return;
+                                      try {
+                                        await ordersApi.updateStatus(job.id, 'cancelled');
+                                        setMyJobs(prev => prev.filter(j => j.id !== job.id));
+                                        toast.info('Вы отказались от заказа');
+                                      } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
+                                    }}
+                                  >
+                                    ✖ Отказаться от заказа
                                   </button>
                                 )}
                                 {job.status === 'in_progress' && (
@@ -1103,7 +1123,7 @@ export default function ContractorDashboard() {
                   </div>
                 </div>
                 <div className="mt-3 p-3 rounded-xl flex items-center justify-between" style={{ background: '#4CAF5012', border: '1px solid #4CAF5020' }}>
-                  <div className="text-sm" style={{ color: c.text }}>Баланс</div>
+                  <div className="text-sm" style={{ color: c.text }}>Заработок</div>
                   <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>{balance.toLocaleString('ru-RU')}₽</div>
                 </div>
               </div>
@@ -1116,6 +1136,10 @@ export default function ContractorDashboard() {
                 const transportLabel: Record<string, string> = {
                   pedestrian: '🚶 Пеший', scooter: '🛴 Самокат', bicycle: '🚲 Велосипед',
                   'e-bicycle': '⚡🚲 Электровелосипед', moto: '🏍️ Мото', car: '🚗 Автомобиль',
+                };
+                const radiusMap: Record<string, string> = {
+                  pedestrian: '0.5', scooter: '2', bicycle: '3',
+                  'e-bicycle': '4', moto: '8', car: '15',
                 };
                 const tMode = user?.transportMode || 'car';
                 return (
@@ -1132,6 +1156,7 @@ export default function ContractorDashboard() {
                     <div className="rounded-lg p-3 mb-2" style={{ background: c.subtle }}>
                       <div className="text-xs mb-1" style={{ color: c.muted }}>Способ передвижения</div>
                       <div className="text-sm font-medium" style={{ color: c.text }}>{transportLabel[tMode] || '🚗 Автомобиль'}</div>
+                      <div style={{ fontSize: '0.72rem', color: c.muted, marginTop: '0.25rem' }}>Радиус видимости заказов: {radiusMap[tMode] || '15'} км</div>
                     </div>
                     {/* Availability toggle */}
                     <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: (user?.isAvailable ?? true) ? '#d1fae520' : `${c.subtle}`, border: `1px solid ${(user?.isAvailable ?? true) ? '#6ee7b7' : c.border}` }}>
