@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router';
-import { Trash2, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { authApi } from '../../api/auth';
@@ -28,7 +28,7 @@ export default function Login() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [emailLoading, setEmailLoading] = useState(false);
+  const [telegramLoading, setTelegramLoading] = useState(false);
 
   if (role === 'contractor' || role === 'customer') setRole(role);
 
@@ -36,15 +36,18 @@ export default function Login() {
     setPhone(e.target.value.replace(/\D/g, ''));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const phoneValid = phone.replace(/\D/g, '').length >= 10;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const formattedPhone = formatPhone(phone);
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (phone.replace(/\D/g, '').length < 10) return;
-    const formattedPhone = formatPhone(phone);
+    if (!phoneValid || !emailValid || loading) return;
     setLoading(true);
     try {
-      const res = await authApi.login(formattedPhone);
+      const res = await authApi.login(formattedPhone, email.trim());
       navigate('/verify', {
-        state: { phone: formattedPhone, role, isNewUser: res.isNewUser, devCode: res.devCode, channel: res.channel, telegramBotLink: res.telegramBotLink },
+        state: { phone: formattedPhone, role, isNewUser: res.isNewUser, devCode: res.devCode, channel: res.channel, deliveryEmail: res.deliveryEmail || email.trim(), telegramBotLink: res.telegramBotLink },
       });
     } catch {
       toast.error('Ошибка отправки кода. Попробуйте ещё раз.');
@@ -53,19 +56,18 @@ export default function Login() {
     }
   };
 
-  const handleEmailSubmit = async () => {
-    if (phone.replace(/\D/g, '').length < 10 || !email.trim()) return;
-    const formattedPhone = formatPhone(phone);
-    setEmailLoading(true);
+  const handleTelegramSubmit = async () => {
+    if (!phoneValid || telegramLoading) return;
+    setTelegramLoading(true);
     try {
-      const res = await authApi.login(formattedPhone, email.trim());
+      const res = await authApi.login(formattedPhone);
       navigate('/verify', {
-        state: { phone: formattedPhone, role, isNewUser: res.isNewUser, devCode: res.devCode, channel: res.channel, deliveryEmail: res.deliveryEmail || email.trim() },
+        state: { phone: formattedPhone, role, isNewUser: res.isNewUser, devCode: res.devCode, channel: res.channel, telegramBotLink: res.telegramBotLink },
       });
     } catch {
-      toast.error('Ошибка отправки кода. Попробуйте ещё раз.');
+      toast.error('Ошибка. Попробуйте ещё раз.');
     } finally {
-      setEmailLoading(false);
+      setTelegramLoading(false);
     }
   };
 
@@ -86,7 +88,7 @@ export default function Login() {
             </div>
           </div>
           <h1 className="text-2xl text-gray-900 mb-2">Вход или регистрация</h1>
-          <p className="text-gray-600">Введите номер телефона</p>
+          <p className="text-gray-600">Код подтверждения придёт на почту</p>
         </div>
 
         {pendingRefCode && (
@@ -105,8 +107,8 @@ export default function Login() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4">
-          <div className="mb-6">
+        <form onSubmit={handleEmailSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4 space-y-4">
+          <div>
             <label className="text-sm text-gray-600 mb-2 block">Номер телефона</label>
             <Input
               type="tel"
@@ -118,42 +120,52 @@ export default function Login() {
             />
           </div>
 
+          <div>
+            <label className="text-sm text-gray-600 mb-2 block">Email для кода подтверждения</label>
+            <Input
+              type="email"
+              placeholder="your@email.com"
+              className="h-12 border-gray-200"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || !phoneValid || !emailValid}
             style={{ background: accent, border: 'none' }}
             className="w-full h-12 text-white hover:opacity-90"
           >
-            {loading ? 'Отправляем...' : 'Получить код по SMS'}
+            {loading ? 'Отправляем...' : '📧 Получить код на почту'}
           </Button>
 
-          <p className="text-xs text-gray-500 text-center mt-4">
-            Отправим SMS с кодом подтверждения
+          <p className="text-xs text-gray-500 text-center">
+            Код действителен 10 минут. Проверьте папку «Спам» если не пришёл.
           </p>
         </form>
 
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-4">
-          <p className="text-sm text-gray-500 mb-3">Или получите код на e-mail</p>
-          <Input
-            type="email"
-            placeholder="your@email.com"
-            className="h-12 border-gray-200 mb-3"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+        {/* Telegram fallback */}
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-4">
+          <p className="text-sm text-gray-500 mb-3 text-center">Не получили код на почту?</p>
           <Button
             type="button"
-            onClick={handleEmailSubmit}
-            disabled={emailLoading || phone.replace(/\D/g, '').length < 10 || !email.trim()}
+            onClick={handleTelegramSubmit}
+            disabled={telegramLoading || !phoneValid}
             variant="outline"
-            className="w-full h-12"
+            className="w-full h-11"
           >
-            {emailLoading ? 'Отправляем...' : 'Получить код на почту'}
+            {telegramLoading ? 'Отправляем...' : '✈️ Получить код через Telegram-бот'}
           </Button>
+          <p className="text-xs text-gray-400 text-center mt-2">
+            Введите номер телефона выше и нажмите кнопку
+          </p>
         </div>
 
         <p className="text-xs text-gray-500 text-center">
-          Нажимая "Получить код", вы принимаете условия использования сервиса
+          Нажимая "Получить код", вы принимаете{' '}
+          <a href="/privacy" className="underline">политику конфиденциальности</a>
         </p>
       </div>
     </div>
