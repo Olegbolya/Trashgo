@@ -19,6 +19,7 @@ import { OnboardingSlider } from '../components/OnboardingSlider';
 import { NotificationBell } from '../components/NotificationBell';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import { uploadPhotoWithFallback } from '../../api/upload';
+import { FrozenBanner } from '../components/FrozenBanner';
 
 const ACCENT = '#2196F3';
 
@@ -545,6 +546,9 @@ export default function ContractorDashboard() {
       {/* Main content */}
       <div className="flex-1 lg:ml-64">
         <div className="container mx-auto px-3 py-3 pb-24 lg:px-8 lg:py-6 lg:pb-6">
+
+          {/* FROZEN BANNER */}
+          {user?.frozen && <FrozenBanner reason={user.freezeReason ?? null} isDark={isDark} />}
 
           {/* ACTIVE TAB */}
           {activeTab === 'active' && (

@@ -20,6 +20,8 @@ export interface User {
   isAvailable: boolean;
   inn: string | null;
   innVerified: boolean;
+  frozen: boolean;
+  freezeReason: string | null;
   createdAt: string;
 }
 

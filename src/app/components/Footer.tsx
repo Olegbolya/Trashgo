@@ -8,10 +8,8 @@ export function Footer() {
           {/* Brand column */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-[#667eea] to-[#764ba2] p-3 rounded-2xl">
-                <Trash2 className="w-6 h-6" />
-              </div>
-              <span className="text-lg font-semibold">Вынос Мусора Казань</span>
+              <img src="/icon-72.png" alt="TrashGo" style={{ width: 48, height: 48, borderRadius: '0.875rem', objectFit: 'cover', flexShrink: 0 }} />
+              <span className="text-lg font-semibold">TrashGo — Вынос Мусора Казань</span>
             </div>
             <p className="text-white/70 leading-relaxed">
               Первый P2P сервис выноса мусора в Татарстане. Быстро, удобно, доступно.
@@ -70,6 +68,29 @@ export function Footer() {
                 <span>г. Казань, Республика Татарстан</span>
               </li>
             </ul>
+          </div>
+        </div>
+
+        {/* Privacy summary */}
+        <div className="border-t border-white/10 mt-12 pt-8">
+          <div className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-4">Политика конфиденциальности — ключевые положения</div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[
+              { n: '1', t: 'Сбор данных', d: 'Собираем только телефон, имя и адреса вывоза, необходимые для работы сервиса.' },
+              { n: '2', t: 'Цель обработки', d: 'Данные используются исключительно для обеспечения заказов и связи между пользователями.' },
+              { n: '3', t: 'Передача третьим лицам', d: 'Не продаём данные. Передача возможна только SMS-провайдеру (OTP) и по требованию закона.' },
+              { n: '4', t: 'Хранение и защита', d: 'Серверы Railway (EU), шифрование TLS 1.3. Вход через OTP — пароли не хранятся.' },
+              { n: '5', t: 'Ваши права', d: 'Право на доступ, исправление и удаление данных. Обращайтесь: info@vynosmusora.ru' },
+              { n: '6', t: 'Cookies', d: 'Используем только localStorage для токена сессии и темы оформления.' },
+            ].map(p => (
+              <div key={p.n} className="bg-white/5 rounded-xl p-3 flex gap-3">
+                <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white/60 flex-shrink-0 mt-0.5">{p.n}</div>
+                <div>
+                  <div className="text-xs font-semibold text-white/80 mb-0.5">{p.t}</div>
+                  <div className="text-xs text-white/50 leading-relaxed">{p.d}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

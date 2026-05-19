@@ -79,10 +79,10 @@ export default function Login() {
 
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Trash2 className="w-10 h-10 text-gray-900" />
+            <img src="/icon-192.png" alt="TrashGo" style={{ width: 56, height: 56, borderRadius: '1rem', objectFit: 'cover', flexShrink: 0 }} />
             <div>
-              <div className="text-2xl font-semibold text-gray-900">Вынос Мусора</div>
-              <div className="text-sm text-gray-600">Казань</div>
+              <div className="text-2xl font-semibold text-gray-900">TrashGo</div>
+              <div className="text-sm text-gray-600">Вынос мусора, Казань</div>
             </div>
           </div>
           <h1 className="text-2xl text-gray-900 mb-2">Вход или регистрация</h1>

@@ -120,4 +120,9 @@ export const authApi = {
     const res = await api.post<{ data: { inn: string; selfEmployed: boolean } }>('/users/verify-inn', { inn });
     return res.data;
   },
+
+  async appealFreeze(reason: string): Promise<{ ok: boolean }> {
+    const res = await api.post<{ data: { ok: boolean } }>('/users/appeal-freeze', { reason });
+    return res.data;
+  },
 };

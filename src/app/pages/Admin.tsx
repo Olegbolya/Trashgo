@@ -122,6 +122,10 @@ export default function Admin() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [userOrders, setUserOrders] = useState<{ userId: string; orders: UserOrder[] } | null>(null);
   const [closingDispute, setClosingDispute] = useState<string | null>(null);
+  const [freezeModal, setFreezeModal] = useState<{ userId: string; name: string } | null>(null);
+  const [freezeReason, setFreezeReason] = useState('');
+  const [freezeSubmitting, setFreezeSubmitting] = useState(false);
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
   const [supportMsgs, setSupportMsgs] = useState<SupportMsg[]>([]);
   const [supportFilter, setSupportFilter] = useState<'open' | 'escalated' | 'all'>('open');
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
@@ -216,15 +220,21 @@ export default function Admin() {
     finally { setUnfreezing(null); }
   };
 
-  const handleFreeze = async (id: string) => {
-    const reason = prompt('Причина заморозки:');
-    if (!reason) return;
-    setFreezing(id);
+  const handleFreeze = (id: string, name: string) => {
+    setFreezeModal({ userId: id, name });
+    setFreezeReason('');
+  };
+
+  const handleFreezeSubmit = async () => {
+    if (!freezeModal || !freezeReason.trim()) return;
+    setFreezeSubmitting(true);
     try {
-      await apiFetch(`/admin/freeze/${id}`, { method: 'POST', body: JSON.stringify({ reason }) });
-      setUserResults(prev => prev.map(u => u.id === id ? { ...u, frozen: true, freezeReason: reason } : u));
+      await apiFetch(`/admin/freeze/${freezeModal.userId}`, { method: 'POST', body: JSON.stringify({ reason: freezeReason.trim() }) });
+      setUserResults(prev => prev.map(u => u.id === freezeModal.userId ? { ...u, frozen: true, freezeReason: freezeReason.trim() } : u));
+      setFreezeModal(null);
+      setFreezeReason('');
     } catch (e: any) { setError(e.message); }
-    finally { setFreezing(null); }
+    finally { setFreezeSubmitting(false); }
   };
 
   const handleUserSearch = (q: string) => {
@@ -467,12 +477,16 @@ export default function Admin() {
                       >
                         {userOrders?.userId === u.id ? '▲ Скрыть' : '▼ Заказы'}
                       </button>
+                      <button
+                        onClick={() => setExpandedUsers(prev => { const n = new Set(prev); n.has(u.id) ? n.delete(u.id) : n.add(u.id); return n; })}
+                        style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: expandedUsers.has(u.id) ? `${accent}25` : 'transparent', border: `1px solid ${border}`, color: muted, cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}
+                      >📋 Подробнее</button>
                       {u.frozen ? (
                         <button disabled={unfreezing === u.id} onClick={() => handleUnfreeze(u.id)} style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#4ade8015', border: '1px solid #4ade8040', color: '#4ade80', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}>
                           {unfreezing === u.id ? '...' : '🔓 Разморозить'}
                         </button>
                       ) : (
-                        <button disabled={freezing === u.id} onClick={() => handleFreeze(u.id)} style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#f9731615', border: '1px solid #f9731640', color: '#f97316', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}>
+                        <button disabled={freezing === u.id} onClick={() => handleFreeze(u.id, u.name || u.phone)} style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#f9731615', border: '1px solid #f9731640', color: '#f97316', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}>
                           {freezing === u.id ? '...' : '🔒 Заморозить'}
                         </button>
                       )}
@@ -491,6 +505,15 @@ export default function Admin() {
                           <span style={{ color: muted, fontFamily: 'monospace' }}>{o.id.slice(-6)}</span>
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {expandedUsers.has(u.id) && (
+                    <div style={{ marginTop: '0.75rem', borderTop: `1px solid ${border}`, paddingTop: '0.75rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.5rem', fontSize: '0.78rem' }}>
+                      <div style={{ color: muted }}>XP: <span style={{ color: text }}>{u.xp}</span></div>
+                      <div style={{ color: muted }}>Баланс: <span style={{ color: '#4ade80' }}>{u.balance}₽</span></div>
+                      <div style={{ color: muted }}>Роль: <span style={{ color: text }}>{u.role}</span></div>
+                      <div style={{ color: muted }}>Зарег: <span style={{ color: text }}>{fmt(u.createdAt)}</span></div>
+                      <div style={{ color: muted }}>ID: <span style={{ color: text, fontFamily: 'monospace' }}>{u.id}</span></div>
                     </div>
                   )}
                 </div>
@@ -625,6 +648,34 @@ export default function Admin() {
                 </div>
               );
             })()}
+          </div>
+        )}
+
+        {freezeModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: '1rem', padding: '1.5rem', width: '100%', maxWidth: '400px' }}>
+              <div style={{ fontWeight: 700, color: text, marginBottom: '0.25rem', fontSize: '1.05rem' }}>🔒 Заморозить аккаунт</div>
+              <div style={{ color: muted, fontSize: '0.85rem', marginBottom: '1rem' }}>{freezeModal.name}</div>
+              <textarea
+                value={freezeReason}
+                onChange={e => setFreezeReason(e.target.value)}
+                placeholder="Причина заморозки..."
+                rows={3}
+                autoFocus
+                style={{ width: '100%', borderRadius: '0.5rem', border: `1.5px solid ${border}`, background: bg, color: text, padding: '0.625rem', fontSize: '0.875rem', fontFamily: 'inherit', resize: 'none', outline: 'none', boxSizing: 'border-box' }}
+              />
+              <div style={{ display: 'flex', gap: '0.625rem', marginTop: '0.875rem' }}>
+                <button
+                  onClick={() => { setFreezeModal(null); setFreezeReason(''); }}
+                  style={{ flex: 1, padding: '0.625rem', borderRadius: '0.5rem', border: `1px solid ${border}`, background: 'transparent', color: muted, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.875rem' }}
+                >Отмена</button>
+                <button
+                  disabled={!freezeReason.trim() || freezeSubmitting}
+                  onClick={handleFreezeSubmit}
+                  style={{ flex: 1, padding: '0.625rem', borderRadius: '0.5rem', border: 'none', background: freezeReason.trim() ? '#f97316' : '#f97316' + '60', color: 'white', cursor: freezeReason.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600 }}
+                >{freezeSubmitting ? 'Замораживаем...' : '🔒 Заморозить'}</button>
+              </div>
+            </div>
           </div>
         )}
       </div>

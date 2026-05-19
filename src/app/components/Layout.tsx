@@ -39,9 +39,7 @@ export default function Layout({ children }: LayoutProps) {
         {/* Logo */}
         <div className="p-6" style={{ borderBottom: `1px solid ${c.border}` }}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${ACCENT}18` }}>
-              <Trash2 className="w-5 h-5" style={{ color: ACCENT }} />
-            </div>
+            <img src="/icon-72.png" alt="TrashGo" style={{ width: 36, height: 36, borderRadius: '0.625rem', objectFit: 'cover', flexShrink: 0 }} />
             <div>
               <div className="font-bold text-sm" style={{ color: c.text }}>TrashGo</div>
               <div className="text-xs" style={{ color: c.muted }}>Вынос мусора</div>
