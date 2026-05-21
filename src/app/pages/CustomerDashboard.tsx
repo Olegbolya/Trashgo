@@ -21,6 +21,7 @@ import { FrozenBanner } from '../components/FrozenBanner';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import { searchKazanStreets } from '../../data/kazanStreets';
 import { uploadPhotoWithFallback } from '../../api/upload';
+import { MapPicker } from '../components/MapPicker';
 
 const ACCENT = '#66BB6A';
 
@@ -49,7 +50,8 @@ export default function CustomerDashboard() {
   const activeTab: CTabType = (VALID_TABS_C.includes(searchParams.get('tab') as CTabType) ? searchParams.get('tab') : 'home') as CTabType;
   const setActiveTab = (tab: CTabType) => setSearchParams({ tab });
   const [currentWeek, setCurrentWeek] = useState(0);
-  const [createForm, setCreateForm] = useState({ address: '', date: '', time: '', asap: false, volume: 1, price: 50, entrance: '', floor: '', apartment: '', description: '' });
+  const [createForm, setCreateForm] = useState({ address: '', date: '', time: '', asap: false, volume: 1, price: 50, entrance: '', floor: '', apartment: '', description: '', wasteType: 'household' as 'household' | 'construction' | 'bulky' });
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [createPhotos, setCreatePhotos] = useState<File[]>([]);
   const [preloadedPhotoUrls, setPreloadedPhotoUrls] = useState<string[]>([]);
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
@@ -102,6 +104,7 @@ export default function CustomerDashboard() {
     responses: number; createdAt: string; ratingByCustomer: number | null;
     contractorName?: string;
     pickedUp?: boolean;
+    wasteType?: 'household' | 'construction' | 'bulky';
   };
 
   function apiOrderToMyOrder(o: Order, inMemoryPhotos?: string[]): MyOrder {
@@ -131,6 +134,7 @@ export default function CustomerDashboard() {
       ratingByCustomer: o.ratingByCustomer ?? null,
       contractorName: o.contractorName ?? '',
       pickedUp: o.status === 'in_progress' || o.status === 'pending_confirmation' || o.status === 'pending_payment',
+      wasteType: (o.wasteType as 'household' | 'construction' | 'bulky') ?? 'household',
     };
   }
 
@@ -730,6 +734,9 @@ export default function CustomerDashboard() {
                                 <span>{order.date ? new Date(order.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : ''}{order.time ? ` · ${order.time}` : ''}</span>
                               )}
                               <span>· {order.volume} мешк.</span>
+                              {order.wasteType && order.wasteType !== 'household' && (
+                                <span>· {order.wasteType === 'construction' ? '🧱 Строительный' : '🛋️ Крупногабаритный'}</span>
+                              )}
                             </div>
                             {order.status === 'waiting' ? (
                               <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#F97316' + '18', color: '#F97316' }}>
@@ -1156,6 +1163,7 @@ export default function CustomerDashboard() {
                     asap: createForm.asap,
                     scheduledAt,
                     photoUrls,
+                    wasteType: createForm.wasteType,
                   }) as any;
                   const apiOrder: Order = res?.data ?? res;
                   resultOrder = {
@@ -1205,8 +1213,9 @@ export default function CustomerDashboard() {
                   <div className="space-y-4">
 
                     {/* Адрес дома — обязательное */}
-                    <div style={{ position: 'relative' }}>
+                    <div>
                       <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: c.muted }}>Адрес <span style={{ color: '#ef4444' }}>*</span></label>
+                      <div style={{ position: 'relative' }}>
                       <input
                         value={createForm.address}
                         onChange={(e) => {
@@ -1280,8 +1289,14 @@ export default function CustomerDashboard() {
                         }}
                         onBlur={() => { setTimeout(() => setShowAddressSuggestions(false), 150); }}
                         placeholder="ул. Баумана, 58"
-                        style={inputStyle(!!createErrors.address)}
+                        style={{ ...inputStyle(!!createErrors.address), paddingRight: '2.5rem' }}
                       />
+                      <button
+                        type="button"
+                        title="Выбрать на карте"
+                        onClick={() => setMapPickerOpen(true)}
+                        style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: ACCENT, fontSize: '1.1rem', padding: '0.25rem', lineHeight: 1 }}
+                      >🗺️</button>
                       {showAddressSuggestions && (addressSuggestions.length > 0 || geocodeSuggestions.length > 0) && (
                         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: c.surface, border: `1px solid ${c.border}`, borderRadius: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginTop: '2px', overflow: 'hidden', maxHeight: '14rem', overflowY: 'auto' }}>
                           {/* Past/registered addresses */}
@@ -1339,6 +1354,7 @@ export default function CustomerDashboard() {
                           ⚠️ Укажите номер дома — например, «ул. Баумана, 58»
                         </div>
                       )}
+                      </div>{/* closes position:relative input wrapper */}
                     </div>
 
                     {/* Подъезд + Этаж + Квартира — необязательные без пометки */}
@@ -1369,6 +1385,37 @@ export default function CustomerDashboard() {
                           placeholder="42"
                           style={inputStyle()}
                         />
+                      </div>
+                    </div>
+
+                    {/* Тип мусора */}
+                    <div>
+                      <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: c.muted }}>Тип мусора <span style={{ color: '#ef4444' }}>*</span></label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { value: 'household', icon: '🗑️', label: 'Бытовой' },
+                          { value: 'construction', icon: '🧱', label: 'Строительный' },
+                          { value: 'bulky', icon: '🛋️', label: 'Крупногабаритный' },
+                        ] as const).map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setCreateForm({ ...createForm, wasteType: opt.value })}
+                            style={{
+                              padding: '0.5rem 0.25rem',
+                              borderRadius: '0.75rem',
+                              border: `1.5px solid ${createForm.wasteType === opt.value ? ACCENT : c.border}`,
+                              background: createForm.wasteType === opt.value ? `${ACCENT}12` : 'transparent',
+                              cursor: 'pointer', fontFamily: 'inherit',
+                              fontSize: '0.75rem', fontWeight: createForm.wasteType === opt.value ? 600 : 400,
+                              color: createForm.wasteType === opt.value ? ACCENT : c.textSub,
+                              textAlign: 'center',
+                            }}
+                          >
+                            <div style={{ fontSize: '1.25rem', marginBottom: '0.125rem' }}>{opt.icon}</div>
+                            {opt.label}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
@@ -2254,6 +2301,14 @@ export default function CustomerDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Map Picker Modal */}
+      {mapPickerOpen && (
+        <MapPicker
+          onSelect={(address) => setCreateForm(f => ({ ...f, address }))}
+          onClose={() => setMapPickerOpen(false)}
+        />
       )}
 
       {/* СБП Payment Modal */}

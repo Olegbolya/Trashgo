@@ -78,6 +78,7 @@ export default function ContractorDashboard() {
   const [historyDetailOrder, setHistoryDetailOrder] = useState<Order | null>(null);
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
   const [paymentDisputedIds, setPaymentDisputedIds] = useState<Set<string>>(new Set());
+  const [blockedCustomerIds, setBlockedCustomerIds] = useState<Set<string>>(new Set());
   const [confirmingPaymentId, setConfirmingPaymentId] = useState<string | null>(null);
   const [tgBotUsername, setTgBotUsername] = useState<string | null>(null);
   const [ratingOrder, setRatingOrder] = useState<{ id: string; customerName: string } | null>(null);
@@ -618,7 +619,7 @@ export default function ContractorDashboard() {
                                 </div>
                                 <div className="text-right ml-3">
                                   <div className="text-xl font-bold" style={{ color: ACCENT }}>{job.price}₽</div>
-                                  <div className="text-xs" style={{ color: c.muted }}>{job.volume} мешк.</div>
+                                  <div className="text-xs" style={{ color: c.muted }}>{job.volume} мешк.{(job as any).wasteType === 'construction' ? ' · 🧱' : (job as any).wasteType === 'bulky' ? ' · 🛋️' : ''}</div>
                                 </div>
                               </div>
                               {/* Customer profile card — shown when job is accepted */}
@@ -948,7 +949,7 @@ export default function ContractorDashboard() {
                                 <span className="text-sm font-medium truncate" style={{ color: c.text }}>{job.address}</span>
                               </div>
                               <div className="text-xs" style={{ color: c.muted }}>
-                                {job.asap ? '⚡ ASAP' : `${dateStr} · ${timeStr}`} · {job.volume} мешк.
+                                {job.asap ? '⚡ ASAP' : `${dateStr} · ${timeStr}`} · {job.volume} мешк.{(job as any).wasteType === 'construction' ? ' · 🧱 Строит.' : (job as any).wasteType === 'bulky' ? ' · 🛋️ Крупногаб.' : ''}
                               </div>
                               {(job as any).customerName && (
                                 <div className="text-xs mt-0.5" style={{ color: c.muted }}>👤 {(job as any).customerName}</div>
@@ -997,6 +998,30 @@ export default function ContractorDashboard() {
                           {isDone && paymentDisputedIds.has(job.id) && (
                             <div className="mt-1.5 text-xs text-center py-1.5 rounded-lg" style={{ background: '#ef444412', color: '#ef4444' }}>
                               Спор зарегистрирован — ожидайте решения
+                            </div>
+                          )}
+                          {isDone && paymentDisputedIds.has(job.id) && !blockedCustomerIds.has(job.id) && (
+                            <button
+                              className="w-full mt-1.5 h-8 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5"
+                              style={{ background: '#7f1d1d20', border: '1px solid #7f1d1d50', color: '#dc2626', cursor: 'pointer', fontFamily: 'inherit' }}
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!confirm('Заблокировать этого заказчика и его адрес? Он не сможет создавать заказы с этого адреса.')) return;
+                                try {
+                                  await ordersApi.blockCustomer(job.id);
+                                  setBlockedCustomerIds(prev => new Set([...prev, job.id]));
+                                  toast.success('Адрес и аккаунт заказчика заблокированы.');
+                                } catch (err: any) {
+                                  toast.error(err?.message ?? 'Ошибка блокировки');
+                                }
+                              }}
+                            >
+                              ⛔ Заблокировать адрес за неоплату
+                            </button>
+                          )}
+                          {isDone && blockedCustomerIds.has(job.id) && (
+                            <div className="mt-1.5 text-xs text-center py-1.5 rounded-lg" style={{ background: '#7f1d1d20', color: '#dc2626' }}>
+                              Адрес заблокирован
                             </div>
                           )}
                         </div>

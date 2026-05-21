@@ -37,6 +37,7 @@ export interface Order {
   updatedAt: string;
   ratingByCustomer: number | null;
   ratingByContractor: number | null;
+  wasteType?: 'household' | 'construction' | 'bulky';
   history?: Array<{ status: OrderStatus; createdAt: string; note: string }>;
 }
 
@@ -49,4 +50,5 @@ export interface CreateOrderInput {
   asap?: boolean;
   scheduledAt?: string;
   photoUrls?: string[];
+  wasteType?: 'household' | 'construction' | 'bulky';
 }

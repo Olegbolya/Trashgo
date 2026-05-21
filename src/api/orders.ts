@@ -81,4 +81,8 @@ export const ordersApi = {
   confirmPayment(id: string) {
     return api.post<{ data: unknown }>(`/orders/${id}/confirm-payment`, {});
   },
+
+  blockCustomer(id: string) {
+    return api.post<{ ok: boolean }>(`/orders/${id}/block-customer`, {});
+  },
 };

@@ -8,6 +8,7 @@ import { useAuthStore } from '../stores/auth.store';
 import { connectSSE } from '../services/sse';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { InstallBanner } from './components/InstallBanner';
+import { CookieBanner } from './components/CookieBanner';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +53,7 @@ export default function App() {
         <SSEConnector />
         <OfflineBanner />
         <InstallBanner />
+        <CookieBanner />
         <RouterProvider router={router} />
         <Toaster richColors position="top-center" />
       </ThemeProvider>

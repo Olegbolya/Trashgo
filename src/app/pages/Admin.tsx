@@ -126,6 +126,8 @@ export default function Admin() {
   const [freezeReason, setFreezeReason] = useState('');
   const [freezeSubmitting, setFreezeSubmitting] = useState(false);
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
+  const [deleteModal, setDeleteModal] = useState<{ userId: string; name: string } | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [supportMsgs, setSupportMsgs] = useState<SupportMsg[]>([]);
   const [supportFilter, setSupportFilter] = useState<'open' | 'escalated' | 'all'>('open');
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
@@ -235,6 +237,17 @@ export default function Admin() {
       setFreezeReason('');
     } catch (e: any) { setError(e.message); }
     finally { setFreezeSubmitting(false); }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteModal) return;
+    setDeleteSubmitting(true);
+    try {
+      await apiFetch(`/admin/users/${deleteModal.userId}`, { method: 'DELETE' });
+      setUserResults(prev => prev.filter(u => u.id !== deleteModal.userId));
+      setDeleteModal(null);
+    } catch (e: any) { setError(e.message); }
+    finally { setDeleteSubmitting(false); }
   };
 
   const handleUserSearch = (q: string) => {
@@ -490,6 +503,9 @@ export default function Admin() {
                           {freezing === u.id ? '...' : '🔒 Заморозить'}
                         </button>
                       )}
+                      <button onClick={() => setDeleteModal({ userId: u.id, name: u.name || u.phone })} style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#ef444415', border: '1px solid #ef444440', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}>
+                        🗑 Удалить
+                      </button>
                     </div>
                   </div>
                   {userOrders?.userId === u.id && (
@@ -674,6 +690,27 @@ export default function Admin() {
                   onClick={handleFreezeSubmit}
                   style={{ flex: 1, padding: '0.625rem', borderRadius: '0.5rem', border: 'none', background: freezeReason.trim() ? '#f97316' : '#f97316' + '60', color: 'white', cursor: freezeReason.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600 }}
                 >{freezeSubmitting ? 'Замораживаем...' : '🔒 Заморозить'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete user modal */}
+        {deleteModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <div style={{ background: surface, borderRadius: '1rem', padding: '1.5rem', width: '100%', maxWidth: '400px', border: `1px solid ${border}` }}>
+              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: text, marginBottom: '0.5rem' }}>🗑 Удалить аккаунт</div>
+              <p style={{ color: muted, fontSize: '0.875rem', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                Удалить аккаунт <strong style={{ color: text }}>{deleteModal.name}</strong>?<br/>
+                Все заказы этого пользователя будут удалены. После удаления можно зарегистрироваться заново с тем же номером.
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button onClick={() => setDeleteModal(null)} style={{ flex: 1, padding: '0.625rem', borderRadius: '0.5rem', border: `1px solid ${border}`, background: 'transparent', color: muted, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.875rem' }}>Отмена</button>
+                <button
+                  disabled={deleteSubmitting}
+                  onClick={handleDeleteUser}
+                  style={{ flex: 1, padding: '0.625rem', borderRadius: '0.5rem', border: 'none', background: '#ef4444', color: 'white', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600 }}
+                >{deleteSubmitting ? 'Удаляем...' : '🗑 Удалить навсегда'}</button>
               </div>
             </div>
           </div>
