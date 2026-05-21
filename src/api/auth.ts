@@ -4,6 +4,7 @@ import type { User, UserRole } from '../types/user';
 interface LoginResponse {
   otpSent: boolean;
   isNewUser: boolean;
+  needsPhone?: boolean;
   devCode?: string;
   channel?: 'telegram' | 'sms' | 'dev' | 'email';
   telegramBotLink?: string;
@@ -36,11 +37,13 @@ interface VerifyResponse {
 }
 
 interface RegisterInput {
+  email?: string;
   phone: string;
   code: string;
   name: string;
   role: UserRole;
   district: string;
+  transportMode?: string;
   refCode?: string;
 }
 
@@ -51,13 +54,14 @@ interface RegisterResponse {
 }
 
 export const authApi = {
-  async login(phone: string, deliveryEmail?: string): Promise<LoginResponse> {
-    const res = await api.post<{ data: LoginResponse }>('/auth/login', { phone, ...(deliveryEmail ? { deliveryEmail } : {}) });
+  async login(email: string, phone?: string): Promise<LoginResponse> {
+    const res = await api.post<{ data: LoginResponse }>('/auth/login', { email, ...(phone ? { phone } : {}) });
     return res.data;
   },
 
-  async verify(phone: string, code: string, role?: string): Promise<VerifyResponse> {
-    const res = await api.post<{ data: VerifyResponse }>('/auth/verify', { phone, code, role });
+  async verify(emailOrPhone: string, code: string, role?: string, isEmail = true): Promise<VerifyResponse> {
+    const key = isEmail ? { email: emailOrPhone } : { phone: emailOrPhone };
+    const res = await api.post<{ data: VerifyResponse }>('/auth/verify', { ...key, code, role });
     return res.data;
   },
 
@@ -113,6 +117,11 @@ export const authApi = {
 
   async requestTelegram(phone: string): Promise<{ telegramBotLink: string }> {
     const res = await api.post<{ data: { telegramBotLink: string } }>('/auth/request-telegram', { phone });
+    return res.data;
+  },
+
+  async resendOtp(email: string): Promise<LoginResponse> {
+    const res = await api.post<{ data: LoginResponse }>('/auth/login', { email });
     return res.data;
   },
 

@@ -52,20 +52,32 @@ export function MapPicker({ onSelect, onClose }: MapPickerProps) {
 
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ru`,
-          { headers: { 'User-Agent': 'TrashGo/1.0' } }
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&accept-language=ru`,
+          { headers: { 'User-Agent': 'TrashGo/1.0 contact@trashgo.ru' } }
         );
         const data = await res.json();
         const addr = data?.address;
         if (addr) {
-          const road = addr.road || addr.pedestrian || addr.footway || '';
+          const road = addr.road || addr.pedestrian || addr.footway || addr.cycleway
+            || addr.path || addr.street || addr.neighbourhood || addr.suburb || '';
           const houseNumber = addr.house_number || '';
-          const city = addr.city || addr.town || addr.village || 'Казань';
-          const parts = [road, houseNumber].filter(Boolean);
-          const formatted = parts.length > 0 ? parts.join(', ') : data.display_name?.split(',').slice(0, 2).join(',').trim() || '';
-          setResolvedAddress(formatted || city);
+          if (road && houseNumber) {
+            setResolvedAddress(`${road}, ${houseNumber}`);
+          } else if (road) {
+            setResolvedAddress(road);
+          } else {
+            // display_name format: "90, улица Гареева, Казань, ..." — reorder to "улица Гареева, 90"
+            const parts = (data.display_name || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+            const num = parts.find((p: string) => /^\d+[а-яА-Я]?$/.test(p)) || '';
+            const street = parts.find((p: string) => /^(улица|ул\.|проспект|пр\.|переулок|пер\.|бульвар|б\-р|набережная|шоссе|проезд|площадь)/i.test(p)) || '';
+            if (street && num) {
+              setResolvedAddress(`${street}, ${num}`);
+            } else {
+              setResolvedAddress(parts.slice(0, 2).join(', ') || 'Казань');
+            }
+          }
         } else {
-          setResolvedAddress(data.display_name?.split(',').slice(0, 3).join(',').trim() || '');
+          setResolvedAddress(data.display_name?.split(',').slice(0, 2).join(',').trim() || '');
         }
       } catch {
         setResolvedAddress('');
@@ -100,8 +112,8 @@ export function MapPicker({ onSelect, onClose }: MapPickerProps) {
             style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', padding: '0.25rem', color: '#374151', lineHeight: 1 }}
           >✕</button>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#111827' }}>Выберите точку на карте</div>
-            <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Нажмите на карту, чтобы указать адрес</div>
+            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#111827' }}>Выберите дом на карте</div>
+            <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>Подъезд, этаж и кв. укажите отдельно в форме</div>
           </div>
         </div>
 

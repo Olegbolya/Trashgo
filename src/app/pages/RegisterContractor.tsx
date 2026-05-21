@@ -18,6 +18,7 @@ export default function RegisterContractor() {
   const location = useLocation();
   const { isDark } = useTheme();
   const accent = useRoleStore((s) => s.accentColor);
+  const email = location.state?.email as string | undefined;
   const phone = location.state?.phone || '';
   const verifiedCode = location.state?.verifiedCode || '';
   const setAuth = useAuthStore((s) => s.setAuth);
@@ -55,7 +56,7 @@ export default function RegisterContractor() {
         transportMode: formData.transport,
         ...(formData.inn.length === 12 ? { inn: formData.inn } : {}),
       };
-      const res = await authApi.register({ phone, code: verifiedCode, name: formData.name, role: 'contractor', district: formData.district, refCode, ...extraFields });
+      const res = await authApi.register({ email, phone, code: verifiedCode, name: formData.name, role: 'contractor', district: formData.district, refCode, ...extraFields });
       sessionStorage.removeItem('pendingRefCode');
       sessionStorage.removeItem('pendingRefRole');
       setAuth(res.user, res.token, res.refreshToken);

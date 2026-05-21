@@ -20,6 +20,7 @@ import { NotificationBell } from '../components/NotificationBell';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import { uploadPhotoWithFallback } from '../../api/upload';
 import { FrozenBanner } from '../components/FrozenBanner';
+import { TelegramReminder } from '../components/TelegramReminder';
 
 const ACCENT = '#2196F3';
 
@@ -1920,6 +1921,9 @@ export default function ContractorDashboard() {
           }}
         />
       )}
+
+      {/* Telegram reminder */}
+      {!user?.telegramLinked && <TelegramReminder />}
     </div>
   );
 }

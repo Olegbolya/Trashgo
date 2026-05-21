@@ -25,56 +25,81 @@ export default function Login() {
   const role = (location.state?.role || pendingRefRole || 'customer') as 'customer' | 'contractor';
   const { accentColor, setRole } = useRoleStore();
   const accent = accentColor;
-  const [phone, setPhone] = useState('');
+
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [step, setStep] = useState<'email' | 'phone'>('email');
   const [loading, setLoading] = useState(false);
-  const [telegramLoading, setTelegramLoading] = useState(false);
 
   if (role === 'contractor' || role === 'customer') setRole(role);
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPhone(e.target.value.replace(/\D/g, ''));
-  };
-
-  const phoneValid = phone.replace(/\D/g, '').length >= 10;
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const formattedPhone = formatPhone(phone);
+  const phoneDigits = phone.replace(/\D/g, '');
+  const phoneValid = phoneDigits.length >= 10;
+  const formattedPhone = phone ? formatPhone(phone) : '';
 
+  // Step 1: submit email
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phoneValid || !emailValid || loading) return;
+    if (!emailValid || loading) return;
     setLoading(true);
     try {
-      const res = await authApi.login(formattedPhone, email.trim());
+      const res = await authApi.login(email.trim());
+      if (res.needsPhone) {
+        setStep('phone');
+        return;
+      }
       navigate('/verify', {
-        state: { phone: formattedPhone, role, isNewUser: res.isNewUser, devCode: res.devCode, channel: res.channel, deliveryEmail: res.deliveryEmail || email.trim(), telegramBotLink: res.telegramBotLink },
+        state: {
+          email: email.trim(),
+          role,
+          isNewUser: res.isNewUser,
+          devCode: res.devCode,
+          channel: res.channel,
+          deliveryEmail: res.deliveryEmail || email.trim(),
+          telegramBotLink: res.telegramBotLink,
+        },
       });
     } catch {
-      toast.error('Ошибка отправки кода. Попробуйте ещё раз.');
+      toast.error('Ошибка. Проверьте email и попробуйте ещё раз.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTelegramSubmit = async () => {
-    if (!phoneValid || telegramLoading) return;
-    setTelegramLoading(true);
+  // Step 2: email + phone (new user registration)
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phoneValid || loading) return;
+    setLoading(true);
     try {
-      const res = await authApi.login(formattedPhone);
+      const res = await authApi.login(email.trim(), formattedPhone);
       navigate('/verify', {
-        state: { phone: formattedPhone, role, isNewUser: res.isNewUser, devCode: res.devCode, channel: res.channel, telegramBotLink: res.telegramBotLink },
+        state: {
+          email: email.trim(),
+          phone: formattedPhone,
+          role,
+          isNewUser: true,
+          devCode: res.devCode,
+          channel: res.channel,
+          deliveryEmail: res.deliveryEmail || email.trim(),
+          telegramBotLink: res.telegramBotLink,
+        },
       });
     } catch {
       toast.error('Ошибка. Попробуйте ещё раз.');
     } finally {
-      setTelegramLoading(false);
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <button onClick={() => navigate('/')} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8">
+        <button
+          onClick={() => step === 'phone' ? setStep('email') : navigate('/')}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8"
+        >
           <ArrowLeft className="w-5 h-5" />
           <span>Назад</span>
         </button>
@@ -88,7 +113,11 @@ export default function Login() {
             </div>
           </div>
           <h1 className="text-2xl text-gray-900 mb-2">Вход или регистрация</h1>
-          <p className="text-gray-600">Код подтверждения придёт на почту</p>
+          <p className="text-gray-600 text-sm">
+            {step === 'email'
+              ? 'Код подтверждения придёт на почту'
+              : 'Укажите номер для связи (не публикуется)'}
+          </p>
         </div>
 
         {pendingRefCode && (
@@ -107,64 +136,72 @@ export default function Login() {
           </div>
         )}
 
-        <form onSubmit={handleEmailSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4 space-y-4">
-          <div>
-            <label className="text-sm text-gray-600 mb-2 block">Номер телефона</label>
-            <Input
-              type="tel"
-              placeholder="+7 (___) ___-__-__"
-              className="h-12 border-gray-200 text-lg"
-              value={phone ? formatPhone(phone) : ''}
-              onChange={handlePhoneChange}
-              required
-            />
-          </div>
+        {step === 'email' ? (
+          <form onSubmit={handleEmailSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4 space-y-4">
+            <div>
+              <label className="text-sm text-gray-600 mb-2 block">Email <span className="text-red-500">*</span></label>
+              <Input
+                type="email"
+                placeholder="your@email.com"
+                className="h-12 border-gray-200"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoFocus
+                required
+              />
+            </div>
 
-          <div>
-            <label className="text-sm text-gray-600 mb-2 block">Email для кода подтверждения</label>
-            <Input
-              type="email"
-              placeholder="your@email.com"
-              className="h-12 border-gray-200"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+            <Button
+              type="submit"
+              disabled={loading || !emailValid}
+              style={{ background: accent, border: 'none' }}
+              className="w-full h-12 text-white hover:opacity-90"
+            >
+              {loading ? 'Проверяем...' : '📧 Продолжить'}
+            </Button>
 
-          <Button
-            type="submit"
-            disabled={loading || !phoneValid || !emailValid}
-            style={{ background: accent, border: 'none' }}
-            className="w-full h-12 text-white hover:opacity-90"
-          >
-            {loading ? 'Отправляем...' : '📧 Получить код на почту'}
-          </Button>
+            <p className="text-xs text-gray-500 text-center">
+              Для входа — только email. Для новых — потребуется ещё номер телефона.
+            </p>
+          </form>
+        ) : (
+          <form onSubmit={handlePhoneSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4 space-y-4">
+            <div className="rounded-xl p-3 bg-gray-50 text-sm text-gray-600 flex items-center gap-2">
+              <span>📧</span>
+              <span className="font-medium text-gray-900">{email}</span>
+            </div>
 
-          <p className="text-xs text-gray-500 text-center">
-            Код действителен 10 минут. Проверьте папку «Спам» если не пришёл.
-          </p>
-        </form>
+            <div>
+              <label className="text-sm text-gray-600 mb-2 block">
+                Номер телефона <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="tel"
+                placeholder="+7 (___) ___-__-__"
+                className="h-12 border-gray-200 text-lg"
+                value={phone ? formatPhone(phone) : ''}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                autoFocus
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1.5">
+                Нужен заказчику / исполнителю для связи. Не передаётся третьим лицам.
+              </p>
+            </div>
 
-        {/* Telegram fallback */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-4">
-          <p className="text-sm text-gray-500 mb-3 text-center">Не получили код на почту?</p>
-          <Button
-            type="button"
-            onClick={handleTelegramSubmit}
-            disabled={telegramLoading || !phoneValid}
-            variant="outline"
-            className="w-full h-11"
-          >
-            {telegramLoading ? 'Отправляем...' : '✈️ Получить код через Telegram-бот'}
-          </Button>
-          <p className="text-xs text-gray-400 text-center mt-2">
-            Введите номер телефона выше и нажмите кнопку
-          </p>
-        </div>
+            <Button
+              type="submit"
+              disabled={loading || !phoneValid}
+              style={{ background: accent, border: 'none' }}
+              className="w-full h-12 text-white hover:opacity-90"
+            >
+              {loading ? 'Отправляем...' : '📧 Получить код на почту'}
+            </Button>
+          </form>
+        )}
 
         <p className="text-xs text-gray-500 text-center">
-          Нажимая "Получить код", вы принимаете{' '}
+          Нажимая "Продолжить", вы принимаете{' '}
           <a href="/privacy" className="underline">политику конфиденциальности</a>
         </p>
       </div>

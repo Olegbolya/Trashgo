@@ -22,6 +22,7 @@ import { useNotificationsStore } from '../../stores/notifications.store';
 import { searchKazanStreets } from '../../data/kazanStreets';
 import { uploadPhotoWithFallback } from '../../api/upload';
 import { MapPicker } from '../components/MapPicker';
+import { TelegramReminder } from '../components/TelegramReminder';
 
 const ACCENT = '#66BB6A';
 
@@ -2302,6 +2303,9 @@ export default function CustomerDashboard() {
           </div>
         </div>
       )}
+
+      {/* Telegram reminder (shown once a week to users without Telegram) */}
+      {!user?.telegramLinked && <TelegramReminder />}
 
       {/* Map Picker Modal */}
       {mapPickerOpen && (

@@ -12,6 +12,7 @@ export default function RegisterCustomer() {
   const location = useLocation();
   const { isDark } = useTheme();
   const accent = useRoleStore((s) => s.accentColor);
+  const email = location.state?.email as string | undefined;
   const phone = location.state?.phone || '';
   const verifiedCode = location.state?.verifiedCode || '';
   const setAuth = useAuthStore((s) => s.setAuth);
@@ -50,7 +51,7 @@ export default function RegisterCustomer() {
     ].filter(Boolean).join(', ');
     try {
       const refCode = sessionStorage.getItem('pendingRefCode') ?? undefined;
-      const res = await authApi.register({ phone, code: verifiedCode, name: formData.name, role: 'customer', district, refCode });
+      const res = await authApi.register({ email, phone, code: verifiedCode, name: formData.name, role: 'customer', district, refCode });
       sessionStorage.removeItem('pendingRefCode');
       sessionStorage.removeItem('pendingRefRole');
       setAuth(res.user, res.token, res.refreshToken);

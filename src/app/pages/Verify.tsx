@@ -11,17 +11,21 @@ export default function Verify() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isDark } = useTheme();
-  const phone = location.state?.phone || '';
+  const email = location.state?.email as string | undefined;
+  const phone = location.state?.phone as string | undefined;
   const role = location.state?.role || 'customer';
+  // otpKey: email for new flow, phone for legacy
+  const otpKey = email || phone || '';
+  const isEmailFlow = !!email;
 
-  if (!phone) {
+  if (!otpKey) {
     navigate('/login', { replace: true });
     return null;
   }
   const devCode = location.state?.devCode as string | undefined;
   const telegramBotLink = location.state?.telegramBotLink as string | undefined;
   const channel = location.state?.channel as string | undefined;
-  const deliveryEmail = location.state?.deliveryEmail as string | undefined;
+  const deliveryEmail = (location.state?.deliveryEmail as string | undefined) || email;
   const codeLen = 4;
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,10 +51,10 @@ export default function Verify() {
     setLoading(true);
 
     try {
-      const res = await authApi.verify(phone, code, role);
+      const res = await authApi.verify(otpKey, code, role, isEmailFlow);
       if (res.isNewUser) {
         const target = role === 'contractor' ? '/register-contractor' : '/register-customer';
-        navigate(target, { state: { phone, verifiedCode: code, role } });
+        navigate(target, { state: { email, phone, verifiedCode: code, role } });
         return;
       }
       setAuth(res.user, res.token, res.refreshToken);
@@ -64,7 +68,11 @@ export default function Verify() {
 
   const handleResend = async () => {
     try {
-      await authApi.login(phone, deliveryEmail);
+      if (isEmailFlow && email) {
+        await authApi.resendOtp(email);
+      } else if (phone) {
+        await authApi.login(phone);
+      }
       toast.success('Код отправлен повторно');
     } catch {
       toast.error('Ошибка. Попробуйте позже.');
