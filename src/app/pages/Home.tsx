@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { User, Moon, Sun, ChevronDown, LogOut } from 'lucide-react';
+import { User, Moon, Sun, ChevronDown } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore, ROLE_COLORS } from '../../stores/role.store';
@@ -20,7 +20,7 @@ function formatPhone(raw: string) {
 const FAQ_ITEMS = [
   {
     q: 'Как оставить заявку на вывоз мусора?',
-    a: 'Выберите роль «Заказчик», войдите по номеру телефона и нажмите «Создать заявку». Укажите адрес, объём и удобное время — исполнители в вашем районе увидят заявку и откликнутся.',
+    a: 'Выберите роль «Заказчик», войдите по email и нажмите «Создать заявку». Укажите адрес, объём и удобное время — исполнители в вашем районе увидят заявку и откликнутся.',
   },
   {
     q: 'Сколько стоит вывоз?',
@@ -40,7 +40,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Безопасно ли пускать исполнителя домой?',
-    a: 'Все исполнители проходят верификацию по номеру телефона. Профиль каждого содержит рейтинг, отзывы и историю заказов — вы видите, кому открываете дверь.',
+    a: 'Все исполнители проходят верификацию. Профиль каждого содержит рейтинг, отзывы и историю заказов — вы видите, кому открываете дверь.',
   },
   {
     q: 'Что делать, если исполнитель не приехал?',
@@ -55,16 +55,17 @@ const FAQ_ITEMS = [
 export default function Home() {
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const { selectedRole, accentColor, setRole } = useRoleStore();
 
   const authSectionRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [step, setStep] = useState<'email' | 'phone'>('email');
   const [loading, setLoading] = useState(false);
-  const [inputFocused, setInputFocused] = useState(false);
-  const [phoneError, setPhoneError] = useState('');
+  const [formError, setFormError] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -79,7 +80,6 @@ export default function Home() {
     textMuted: isDark ? 'rgba(255,255,255,0.38)' : '#9ca3af',
     inputBg:   isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
     hoverBg:   isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6',
-    pillBg:    isDark ? 'rgba(255,255,255,0.07)' : '#f3f4f6',
     divider:   isDark ? 'rgba(255,255,255,0.07)' : '#f1f5f9',
     headerBg:  isDark ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.85)',
   };
@@ -89,6 +89,11 @@ export default function Home() {
       navigate(user.role === 'customer' ? '/customer' : '/contractor', { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
+
+  // Default role to customer
+  useEffect(() => {
+    if (!selectedRole) setRole('customer');
+  }, []);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -102,30 +107,69 @@ export default function Home() {
 
   const handleRoleSelect = (role: 'customer' | 'contractor') => {
     setRole(role);
-    setPhoneError('');
+    setFormError('');
     setTimeout(() => authSectionRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
   };
 
-  const handlePhoneSubmit = async (e: React.FormEvent) => {
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const phoneDigits = phone.replace(/\D/g, '');
+  const phoneValid = phoneDigits.length >= 10;
+  const formattedPhone = phone ? formatPhone(phone) : '';
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPhoneError('');
-    const digits = phone.replace(/\D/g, '').replace(/^7/, '').replace(/^8/, '');
-    if (digits.length < 10) { setPhoneError('Введите полный номер телефона'); return; }
-    if (!selectedRole) { setPhoneError('Сначала выберите роль выше'); return; }
-    const formattedPhone = formatPhone(phone);
+    if (!emailValid || loading) return;
+    setFormError('');
     setLoading(true);
     try {
-      const res = await authApi.login(formattedPhone);
-      navigate('/verify', { state: { phone: formattedPhone, role: selectedRole, isNewUser: res.isNewUser, devCode: res.devCode, channel: res.channel, telegramBotLink: res.telegramBotLink } });
+      const role = selectedRole || 'customer';
+      const res = await authApi.login(email.trim());
+      if (res.needsPhone) {
+        setStep('phone');
+        return;
+      }
+      navigate('/verify', {
+        state: {
+          email: email.trim(),
+          role,
+          devCode: res.devCode,
+          channel: res.channel,
+          deliveryEmail: res.deliveryEmail || email.trim(),
+          telegramBotLink: res.telegramBotLink,
+        },
+      });
     } catch {
-      setPhoneError('Ошибка отправки кода. Проверьте номер и попробуйте ещё раз.');
+      setFormError('Ошибка. Проверьте email и попробуйте снова.');
     } finally {
       setLoading(false);
     }
   };
 
-  const phoneDigits = phone.replace(/\D/g, '').replace(/^7/, '').replace(/^8/, '');
-  const phoneReady = phoneDigits.length >= 10;
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phoneValid || loading) return;
+    setFormError('');
+    setLoading(true);
+    try {
+      const role = selectedRole || 'customer';
+      const res = await authApi.login(email.trim(), formattedPhone);
+      navigate('/verify', {
+        state: {
+          email: email.trim(),
+          phone: formattedPhone,
+          role,
+          devCode: res.devCode,
+          channel: res.channel,
+          deliveryEmail: res.deliveryEmail || email.trim(),
+          telegramBotLink: res.telegramBotLink,
+        },
+      });
+    } catch {
+      setFormError('Ошибка. Попробуйте ещё раз.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", background: c.bg, color: c.text, minHeight: '100vh' }}>
@@ -186,7 +230,7 @@ export default function Home() {
                   onClick={() => {
                     setDropdownOpen(false);
                     if (isAuthenticated) navigate(user?.role === 'contractor' ? '/contractor' : '/customer');
-                    else { if (!selectedRole) setRole('customer'); authSectionRef.current?.scrollIntoView({ behavior: 'smooth' }); }
+                    else authSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
                   }}
                 />
                 {isAuthenticated && (
@@ -196,7 +240,7 @@ export default function Home() {
                       label="Выйти"
                       color="#ef4444"
                       hoverBg={isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2'}
-                      onClick={() => { logout(); setDropdownOpen(false); }}
+                      onClick={() => { useAuthStore.getState().logout(); setDropdownOpen(false); }}
                     />
                   </>
                 )}
@@ -265,87 +309,154 @@ export default function Home() {
         ref={authSectionRef}
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 1.5rem 5rem' }}
       >
-        {selectedRole ? (
-          <div style={{ width: '100%', maxWidth: '380px' }}>
-            <div style={{
-              border: `1.5px solid ${c.border}`,
-              borderRadius: '1rem', padding: '1.75rem',
-              background: c.surface,
-            }}>
-              <div style={{ marginBottom: '1.25rem' }}>
-                <span style={{
-                  display: 'inline-block',
-                  padding: '0.2rem 0.7rem', borderRadius: '0.375rem',
-                  fontSize: '0.75rem', fontWeight: 600,
-                  background: `${accent}18`, color: accent,
-                  letterSpacing: '0.01em',
-                }}>
-                  {selectedRole === 'customer' ? 'Заказчик' : 'Исполнитель'}
-                </span>
-                <button
-                  onClick={() => handleRoleSelect(selectedRole === 'customer' ? 'contractor' : 'customer')}
-                  style={{ fontSize: '0.75rem', color: c.textMuted, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginLeft: '0.75rem' }}
-                >
-                  Сменить
-                </button>
-              </div>
+        <div style={{ width: '100%', maxWidth: '380px' }}>
+          <div style={{
+            border: `1.5px solid ${c.border}`,
+            borderRadius: '1rem', padding: '1.75rem',
+            background: c.surface,
+          }}>
+            {/* Role badge */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <span style={{
+                display: 'inline-block',
+                padding: '0.2rem 0.7rem', borderRadius: '0.375rem',
+                fontSize: '0.75rem', fontWeight: 600,
+                background: `${accent}18`, color: accent,
+                letterSpacing: '0.01em',
+              }}>
+                {selectedRole === 'contractor' ? 'Исполнитель' : 'Заказчик'}
+              </span>
+              <button
+                onClick={() => handleRoleSelect(selectedRole === 'customer' ? 'contractor' : 'customer')}
+                style={{ fontSize: '0.75rem', color: c.textMuted, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginLeft: '0.75rem' }}
+              >
+                Сменить
+              </button>
+            </div>
 
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '0.25rem', color: c.text }}>
-                Вход или регистрация
-              </h2>
-              <p style={{ fontSize: '0.82rem', color: c.textMuted, marginBottom: '1.375rem' }}>
-                Введите номер телефона — пришлём код
-              </p>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '0.25rem', color: c.text }}>
+              Регистрация
+            </h2>
+            <p style={{ fontSize: '0.82rem', color: c.textMuted, marginBottom: '1.375rem' }}>
+              {step === 'email'
+                ? 'Введите email — пришлём код подтверждения'
+                : 'Укажите номер телефона для связи'
+              }
+            </p>
 
-              <form onSubmit={handlePhoneSubmit}>
+            {step === 'email' ? (
+              <form onSubmit={handleEmailSubmit}>
                 <input
-                  type="tel"
-                  inputMode="numeric"
-                  placeholder="+7 (___) ___-__-__"
-                  value={phone ? formatPhone(phone) : ''}
-                  onChange={(e) => { setPhoneError(''); setPhone(e.target.value.replace(/\D/g, '')); }}
-                  onFocus={() => setInputFocused(true)}
-                  onBlur={() => setInputFocused(false)}
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => { setFormError(''); setEmail(e.target.value); }}
+                  autoFocus
                   style={{
                     display: 'block', width: '100%', height: '2.875rem',
                     padding: '0 0.875rem', borderRadius: '0.625rem',
-                    border: `1.5px solid ${phoneError ? '#ef4444' : inputFocused || phone.length > 0 ? accent : c.border}`,
+                    border: `1.5px solid ${formError ? '#ef4444' : email.length > 0 ? accent : c.border}`,
                     fontSize: '1rem', outline: 'none',
                     transition: 'border-color 0.2s',
-                    marginBottom: phoneError ? '0.375rem' : '0.75rem',
+                    marginBottom: formError ? '0.375rem' : '0.75rem',
                     fontFamily: 'inherit',
                     background: c.inputBg,
                     color: c.text,
                     boxSizing: 'border-box',
                   }}
                 />
-                {phoneError && (
-                  <p style={{ color: '#ef4444', fontSize: '0.76rem', marginBottom: '0.75rem' }}>{phoneError}</p>
+                {formError && (
+                  <p style={{ color: '#ef4444', fontSize: '0.76rem', marginBottom: '0.75rem' }}>{formError}</p>
                 )}
                 <button
                   type="submit"
-                  disabled={loading || !phoneReady}
+                  disabled={loading || !emailValid}
                   style={{
                     display: 'block', width: '100%', height: '2.875rem',
                     borderRadius: '0.625rem', background: accent,
                     color: '#ffffff', fontSize: '0.875rem', fontWeight: 600,
                     border: 'none',
-                    cursor: loading || !phoneReady ? 'not-allowed' : 'pointer',
-                    opacity: loading || !phoneReady ? 0.4 : 1,
+                    cursor: loading || !emailValid ? 'not-allowed' : 'pointer',
+                    opacity: loading || !emailValid ? 0.4 : 1,
                     transition: 'background 0.4s, opacity 0.2s',
                     fontFamily: 'inherit',
                   }}
                 >
-                  {loading ? 'Отправляем...' : 'Получить код'}
+                  {loading ? 'Проверяем...' : 'Продолжить →'}
+                </button>
+
+                <p style={{ fontSize: '0.78rem', color: c.textMuted, textAlign: 'center', marginTop: '1rem', marginBottom: 0 }}>
+                  Уже есть аккаунт?{' '}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/login')}
+                    style={{ color: accent, background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', fontWeight: 600, padding: 0 }}
+                  >
+                    Войти
+                  </button>
+                </p>
+              </form>
+            ) : (
+              <form onSubmit={handlePhoneSubmit}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  padding: '0.5rem 0.75rem', borderRadius: '0.5rem',
+                  background: `${accent}10`, marginBottom: '0.875rem',
+                  fontSize: '0.82rem', color: c.text,
+                }}>
+                  <span>📧</span>
+                  <span style={{ fontWeight: 600 }}>{email}</span>
+                  <button
+                    type="button"
+                    onClick={() => setStep('email')}
+                    style={{ marginLeft: 'auto', color: c.textMuted, background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit' }}
+                  >
+                    Изменить
+                  </button>
+                </div>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="+7 (___) ___-__-__"
+                  value={phone ? formatPhone(phone) : ''}
+                  onChange={(e) => { setFormError(''); setPhone(e.target.value.replace(/\D/g, '')); }}
+                  autoFocus
+                  style={{
+                    display: 'block', width: '100%', height: '2.875rem',
+                    padding: '0 0.875rem', borderRadius: '0.625rem',
+                    border: `1.5px solid ${formError ? '#ef4444' : phone.length > 0 ? accent : c.border}`,
+                    fontSize: '1rem', outline: 'none',
+                    transition: 'border-color 0.2s',
+                    marginBottom: formError ? '0.375rem' : '0.75rem',
+                    fontFamily: 'inherit',
+                    background: c.inputBg,
+                    color: c.text,
+                    boxSizing: 'border-box',
+                  }}
+                />
+                {formError && (
+                  <p style={{ color: '#ef4444', fontSize: '0.76rem', marginBottom: '0.75rem' }}>{formError}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading || !phoneValid}
+                  style={{
+                    display: 'block', width: '100%', height: '2.875rem',
+                    borderRadius: '0.625rem', background: accent,
+                    color: '#ffffff', fontSize: '0.875rem', fontWeight: 600,
+                    border: 'none',
+                    cursor: loading || !phoneValid ? 'not-allowed' : 'pointer',
+                    opacity: loading || !phoneValid ? 0.4 : 1,
+                    transition: 'background 0.4s, opacity 0.2s',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {loading ? 'Отправляем...' : 'Получить код →'}
                 </button>
               </form>
-            </div>
+            )}
           </div>
-        ) : (
-          <p style={{ fontSize: '0.85rem', color: c.textMuted, textAlign: 'center' }}>
-            Выберите роль выше, чтобы продолжить
-          </p>
-        )}
+        </div>
       </section>
 
       {/* ── FAQ ── */}
