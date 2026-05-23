@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, HelpCircle, MessageCircle, Phone, Mail, ChevronDown, ChevronUp, ExternalLink, Zap, Shield, Package, Clock, Star, Trash2, Send, X, WifiOff } from 'lucide-react';
+import { ArrowLeft, HelpCircle, MessageCircle, Mail, ChevronDown, ChevronUp, ExternalLink, Zap, Shield, Package, Clock, Star, Trash2, Send, X, WifiOff } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../../api/client';
 
@@ -250,8 +250,7 @@ export default function Help() {
 
   const contacts = [
     { icon: MessageCircle, color: GREEN,     title: 'Написать в чат', sub: 'Ответим в течение 15 минут',  action: () => setChatOpen(true), badge: hasUnread },
-    { icon: Phone,         color: ACCENT,    title: '+7 (800) 000-00-00', sub: 'Бесплатно, пн–вс 9:00–21:00', action: () => { window.location.href = 'tel:+78000000000'; }, badge: false },
-    { icon: Mail,          color: '#FF9800', title: 'support@trashgo.ru', sub: 'Ответ в течение 2 часов',  action: () => { window.location.href = 'mailto:support@trashgo.ru'; }, badge: false },
+    { icon: Mail,          color: '#FF9800', title: 'trashgo.support@gmail.com', sub: 'Ответ в течение 2 часов',  action: () => { window.location.href = 'mailto:trashgo.support@gmail.com'; }, badge: false },
   ];
 
   const quickLinks = [
