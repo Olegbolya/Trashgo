@@ -2316,8 +2316,8 @@ export default function CustomerDashboard() {
                         updateUser(updated);
                         setEditProfileOpen(false);
                         toast.success('Профиль обновлён');
-                      } catch {
-                        toast.error('Не удалось сохранить');
+                      } catch (err: any) {
+                        toast.error(err?.message || 'Не удалось сохранить');
                       } finally {
                         setEditProfileSaving(false);
                       }
