@@ -91,6 +91,9 @@ export default function ContractorDashboard() {
   const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '', inn: '', email: '' });
   const CONTRACTOR_DISTRICTS = ['Вахитовский', 'Приволжский', 'Советский', 'Ново-Савиновский', 'Московский', 'Авиастроительный', 'Кировский'];
   const [editProfileSaving, setEditProfileSaving] = useState(false);
+  const [emailChangeStep, setEmailChangeStep] = useState<'idle' | 'verify'>('idle');
+  const [emailChangeCode, setEmailChangeCode] = useState('');
+  const [emailChangeError, setEmailChangeError] = useState('');
   const [myJobsLoading, setMyJobsLoading] = useState(false);
   const [apiAchievements, setApiAchievements] = useState<AchievementItem[]>([]);
 
@@ -1843,12 +1846,12 @@ export default function ContractorDashboard() {
       )}
 
       {editProfileOpen && (
-        <div className="fixed inset-0 z-[90] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setEditProfileOpen(false)}>
+        <div className="fixed inset-0 z-[90] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => { setEditProfileOpen(false); setEmailChangeStep('idle'); setEmailChangeCode(''); setEmailChangeError(''); }}>
           <div className="w-full lg:max-w-sm rounded-t-2xl lg:rounded-2xl" style={{ background: c.surface }} onClick={e => e.stopPropagation()}>
             <div className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="text-base font-bold" style={{ color: c.text }}>Редактирование профиля</div>
-                <button onClick={() => setEditProfileOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '1.1rem' }}>✕</button>
+                <button onClick={() => { setEditProfileOpen(false); setEmailChangeStep('idle'); setEmailChangeCode(''); setEmailChangeError(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '1.1rem' }}>✕</button>
               </div>
               <div className="mb-4">
                 <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Имя</div>
@@ -1886,49 +1889,108 @@ export default function ContractorDashboard() {
                   <div className="text-xs mt-1" style={{ color: '#22c55e' }}>✓ ИНН принят</div>
                 )}
               </div>
-              <div className="mb-5">
-                <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Email</div>
-                <input
-                  type="email"
-                  value={editProfileForm.email}
-                  onChange={e => setEditProfileForm(f => ({ ...f, email: e.target.value }))}
-                  placeholder="your@email.com"
-                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
-                />
-                <div className="text-xs mt-1" style={{ color: c.muted }}>Используется для входа в аккаунт</div>
-              </div>
-              <button
-                disabled={editProfileSaving || !editProfileForm.name.trim() || (editProfileForm.inn.length > 0 && editProfileForm.inn.length < 12)}
-                onClick={async () => {
-                  setEditProfileSaving(true);
-                  try {
-                    if (editProfileForm.inn.length === 12 && editProfileForm.inn !== user?.inn) {
+              {emailChangeStep === 'verify' ? (
+                <>
+                  <div className="mb-2 text-sm" style={{ color: c.text }}>
+                    Код подтверждения отправлен на <strong>{editProfileForm.email}</strong>
+                  </div>
+                  <div className="mb-5">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      autoFocus
+                      value={emailChangeCode}
+                      onChange={e => { setEmailChangeCode(e.target.value.replace(/\D/g, '')); setEmailChangeError(''); }}
+                      placeholder="Код из письма"
+                      style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${emailChangeError ? '#ef4444' : c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit', letterSpacing: '0.15em' }}
+                    />
+                    {emailChangeError && <div className="text-xs mt-1" style={{ color: '#ef4444' }}>{emailChangeError}</div>}
+                  </div>
+                  <button
+                    disabled={editProfileSaving || emailChangeCode.length < 4}
+                    onClick={async () => {
+                      setEditProfileSaving(true);
                       try {
-                        const { selfEmployed } = await authApi.verifyInn(editProfileForm.inn);
-                        updateUser({ inn: editProfileForm.inn, innVerified: selfEmployed });
-                        if (selfEmployed) toast.success('ИНН подтверждён — статус самозанятого ✓');
-                        else toast.info('ИНН сохранён — в реестре ФНС не найден');
-                      } catch {
-                        await authApi.updateProfile({ inn: editProfileForm.inn });
+                        await authApi.confirmEmailChange(editProfileForm.email.trim(), emailChangeCode);
+                        const updated = await authApi.me();
+                        updateUser(updated);
+                        setEmailChangeStep('idle');
+                        setEmailChangeCode('');
+                        setEditProfileOpen(false);
+                        toast.success('Email обновлён');
+                      } catch (err: any) {
+                        setEmailChangeError(err?.message || 'Неверный или истёкший код');
+                      } finally {
+                        setEditProfileSaving(false);
                       }
-                    }
-                    const patch: Record<string, any> = { name: editProfileForm.name.trim(), district: editProfileForm.district };
-                    if (editProfileForm.email.trim()) patch.email = editProfileForm.email.trim();
-                    const updated = await authApi.updateProfile(patch);
-                    updateUser(updated);
-                    setEditProfileOpen(false);
-                    toast.success('Профиль обновлён');
-                  } catch {
-                    toast.error('Не удалось сохранить');
-                  } finally {
-                    setEditProfileSaving(false);
-                  }
-                }}
-                className="w-full h-11 rounded-xl text-sm font-semibold"
-                style={{ background: ACCENT, color: 'white', border: 'none', cursor: (editProfileSaving || !editProfileForm.name.trim()) ? 'not-allowed' : 'pointer', opacity: (editProfileSaving || !editProfileForm.name.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}
-              >
-                {editProfileSaving ? 'Сохраняем...' : 'Сохранить'}
-              </button>
+                    }}
+                    className="w-full h-11 rounded-xl text-sm font-semibold mb-2"
+                    style={{ background: ACCENT, color: 'white', border: 'none', cursor: (editProfileSaving || emailChangeCode.length < 4) ? 'not-allowed' : 'pointer', opacity: (editProfileSaving || emailChangeCode.length < 4) ? 0.6 : 1, fontFamily: 'inherit' }}
+                  >
+                    {editProfileSaving ? 'Проверяем...' : 'Подтвердить'}
+                  </button>
+                  <button
+                    onClick={() => { setEmailChangeStep('idle'); setEmailChangeCode(''); setEmailChangeError(''); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '0.8rem', width: '100%', textAlign: 'center', fontFamily: 'inherit', padding: '0.25rem' }}
+                  >
+                    Назад
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="mb-5">
+                    <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Email</div>
+                    <input
+                      type="email"
+                      value={editProfileForm.email}
+                      onChange={e => setEditProfileForm(f => ({ ...f, email: e.target.value }))}
+                      placeholder="your@email.com"
+                      style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                    />
+                    <div className="text-xs mt-1" style={{ color: c.muted }}>Используется для входа в аккаунт</div>
+                  </div>
+                  <button
+                    disabled={editProfileSaving || !editProfileForm.name.trim() || (editProfileForm.inn.length > 0 && editProfileForm.inn.length < 12)}
+                    onClick={async () => {
+                      setEditProfileSaving(true);
+                      try {
+                        const newEmail = editProfileForm.email.trim();
+                        const emailChanged = newEmail && newEmail !== (user?.email ?? '');
+                        if (emailChanged) {
+                          await authApi.requestEmailChange(newEmail);
+                          setEditProfileSaving(false);
+                          setEmailChangeStep('verify');
+                          return;
+                        }
+                        if (editProfileForm.inn.length === 12 && editProfileForm.inn !== user?.inn) {
+                          try {
+                            const { selfEmployed } = await authApi.verifyInn(editProfileForm.inn);
+                            updateUser({ inn: editProfileForm.inn, innVerified: selfEmployed });
+                            if (selfEmployed) toast.success('ИНН подтверждён — статус самозанятого ✓');
+                            else toast.info('ИНН сохранён — в реестре ФНС не найден');
+                          } catch {
+                            await authApi.updateProfile({ inn: editProfileForm.inn });
+                          }
+                        }
+                        const patch: Record<string, any> = { name: editProfileForm.name.trim(), district: editProfileForm.district };
+                        const updated = await authApi.updateProfile(patch);
+                        updateUser(updated);
+                        setEditProfileOpen(false);
+                        toast.success('Профиль обновлён');
+                      } catch {
+                        toast.error('Не удалось сохранить');
+                      } finally {
+                        setEditProfileSaving(false);
+                      }
+                    }}
+                    className="w-full h-11 rounded-xl text-sm font-semibold"
+                    style={{ background: ACCENT, color: 'white', border: 'none', cursor: (editProfileSaving || !editProfileForm.name.trim()) ? 'not-allowed' : 'pointer', opacity: (editProfileSaving || !editProfileForm.name.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}
+                  >
+                    {editProfileSaving ? 'Сохраняем...' : 'Сохранить'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
