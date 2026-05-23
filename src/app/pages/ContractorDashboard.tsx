@@ -1104,41 +1104,68 @@ export default function ContractorDashboard() {
             const balance = user?.balance ?? 0;
             return (
             <div className="max-w-4xl mx-auto space-y-3">
-              {/* Profile Header */}
-              <div style={card}>
-                <div className="flex items-center justify-between gap-3 mb-4">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-2xl flex-shrink-0" style={{ background: `${ACCENT}20`, color: ACCENT }}>
-                      {(user?.name || 'U').charAt(0).toUpperCase()}
+              {/* Profile Header + Level — merged */}
+              {(() => {
+                const prevLevelXp = XP_THRESHOLDS[Math.max(0, currentLevel - 1)] ?? 0;
+                const levelRange = nextLevelXp - prevLevelXp;
+                const xpProgress = levelRange > 0 ? Math.min(100, ((currentXp - prevLevelXp) / levelRange) * 100) : 100;
+                return (
+                  <div style={card}>
+                    {/* Top row: avatar + info + edit */}
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="relative flex-shrink-0">
+                          <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-2xl" style={{ background: `${ACCENT}20`, color: ACCENT }}>
+                            {(user?.name || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold border-2" style={{ background: ACCENT, color: '#fff', borderColor: c.surface }}>
+                            {currentLevel}
+                          </div>
+                        </div>
+                        <div className="min-w-0">
+                          <h1 className="text-lg font-semibold truncate" style={{ color: c.text }}>{user?.name || '—'}</h1>
+                          <div className="text-xs font-medium" style={{ color: ACCENT }}>{statusLabel}</div>
+                          <div className="text-sm mt-0.5" style={{ color: c.muted }}>{user?.phone || '—'}</div>
+                        </div>
+                      </div>
+                      <button
+                        className="h-8 px-3 rounded-lg text-xs flex-shrink-0"
+                        style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
+                        onClick={() => { setEditProfileForm({ name: user?.name || '', district: user?.district || '', inn: user?.inn || '', email: user?.email || '' }); setEditProfileOpen(true); }}
+                      >
+                        <Edit className="w-3.5 h-3.5 inline mr-1" />Изменить
+                      </button>
                     </div>
-                    <div className="min-w-0">
-                      <h1 className="text-lg font-semibold truncate" style={{ color: c.text }}>{user?.name || '—'}</h1>
-                      <div className="text-xs font-medium px-2 py-0.5 rounded-full inline-block mt-0.5" style={{ background: `${ACCENT}18`, color: ACCENT }}>{statusLabel}</div>
-                      <div className="text-sm mt-1" style={{ color: c.muted }}>{user?.phone || '—'}</div>
+
+                    {/* XP bar */}
+                    <div className="mb-4">
+                      <div className="flex justify-between text-xs mb-1.5" style={{ color: c.muted }}>
+                        <span>Опыт</span>
+                        <span>{currentXp} / {nextLevelXp} XP</span>
+                      </div>
+                      <div style={{ height: 8, borderRadius: 9999, overflow: 'hidden', background: isDark ? '#374151' : '#e5e7eb' }}>
+                        <div style={{ height: '100%', width: `${xpProgress}%`, borderRadius: 9999, background: ACCENT, transition: 'width 0.6s ease' }} />
+                      </div>
+                      <div className="text-xs mt-1 text-right" style={{ color: c.muted }}>{Math.max(0, nextLevelXp - currentXp)} XP до следующего уровня</div>
+                    </div>
+
+                    {/* Stats — single row */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { v: <><Star className="w-3.5 h-3.5 inline mb-0.5" style={{ color: '#FBBF24', fill: '#FBBF24' }} /> {user?.avgRating != null ? user.avgRating.toFixed(1) : '—'}</>, l: user?.ratingCount ? `${user.ratingCount} оценок` : 'рейтинг' },
+                        { v: completedJobsCount, l: 'заказов' },
+                        { v: achievements.filter(a => a.unlocked).length, l: 'достижений' },
+                        { v: Math.floor(currentLevel / 10), l: 'наград' },
+                      ].map((s, i) => (
+                        <div key={i} className="rounded-xl p-2.5 text-center" style={{ background: c.subtle }}>
+                          <div className="text-lg font-semibold truncate" style={{ color: c.text }}>{s.v}</div>
+                          <div className="text-xs truncate" style={{ color: c.muted }}>{s.l}</div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <button
-                    className="h-8 px-3 rounded-lg text-xs flex-shrink-0"
-                    style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
-                    onClick={() => { setEditProfileForm({ name: user?.name || '', district: user?.district || '', inn: user?.inn || '', email: user?.email || '' }); setEditProfileOpen(true); }}
-                  >
-                    <Edit className="w-3.5 h-3.5 inline mr-1" />Изменить
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {[
-                    { v: <><Star className="w-3.5 h-3.5 inline mb-0.5" style={{ color: '#FBBF24', fill: '#FBBF24' }} /> {user?.avgRating != null ? user.avgRating.toFixed(1) : '—'}</>, l: user?.ratingCount ? `${user.ratingCount} оценок` : 'рейтинг' },
-                    { v: completedJobsCount, l: 'заказов' },
-                    { v: achievements.filter(a => a.unlocked).length, l: 'достижений' },
-                    { v: Math.floor(currentLevel / 10), l: 'наград' },
-                  ].map((s, i) => (
-                    <div key={i} className="rounded-xl p-2.5 text-center" style={{ background: c.subtle }}>
-                      <div className="text-lg font-semibold truncate" style={{ color: c.text }}>{s.v}</div>
-                      <div className="text-xs truncate" style={{ color: c.muted }}>{s.l}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Earnings */}
               <div style={card}>
@@ -1168,7 +1195,6 @@ export default function ContractorDashboard() {
                 </div>
               </div>
 
-              <LevelSystem data={levelData} variant="contractor" />
               <AchievementsPanel achievements={achievements} variant="contractor" />
 
               {/* Work Info */}
