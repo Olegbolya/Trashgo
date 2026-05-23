@@ -18,10 +18,6 @@ export default function Verify() {
   const otpKey = email || phone || '';
   const isEmailFlow = !!email;
 
-  if (!otpKey) {
-    navigate('/login', { replace: true });
-    return null;
-  }
   const devCode = location.state?.devCode as string | undefined;
   const telegramBotLink = location.state?.telegramBotLink as string | undefined;
   const channel = location.state?.channel as string | undefined;
@@ -34,6 +30,11 @@ export default function Verify() {
   const [tgLoading, setTgLoading] = useState(false);
   const setAuth = useAuthStore((s) => s.setAuth);
   const accent = useRoleStore((s) => s.accentColor);
+
+  if (!otpKey) {
+    navigate('/login', { replace: true });
+    return null;
+  }
 
   const c = {
     bg:      isDark ? '#0f172a' : '#f9fafb',

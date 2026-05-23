@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -31,7 +31,9 @@ export default function Login() {
   const [step, setStep] = useState<'email' | 'phone'>('email');
   const [loading, setLoading] = useState(false);
 
-  if (role === 'contractor' || role === 'customer') setRole(role);
+  useEffect(() => {
+    if (role === 'contractor' || role === 'customer') setRole(role);
+  }, [role, setRole]);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const phoneDigits = phone.replace(/\D/g, '');

@@ -81,6 +81,7 @@ export default function ContractorDashboard() {
   const [contractorGps, setContractorGps] = useState<{ lat: number; lon: number } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [orderCoords, setOrderCoords] = useState<Map<string, { lat: number; lon: number } | null>>(new Map());
+  const availableOrdersRef = useRef<Order[]>([]);
   const [historyDetailOrder, setHistoryDetailOrder] = useState<Order | null>(null);
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
   const [paymentDisputedIds, setPaymentDisputedIds] = useState<Set<string>>(new Set());
@@ -272,32 +273,46 @@ export default function ContractorDashboard() {
     );
   }, [activeTab]);
 
+  // Keep a ref so the geocoding effect can read current orders without restarting on every poll
+  availableOrdersRef.current = availableOrders;
+
   // Geocode order addresses for distance calculation (throttled to 1 req/s)
+  // Runs once per tab visit; checks ref for newly added orders on each iteration
   useEffect(() => {
     if (activeTab !== 'find') return;
-    const toGeocode = availableOrders.filter(o => !orderCoords.has(o.id));
-    if (!toGeocode.length) return;
+    const geocodedIds = new Set<string>();
     let cancelled = false;
-    (async () => {
+    let running = false;
+
+    const runGeocoding = async () => {
+      if (running || cancelled) return;
+      running = true;
+      const toGeocode = availableOrdersRef.current.filter(o => !geocodedIds.has(o.id));
       for (const order of toGeocode) {
         if (cancelled) break;
+        geocodedIds.add(order.id);
         try {
           const q = /казань|kazan/i.test(order.address) ? order.address : `${order.address}, Казань, Россия`;
           const res = await fetch(`/api/v1/geocode?q=${encodeURIComponent(q)}`);
           const data = await res.json();
-          setOrderCoords(prev => {
+          if (!cancelled) setOrderCoords(prev => {
             const next = new Map(prev);
             next.set(order.id, data[0] ? { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) } : null);
             return next;
           });
         } catch {
-          setOrderCoords(prev => { const next = new Map(prev); next.set(order.id, null); return next; });
+          if (!cancelled) setOrderCoords(prev => { const next = new Map(prev); next.set(order.id, null); return next; });
         }
         await new Promise(r => setTimeout(r, 1100));
       }
-    })();
-    return () => { cancelled = true; };
-  }, [availableOrders, activeTab]);
+      running = false;
+    };
+
+    runGeocoding();
+    // Re-check for new orders every 12s (slightly after the 10s poll interval)
+    const interval = setInterval(runGeocoding, 12000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [activeTab]);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
