@@ -32,6 +32,11 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+const TRANSPORT_RADIUS_KM: Record<string, number> = {
+  pedestrian: 2, scooter: 2, bicycle: 3,
+  'e-bicycle': 4, moto: 8, car: 15,
+};
+
 export default function ContractorDashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1172,10 +1177,7 @@ export default function ContractorDashboard() {
                   pedestrian: '🚶 Пеший', scooter: '🛴 Самокат', bicycle: '🚲 Велосипед',
                   'e-bicycle': '⚡🚲 Электровелосипед', moto: '🏍️ Мото', car: '🚗 Автомобиль',
                 };
-                const radiusMap: Record<string, string> = {
-                  pedestrian: '0.5', scooter: '2', bicycle: '3',
-                  'e-bicycle': '4', moto: '8', car: '15',
-                };
+                const radiusMap = TRANSPORT_RADIUS_KM;
                 const tMode = user?.transportMode || 'car';
                 return (
                   <div style={card}>
@@ -1191,7 +1193,7 @@ export default function ContractorDashboard() {
                     <div className="rounded-lg p-3 mb-2" style={{ background: c.subtle }}>
                       <div className="text-xs mb-1" style={{ color: c.muted }}>Способ передвижения</div>
                       <div className="text-sm font-medium" style={{ color: c.text }}>{transportLabel[tMode] || '🚗 Автомобиль'}</div>
-                      <div style={{ fontSize: '0.72rem', color: c.muted, marginTop: '0.25rem' }}>Радиус видимости заказов: {radiusMap[tMode] || '15'} км</div>
+                      <div style={{ fontSize: '0.72rem', color: c.muted, marginTop: '0.25rem' }}>Радиус видимости заказов: {radiusMap[tMode] ?? 15} км</div>
                     </div>
                     {/* Availability toggle */}
                     <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: (user?.isAvailable ?? true) ? '#d1fae520' : `${c.subtle}`, border: `1px solid ${(user?.isAvailable ?? true) ? '#6ee7b7' : c.border}` }}>
@@ -1806,7 +1808,7 @@ export default function ContractorDashboard() {
                   ] as const).map(opt => (
                     <button
                       key={opt.value}
-                      onClick={() => setEditInfoForm(f => ({ ...f, transportMode: opt.value }))}
+                      onClick={() => { setEditInfoForm(f => ({ ...f, transportMode: opt.value })); setFilterDistanceKm(TRANSPORT_RADIUS_KM[opt.value] ?? 15); }}
                       style={{
                         padding: '0.625rem 0.25rem', borderRadius: '0.75rem', textAlign: 'center',
                         border: `1.5px solid ${editInfoForm.transportMode === opt.value ? ACCENT : c.border}`,
