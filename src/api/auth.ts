@@ -128,6 +128,16 @@ export const authApi = {
     return res.data;
   },
 
+  async requestEmailChange(email: string): Promise<{ sent: boolean; devCode?: string }> {
+    const res = await api.post<{ data: { sent: boolean; devCode?: string } }>('/users/request-email-change', { email });
+    return res.data;
+  },
+
+  async confirmEmailChange(email: string, code: string): Promise<{ ok: boolean; email: string }> {
+    const res = await api.post<{ data: { ok: boolean; email: string } }>('/users/confirm-email-change', { email, code });
+    return res.data;
+  },
+
   async verifyInn(inn: string): Promise<{ inn: string; selfEmployed: boolean }> {
     const res = await api.post<{ data: { inn: string; selfEmployed: boolean } }>('/users/verify-inn', { inn });
     return res.data;
