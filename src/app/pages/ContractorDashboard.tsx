@@ -315,6 +315,7 @@ export default function ContractorDashboard() {
   const earningsDay = completedJobs.filter(j => new Date((j as any).updatedAt ?? j.createdAt) >= todayStart).reduce((s, j) => s + j.price, 0);
   const earningsWeek = completedJobs.filter(j => new Date((j as any).updatedAt ?? j.createdAt) >= weekStart).reduce((s, j) => s + j.price, 0);
   const earningsMonth = completedJobs.filter(j => new Date((j as any).updatedAt ?? j.createdAt) >= monthStart).reduce((s, j) => s + j.price, 0);
+  const earningsTotal = completedJobs.reduce((s, j) => s + j.price, 0);
 
   const completedJobsCount = completedJobs.length;
 
@@ -1139,7 +1140,7 @@ export default function ContractorDashboard() {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Wallet className="w-4 h-4" style={{ color: c.muted }} />
-                    <h2 className="text-sm font-semibold" style={{ color: c.text }}>Заработок</h2>
+                    <h2 className="text-sm font-semibold" style={{ color: c.text }}>Заработок за всё время</h2>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
@@ -1157,8 +1158,8 @@ export default function ContractorDashboard() {
                   </div>
                 </div>
                 <div className="mt-3 p-3 rounded-xl flex items-center justify-between" style={{ background: '#4CAF5012', border: '1px solid #4CAF5020' }}>
-                  <div className="text-sm" style={{ color: c.text }}>Заработок</div>
-                  <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>{balance.toLocaleString('ru-RU')}₽</div>
+                  <div className="text-sm" style={{ color: c.text }}>Заработок за все время</div>
+                  <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>{earningsTotal.toLocaleString('ru-RU')}₽</div>
                 </div>
               </div>
 
