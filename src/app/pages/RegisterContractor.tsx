@@ -8,9 +8,10 @@ import { useTheme } from '../context/ThemeContext';
 
 const DISTRICTS = ['Вахитовский', 'Приволжский', 'Советский', 'Ново-Савиновский', 'Московский', 'Авиастроительный', 'Кировский'];
 const TRANSPORT = [
-  { key: 'foot', emoji: '🚶', label: 'Пешком' },
-  { key: 'car',  emoji: '🚗', label: 'Машина' },
-  { key: 'truck',emoji: '🚚', label: 'Газель' },
+  { key: 'pedestrian', emoji: '🚶', label: 'Пешком' },
+  { key: 'bicycle',   emoji: '🚲', label: 'Велосипед' },
+  { key: 'moto',      emoji: '🏍️', label: 'Мото' },
+  { key: 'car',       emoji: '🚗', label: 'Машина' },
 ];
 
 export default function RegisterContractor() {
@@ -22,7 +23,7 @@ export default function RegisterContractor() {
   const phone = location.state?.phone || '';
   const verifiedCode = location.state?.verifiedCode || '';
   const setAuth = useAuthStore((s) => s.setAuth);
-  const [formData, setFormData] = useState({ name: '', district: 'Вахитовский', transport: 'foot', inn: '' });
+  const [formData, setFormData] = useState({ name: '', district: 'Вахитовский', transport: 'pedestrian', inn: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 

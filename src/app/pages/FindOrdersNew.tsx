@@ -81,6 +81,8 @@ export default function FindOrdersNew() {
   };
 
   const potentialEarnings = sortedOrders.reduce((s, o) => s + o.price, 0);
+  const todayEarnings = 0;
+  const stats = { rating: 0, reviews: 0, completedOrders: 0, subscribedAddresses: 0, weeklyEarnings: 0, monthlyEarnings: 0 };
 
   return (
     <div className="min-h-screen bg-gray-50">
