@@ -1228,7 +1228,7 @@ export default function ContractorDashboard() {
                           {(user?.isAvailable ?? true) ? '🟢 Принимаю заказы' : '🔴 Недоступен'}
                         </div>
                         <div className="text-xs" style={{ color: c.muted }}>
-                          {(user?.isAvailable ?? true) ? 'Виден заказчикам и получаю уведомления' : 'Скрыт из списка, уведомления не приходят'}
+                          {(user?.isAvailable ?? true) ? 'Получаю уведомления о новых заказах' : 'Уведомления о новых заказах отключены'}
                         </div>
                       </div>
                       <button
