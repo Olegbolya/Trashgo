@@ -1948,13 +1948,17 @@ export default function ContractorDashboard() {
                       type="email"
                       value={editProfileForm.email}
                       onChange={e => setEditProfileForm(f => ({ ...f, email: e.target.value }))}
+                      onBlur={e => { if (!e.target.value.trim() && user?.email) setEditProfileForm(f => ({ ...f, email: user!.email! })); }}
                       placeholder="your@email.com"
-                      style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                      style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${!editProfileForm.email.trim() && user?.email ? '#ef4444' : c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                     />
-                    <div className="text-xs mt-1" style={{ color: c.muted }}>Используется для входа в аккаунт</div>
+                    {!editProfileForm.email.trim() && user?.email
+                      ? <div className="text-xs mt-1" style={{ color: '#ef4444' }}>Email обязателен — используется для входа</div>
+                      : <div className="text-xs mt-1" style={{ color: c.muted }}>Используется для входа в аккаунт</div>
+                    }
                   </div>
                   <button
-                    disabled={editProfileSaving || !editProfileForm.name.trim() || (editProfileForm.inn.length > 0 && editProfileForm.inn.length < 12)}
+                    disabled={editProfileSaving || !editProfileForm.name.trim() || (editProfileForm.inn.length > 0 && editProfileForm.inn.length < 12) || (!editProfileForm.email.trim() && !!user?.email)}
                     onClick={async () => {
                       setEditProfileSaving(true);
                       try {
