@@ -101,12 +101,17 @@ export default function ContractorDashboard() {
   const [emailChangeError, setEmailChangeError] = useState('');
   const [myJobsLoading, setMyJobsLoading] = useState(false);
   const [apiAchievements, setApiAchievements] = useState<AchievementItem[]>([]);
+  const [contractorStats, setContractorStats] = useState<{ weeklyEarnings: number; monthlyEarnings: number; totalEarnings: number; completedOrders: number; avgRating: number | null; ratingCount: number } | null>(null);
 
   const refreshAchievements = () => {
     achievementsApi.getMy().then((list) => {
       setApiAchievements(list);
     }).catch(() => {});
   };
+
+  useEffect(() => {
+    authApi.getStats().then(setContractorStats).catch(() => {});
+  }, []);
 
   const prevJobStatusesRef = useRef<Record<string, string>>({});
   const prevXpRef = useRef<number | null>(null);
@@ -1182,16 +1187,16 @@ export default function ContractorDashboard() {
                   </div>
                   <div className="rounded-xl p-3" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
                     <div className="text-xs mb-1" style={{ color: c.muted }}>За неделю</div>
-                    <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>{earningsWeek.toLocaleString('ru-RU')}₽</div>
+                    <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>{(contractorStats?.weeklyEarnings ?? earningsWeek).toLocaleString('ru-RU')}₽</div>
                   </div>
                   <div className="rounded-xl p-3" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
                     <div className="text-xs mb-1" style={{ color: c.muted }}>За месяц</div>
-                    <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>{earningsMonth.toLocaleString('ru-RU')}₽</div>
+                    <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>{(contractorStats?.monthlyEarnings ?? earningsMonth).toLocaleString('ru-RU')}₽</div>
                   </div>
                 </div>
                 <div className="mt-3 p-3 rounded-xl flex items-center justify-between" style={{ background: '#4CAF5012', border: '1px solid #4CAF5020' }}>
                   <div className="text-sm" style={{ color: c.text }}>Заработок за все время</div>
-                  <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>{earningsTotal.toLocaleString('ru-RU')}₽</div>
+                  <div className="text-xl font-bold" style={{ color: '#4CAF50' }}>{(contractorStats?.totalEarnings ?? earningsTotal).toLocaleString('ru-RU')}₽</div>
                 </div>
               </div>
 

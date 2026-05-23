@@ -147,4 +147,9 @@ export const authApi = {
     const res = await api.post<{ data: { ok: boolean } }>('/users/appeal-freeze', { reason });
     return res.data;
   },
+
+  async getStats(): Promise<{ weeklyEarnings: number; monthlyEarnings: number; totalEarnings: number; completedOrders: number; avgRating: number | null; ratingCount: number }> {
+    const res = await api.get<{ data: { weeklyEarnings: number; monthlyEarnings: number; totalEarnings: number; completedOrders: number; avgRating: number | null; ratingCount: number } }>('/users/stats');
+    return res.data;
+  },
 };

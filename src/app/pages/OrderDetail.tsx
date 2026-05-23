@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import {
   MapPin, Clock, Package, ArrowLeft, User, CheckCircle,
-  AlertTriangle, Star, Phone, Zap, MessageCircle, Copy,
+  AlertTriangle, Star, Phone, Zap, MessageCircle, Copy, Send,
 } from 'lucide-react';
+import type { ChatMessage } from '../../types/order';
 import { toast } from 'sonner';
 import { ordersApi } from '../../api/orders';
 import { useAuthStore } from '../../stores/auth.store';
@@ -71,6 +72,11 @@ export default function OrderDetail() {
   const [showDispute, setShowDispute] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
   const [submittingDispute, setSubmittingDispute] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatSending, setChatSending] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const chatIntervalRef = useRef<ReturnType<typeof setInterval>>();
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -96,6 +102,41 @@ export default function OrderDetail() {
 
   const isCustomer = order?.customerId === user?.id;
   const isContractor = order?.contractorId === user?.id;
+  const isChatActive = order !== null && (isCustomer || isContractor) &&
+    ['accepted', 'in_progress', 'pending_confirmation', 'pending_payment'].includes(order.status);
+
+  // Load chat and poll every 8 sec while order is active
+  useEffect(() => {
+    if (!id || !isChatActive) return;
+    const load = () => {
+      ordersApi.getMessages(id).then(res => {
+        const msgs = (res as any)?.data ?? res ?? [];
+        setChatMessages(msgs);
+        setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      }).catch(() => {});
+    };
+    load();
+    chatIntervalRef.current = setInterval(load, 8000);
+    return () => clearInterval(chatIntervalRef.current);
+  }, [id, isChatActive]);
+
+  const handleSendChat = async () => {
+    if (!id || !chatInput.trim() || chatSending) return;
+    const text = chatInput.trim();
+    setChatInput('');
+    setChatSending(true);
+    try {
+      const msg = await ordersApi.sendMessage(id, text) as any;
+      const newMsg: ChatMessage = msg?.data ?? msg;
+      setChatMessages(prev => [...prev, newMsg]);
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    } catch {
+      toast.error('Не удалось отправить');
+      setChatInput(text);
+    } finally {
+      setChatSending(false);
+    }
+  };
 
   const handleConfirm = async () => {
     if (!order) return;
@@ -439,12 +480,67 @@ export default function OrderDetail() {
           </div>
         )}
 
-        {/* Chat hint */}
-        {(order.status === 'accepted' || order.status === 'in_progress' || order.status === 'pending_confirmation') && (
-          <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: `${ACCENT}10`, border: `1px solid ${ACCENT}20` }}>
-            <MessageCircle className="w-4 h-4 flex-shrink-0" style={{ color: ACCENT }} />
-            <div className="text-xs" style={{ color: c.muted }}>
-              Для связи используйте чат в разделе активных заказов на главной странице
+        {/* Inline chat */}
+        {isChatActive && (
+          <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+            <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: `1px solid ${c.border}` }}>
+              <MessageCircle className="w-4 h-4" style={{ color: ACCENT }} />
+              <span className="text-sm font-semibold" style={{ color: c.text }}>Чат</span>
+            </div>
+
+            {/* Messages */}
+            <div style={{ maxHeight: 280, overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {chatMessages.length === 0 ? (
+                <div className="text-center py-4 text-xs" style={{ color: c.muted }}>Напишите исполнителю/заказчику</div>
+              ) : chatMessages.map(msg => {
+                const isMine = msg.senderId === user?.id;
+                return (
+                  <div key={msg.id} style={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
+                    <div style={{
+                      maxWidth: '78%', padding: '0.5rem 0.75rem', borderRadius: isMine ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem',
+                      background: isMine ? ACCENT : c.subtle,
+                      color: isMine ? '#fff' : c.text,
+                      fontSize: '0.875rem',
+                    }}>
+                      {!isMine && <div style={{ fontSize: '0.7rem', fontWeight: 600, marginBottom: 2, opacity: 0.7 }}>{msg.senderName}</div>}
+                      <div style={{ wordBreak: 'break-word' }}>{msg.text}</div>
+                      <div style={{ fontSize: '0.65rem', opacity: 0.6, marginTop: 2, textAlign: 'right' }}>
+                        {new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={chatBottomRef} />
+            </div>
+
+            {/* Input */}
+            <div style={{ display: 'flex', gap: 8, padding: '0.75rem', borderTop: `1px solid ${c.border}` }}>
+              <input
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendChat()}
+                placeholder="Сообщение..."
+                maxLength={1000}
+                style={{
+                  flex: 1, padding: '0.5rem 0.75rem', borderRadius: '0.75rem',
+                  border: `1.5px solid ${c.border}`, background: c.subtle,
+                  color: c.text, fontSize: '0.875rem', outline: 'none', fontFamily: 'inherit',
+                }}
+              />
+              <button
+                onClick={handleSendChat}
+                disabled={!chatInput.trim() || chatSending}
+                style={{
+                  width: 40, height: 40, borderRadius: '0.75rem', border: 'none',
+                  background: chatInput.trim() ? ACCENT : c.subtle,
+                  color: chatInput.trim() ? '#fff' : c.muted,
+                  cursor: chatInput.trim() && !chatSending ? 'pointer' : 'not-allowed',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}
+              >
+                <Send className="w-4 h-4" />
+              </button>
             </div>
           </div>
         )}

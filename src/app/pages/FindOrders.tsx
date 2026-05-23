@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, MapPin, Clock, Package, Zap, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Package, Zap, RefreshCw, Sparkles, Map as MapIcon } from 'lucide-react';
 import { ordersApi } from '../../api/orders';
 import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore } from '../../stores/role.store';
@@ -8,6 +8,17 @@ import type { Order } from '../../types/order';
 import { toast } from 'sonner';
 
 const ACCENT = '#2196F3';
+
+// Approximate centroids of Kazan districts
+const DISTRICT_COORDS: Record<string, [number, number]> = {
+  'Вахитовский':      [55.7963, 49.1059],
+  'Приволжский':      [55.7870, 49.1420],
+  'Советский':        [55.8340, 49.1060],
+  'Ново-Савиновский': [55.8190, 49.1580],
+  'Московский':       [55.7770, 49.0620],
+  'Авиастроительный': [55.8520, 49.0810],
+  'Кировский':        [55.7600, 49.0680],
+};
 
 function scoreOrder(order: Order, userDistrict: string): number {
   let score = 0;
@@ -61,8 +72,81 @@ export default function FindOrders() {
   const [hasMore, setHasMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const mapRef = useRef<HTMLDivElement>(null);
+  const leafletMapRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
   const userDistrict = user?.district ?? '';
+
+  // Init Leaflet map when showMap becomes true
+  useEffect(() => {
+    if (!showMap || !mapRef.current) return;
+    if (leafletMapRef.current) return; // already initialized
+
+    // Inject Leaflet CSS once
+    if (!document.getElementById('leaflet-css')) {
+      const link = document.createElement('link');
+      link.id = 'leaflet-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
+
+    import('leaflet').then(L => {
+      // Fix default marker icons
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({ iconRetinaUrl: '', iconUrl: '', shadowUrl: '' });
+
+      const map = L.map(mapRef.current!, {
+        center: [55.796, 49.106],
+        zoom: 12,
+        zoomControl: true,
+        attributionControl: false,
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+      leafletMapRef.current = map;
+    }).catch(() => {});
+
+    return () => {
+      leafletMapRef.current?.remove();
+      leafletMapRef.current = null;
+    };
+  }, [showMap]);
+
+  // Update markers when orders change
+  useEffect(() => {
+    const map = leafletMapRef.current;
+    if (!map || !showMap) return;
+
+    import('leaflet').then(L => {
+      // Clear old markers
+      markersRef.current.forEach(m => m.remove());
+      markersRef.current = [];
+
+      orders.forEach(order => {
+        const coords = DISTRICT_COORDS[order.district];
+        if (!coords) return;
+
+        // Jitter so overlapping markers don't stack exactly
+        const jitter = () => (Math.random() - 0.5) * 0.008;
+        const pos: [number, number] = [coords[0] + jitter(), coords[1] + jitter()];
+
+        const color = order.asap ? '#f97316' : ACCENT;
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="background:${color};color:#fff;font-size:11px;font-weight:700;padding:3px 7px;border-radius:12px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3);border:2px solid #fff">+${order.price}₽</div>`,
+          iconAnchor: [28, 14],
+        });
+
+        const marker = L.marker(pos, { icon })
+          .addTo(map)
+          .bindPopup(`<b>${order.address}</b><br>${order.price}₽ · ${order.volume} м³`);
+        markersRef.current.push(marker);
+      });
+    }).catch(() => {});
+  }, [orders, showMap]);
 
   // silent=true → auto-refresh (replaces list from start); silent=false → initial load
   const fetchOrders = async (silent = false) => {
@@ -142,13 +226,21 @@ export default function FindOrders() {
             Назад
           </button>
           <span style={{ fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Найти заказы</span>
-          <button
-            onClick={() => fetchOrders(true)}
-            disabled={refreshing}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: ACCENT, opacity: refreshing ? 0.5 : 1 }}
-          >
-            <RefreshCw style={{ width: 18, height: 18, animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-          </button>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button
+              onClick={() => setShowMap(v => !v)}
+              style={{ background: showMap ? ACCENT : 'none', border: showMap ? 'none' : `1px solid #e5e7eb`, borderRadius: 8, cursor: 'pointer', color: showMap ? '#fff' : ACCENT, padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              <MapIcon style={{ width: 16, height: 16 }} />
+            </button>
+            <button
+              onClick={() => fetchOrders(true)}
+              disabled={refreshing}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: ACCENT, opacity: refreshing ? 0.5 : 1 }}
+            >
+              <RefreshCw style={{ width: 18, height: 18, animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -168,6 +260,13 @@ export default function FindOrders() {
             <div style={{ fontSize: '2.5rem' }}>📦</div>
           </div>
         </div>
+
+        {/* Map */}
+        {showMap && (
+          <div style={{ borderRadius: '1rem', overflow: 'hidden', marginBottom: '1rem', border: '1px solid #e5e7eb' }}>
+            <div ref={mapRef} style={{ height: 260, width: '100%' }} />
+          </div>
+        )}
 
         {/* Sort + Filter tabs */}
         <div style={{ background: '#fff', borderRadius: '0.875rem', border: '1px solid #e5e7eb', padding: '0.75rem', marginBottom: '1rem' }}>
