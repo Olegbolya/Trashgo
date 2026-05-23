@@ -4,7 +4,7 @@ import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../api/auth';
 import { Home, MapPin, User, Plus, Package, CheckCircle, Clock, RefreshCw, Edit, LogOut, Bell, CreditCard, UserPlus, HelpCircle, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Star, Phone, MessageCircle, Menu, X, Trophy } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { LevelSystem, type LevelData } from '../components/LevelSystem';
+import { LevelSystem, getRankLabel, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
 import { toast } from 'sonner';
 import { getDayLabel } from '../lib/utils';
@@ -392,9 +392,9 @@ export default function CustomerDashboard() {
     xp: currentXp,
     nextLevelXp,
     title: 'Новый клиент',
-    rank: '🌱 Новичок',
+    rank: getRankLabel(currentLevel),
     achievements: apiAchievements.filter(a => a.unlocked).length,
-    totalOrders: myOrders.length,
+    totalOrders: stats.totalOrders,
   };
 
   // Local-only achievements not tracked in DB (level-based)
@@ -908,7 +908,7 @@ export default function CustomerDashboard() {
 
           {/* PROFILE TAB */}
           {activeTab === 'profile' && (() => {
-            const statusLabel = (user?.level ?? 1) >= 6 ? 'Мастер' : (user?.level ?? 1) >= 4 ? 'Профи' : (user?.level ?? 1) >= 2 ? 'Опытный' : 'Новичок';
+            const statusLabel = getRankLabel(user?.level ?? 1);
             return (
             <div className="max-w-4xl mx-auto space-y-3">
               {/* Profile Header */}
@@ -937,7 +937,7 @@ export default function CustomerDashboard() {
                     { v: <><Star className="w-3.5 h-3.5 inline mb-0.5" style={{ color: '#FBBF24', fill: '#FBBF24' }} /> {user?.avgRating != null ? user.avgRating.toFixed(1) : '—'}</>, l: user?.ratingCount ? `${user.ratingCount} оценок` : 'рейтинг' },
                     { v: stats.totalOrders, l: 'заказов' },
                     { v: achievements.filter(a => a.unlocked).length, l: 'достижений' },
-                    { v: '🏆', l: 'награды' },
+                    { v: Math.floor(currentLevel / 10), l: 'наград' },
                   ].map((s, i) => (
                     <div key={i} className="rounded-xl p-2.5 text-center" style={{ background: c.subtle }}>
                       <div className="text-lg font-semibold truncate" style={{ color: c.text }}>{s.v}</div>

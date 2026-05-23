@@ -18,6 +18,15 @@ interface LevelSystemProps {
 
 const XP_THRESHOLDS = [0, 100, 250, 500, 900, 1400, 2100, 3000, 4200, 5800, 8000];
 
+export function getRankLabel(level: number): string {
+  if (level >= 80) return '🏆 Легенда';
+  if (level >= 60) return '👑 Мастер';
+  if (level >= 40) return '⭐ Эксперт';
+  if (level >= 20) return '🛡️ Профи';
+  if (level >= 10) return '⚡ Опытный';
+  return '🌱 Новичок';
+}
+
 export function LevelSystem({ data, variant = 'customer', compact = false }: LevelSystemProps) {
   const { isDark } = useTheme();
   const { level, xp, nextLevelXp, title, achievements, totalOrders } = data;
@@ -34,14 +43,7 @@ export function LevelSystem({ data, variant = 'customer', compact = false }: Lev
   const levelRange = nextLevelXp - prevLevelXp;
   const progress = levelRange > 0 ? Math.min(100, ((xp - prevLevelXp) / levelRange) * 100) : 100;
 
-  const getRankTitle = () => {
-    if (level >= 80) return '🏆 Легенда';
-    if (level >= 60) return '👑 Мастер';
-    if (level >= 40) return '⭐ Эксперт';
-    if (level >= 20) return '🛡️ Профи';
-    if (level >= 10) return '⚡ Опытный';
-    return '🌱 Новичок';
-  };
+  const getRankTitle = () => getRankLabel(level);
 
   const ProgressBar = ({ height }: { height: number }) => (
     <div style={{ height, width: '100%', borderRadius: '9999px', overflow: 'hidden', background: trackBg }}>

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { Home, MapPin, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { LevelSystem, type LevelData } from '../components/LevelSystem';
+import { LevelSystem, getRankLabel, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
 import { toast } from 'sonner';
 import { getDayLabel } from '../lib/utils';
@@ -333,7 +333,7 @@ export default function ContractorDashboard() {
     xp: currentXp,
     nextLevelXp,
     title: 'Исполнитель TrashGo',
-    rank: '🌱 Новичок',
+    rank: getRankLabel(currentLevel),
     achievements: apiAchievements.filter(a => a.unlocked).length,
     totalOrders: completedJobsCount,
   };
@@ -1091,7 +1091,7 @@ export default function ContractorDashboard() {
 
           {/* PROFILE TAB */}
           {activeTab === 'profile' && (() => {
-            const statusLabel = currentLevel >= 6 ? 'Мастер' : currentLevel >= 4 ? 'Профи' : currentLevel >= 2 ? 'Опытный' : 'Новичок';
+            const statusLabel = getRankLabel(currentLevel);
             const balance = user?.balance ?? 0;
             return (
             <div className="max-w-4xl mx-auto space-y-3">
@@ -1121,7 +1121,7 @@ export default function ContractorDashboard() {
                     { v: <><Star className="w-3.5 h-3.5 inline mb-0.5" style={{ color: '#FBBF24', fill: '#FBBF24' }} /> {user?.avgRating != null ? user.avgRating.toFixed(1) : '—'}</>, l: user?.ratingCount ? `${user.ratingCount} оценок` : 'рейтинг' },
                     { v: completedJobsCount, l: 'заказов' },
                     { v: achievements.filter(a => a.unlocked).length, l: 'достижений' },
-                    { v: '🏆', l: 'награды' },
+                    { v: Math.floor(currentLevel / 10), l: 'наград' },
                   ].map((s, i) => (
                     <div key={i} className="rounded-xl p-2.5 text-center" style={{ background: c.subtle }}>
                       <div className="text-lg font-semibold truncate" style={{ color: c.text }}>{s.v}</div>
