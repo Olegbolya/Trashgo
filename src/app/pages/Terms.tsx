@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import PrivacyFooter from '../components/PrivacyFooter';
 
 export default function Terms() {
   const navigate = useNavigate();
@@ -199,6 +200,7 @@ export default function Terms() {
 
         </div>
       </div>
+      <PrivacyFooter />
     </div>
   );
 }

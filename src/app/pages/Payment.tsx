@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../api/auth';
 import { toast } from 'sonner';
+import PrivacyFooter from '../components/PrivacyFooter';
 
 const ACCENT = '#2196F3';
 const GREEN = '#4CAF50';
@@ -335,6 +336,7 @@ export default function Payment() {
           </div>
         </div>
       )}
+      <PrivacyFooter />
     </div>
   );
 }

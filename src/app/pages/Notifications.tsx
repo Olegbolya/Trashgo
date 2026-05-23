@@ -6,6 +6,7 @@ import { useNotificationsStore, type AppNotification } from '../../stores/notifi
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../api/auth';
 import { toast } from 'sonner';
+import PrivacyFooter from '../components/PrivacyFooter';
 
 const ACCENT = '#2196F3';
 
@@ -351,6 +352,7 @@ export default function Notifications() {
           </div>
         ))}
       </div>
+      <PrivacyFooter />
     </div>
   );
 }

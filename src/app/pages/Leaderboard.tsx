@@ -4,6 +4,7 @@ import { ArrowLeft, Trophy, Star, Award, TrendingUp, Filter } from 'lucide-react
 import { useTheme } from '../context/ThemeContext';
 import { leaderboardApi, type LeaderboardEntry } from '../../api/leaderboard';
 import { toast } from 'sonner';
+import PrivacyFooter from '../components/PrivacyFooter';
 
 const DISTRICTS = ['', 'Вахитовский', 'Авиастроительный', 'Московский', 'Кировский', 'Советский', 'Ново-Савиновский', 'Приволжский'];
 
@@ -165,6 +166,7 @@ export default function Leaderboard() {
           </ul>
         </div>
       </div>
+      <PrivacyFooter />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { ArrowLeft, HelpCircle, MessageCircle, Mail, ChevronDown, ChevronUp, ExternalLink, Zap, Shield, Package, Clock, Star, Trash2, Send, X, WifiOff } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../../api/client';
+import PrivacyFooter from '../components/PrivacyFooter';
 
 const ACCENT = '#2196F3';
 const GREEN  = '#4CAF50';
@@ -502,6 +503,7 @@ export default function Help() {
           </div>
         </div>
       )}
+      <PrivacyFooter />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Package, User, CheckCircle, DollarSign, MapPin, Trash2, ChevronRight, Star, Zap, Shield } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import PrivacyFooter from '../components/PrivacyFooter';
 
 const GREEN = '#4CAF50';
 const BLUE  = '#2196F3';
@@ -255,6 +256,7 @@ export default function HowItWorks() {
         </div>
 
       </div>
+      <PrivacyFooter />
     </div>
   );
 }
