@@ -105,7 +105,7 @@ export default function OrderDetail() {
   const isChatActive = order !== null && (isCustomer || isContractor) &&
     ['accepted', 'in_progress', 'pending_confirmation', 'pending_payment'].includes(order.status);
 
-  // Load chat and poll every 8 sec while order is active
+  // Load chat; update instantly via SSE event, fallback poll every 30s if SSE is down
   useEffect(() => {
     if (!id || !isChatActive) return;
     const load = () => {
@@ -116,8 +116,20 @@ export default function OrderDetail() {
       }).catch(() => {});
     };
     load();
-    chatIntervalRef.current = setInterval(load, 8000);
-    return () => clearInterval(chatIntervalRef.current);
+
+    // Instant: reload when SSE fires a chat event for this order
+    const onSseChat = (e: Event) => {
+      const { orderId } = (e as CustomEvent).detail ?? {};
+      if (orderId === id) load();
+    };
+    window.addEventListener('sse:chat', onSseChat);
+
+    // Fallback: poll every 30s in case SSE is disconnected
+    chatIntervalRef.current = setInterval(load, 30000);
+    return () => {
+      window.removeEventListener('sse:chat', onSseChat);
+      clearInterval(chatIntervalRef.current);
+    };
   }, [id, isChatActive]);
 
   const handleSendChat = async () => {
