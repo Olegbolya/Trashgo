@@ -5,22 +5,54 @@
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>TrashGo — Вынос мусора в Казани</title>
+      <meta name="description" content="Закажите вынос мусора в Казани за 15 минут. Надёжные исполнители, честные цены, удобное приложение." />
+      <meta name="keywords" content="вынос мусора Казань, вывоз мусора, уборка мусора, TrashGo" />
+      <meta name="robots" content="index, follow" />
+
+      <!-- OpenGraph -->
+      <meta property="og:type" content="website" />
+      <meta property="og:title" content="TrashGo — Вынос мусора в Казани" />
+      <meta property="og:description" content="Закажите вынос мусора за 15 минут. Надёжные исполнители, честные цены." />
+      <meta property="og:image" content="/icon-512.png" />
+      <meta property="og:url" content="https://trashgo-gamma.vercel.app" />
+      <meta property="og:locale" content="ru_RU" />
+
+      <!-- Twitter Card -->
+      <meta name="twitter:card" content="summary" />
+      <meta name="twitter:title" content="TrashGo — Вынос мусора в Казани" />
+      <meta name="twitter:description" content="Закажите вынос мусора за 15 минут." />
+      <meta name="twitter:image" content="/icon-512.png" />
+
+      <!-- PWA + Icons -->
       <link rel="icon" type="image/png" href="/favicon.png" />
       <link rel="manifest" href="/manifest.json" />
-      <meta name="theme-color" content="#66BB6A" />
+      <meta name="theme-color" content="#22a849" media="(prefers-color-scheme: light)" />
+      <meta name="theme-color" content="#14532d" media="(prefers-color-scheme: dark)" />
       <meta name="mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       <meta name="apple-mobile-web-app-title" content="TrashGo" />
-      <link rel="apple-touch-icon" href="/icon-192.png" />
+      <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+      <!-- Fonts -->
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+      <!-- Яндекс.Метрика -->
+      <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+        m[i].l=1*new Date();
+        for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}
+        k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+        (window,document,'script','https://mc.yandex.ru/metrika/tag.js','ym');
+        ym(99999999,'init',{clickmap:true,trackLinks:true,accurateTrackBounce:true,webvisor:false});
+      </script>
     </head>
 
     <body>
+      <noscript><div><img src="https://mc.yandex.ru/watch/99999999" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
       <div id="root"></div>
       <script type="module" src="/src/main.tsx"></script>
     </body>
   </html>
-  

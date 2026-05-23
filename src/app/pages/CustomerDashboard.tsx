@@ -838,10 +838,16 @@ export default function CustomerDashboard() {
                   </div>
                 </div>
                 {ordersLoading ? (
-                  <div className="text-center py-12" style={{ ...card }}>
-                    <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-t-transparent animate-spin" style={{ borderColor: `${c.border} ${c.border} ${c.border} ${ACCENT}` }} />
-                    <div className="font-medium mb-1" style={{ color: c.text }}>Загружаем информацию...</div>
-                    <div className="text-sm" style={{ color: c.muted }}>Пожалуйста, подождите</div>
+                  <div className="space-y-2">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} style={{ ...card, padding: '1rem' }}>
+                        <div className="animate-pulse space-y-2">
+                          <div className="h-4 rounded-lg w-2/3" style={{ background: c.border }} />
+                          <div className="h-3 rounded-lg w-1/2" style={{ background: c.border }} />
+                          <div className="h-8 rounded-lg w-full mt-2" style={{ background: c.border }} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : ordersError ? (
                   <div className="text-center py-10" style={{ ...card }}>
@@ -1302,7 +1308,7 @@ export default function CustomerDashboard() {
                         style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: ACCENT, fontSize: '1.1rem', padding: '0.25rem', lineHeight: 1 }}
                       >🗺️</button>
                       {showAddressSuggestions && (addressSuggestions.length > 0 || geocodeSuggestions.length > 0) && (
-                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: c.surface, border: `1px solid ${c.border}`, borderRadius: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginTop: '2px', overflow: 'hidden', maxHeight: '14rem', overflowY: 'auto' }}>
+                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: c.surface, border: `1px solid ${c.border}`, borderRadius: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginTop: '2px', overflow: 'hidden', maxHeight: 'min(14rem, 40vh)', overflowY: 'auto' }}>
                           {/* Past/registered addresses */}
                           {addressSuggestions.map((addr, i) => {
                             const isReg = addr === user?.district;
@@ -1815,7 +1821,7 @@ export default function CustomerDashboard() {
             {/* Chat panel */}
             {chatOpen && selectedOrder && (
               <div style={{ marginBottom: '1rem', border: `1.5px solid ${c.border}`, borderRadius: '0.875rem', overflow: 'hidden' }}>
-                <div style={{ height: '240px', overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: c.subtle }}>
+                <div style={{ height: 'clamp(150px, 35vh, 280px)', overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: c.subtle }}>
                   {chatMessages.length === 0 && (
                     <div style={{ textAlign: 'center', color: c.muted, fontSize: '0.8rem', marginTop: '2rem' }}>
                       Начните переписку с исполнителем

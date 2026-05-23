@@ -45,11 +45,10 @@ function PageLoader() {
   );
 }
 
-// Catches chunk load failures (stale asset hashes after a new deployment) and auto-reloads once.
-class ChunkErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+class ChunkErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean; error: Error | null }> {
   constructor(props: { children: ReactNode }) {
     super(props);
-    this.state = { failed: false };
+    this.state = { failed: false, error: null };
   }
   static getDerivedStateFromError(error: Error) {
     const isChunk =
@@ -62,14 +61,27 @@ class ChunkErrorBoundary extends Component<{ children: ReactNode }, { failed: bo
       if (Date.now() - last > 15000) {
         sessionStorage.setItem(key, String(Date.now()));
         window.location.reload();
-        return { failed: false };
+        return { failed: false, error: null };
       }
     }
-    return { failed: true };
+    return { failed: true, error };
   }
   componentDidCatch(_error: Error, _info: ErrorInfo) {}
   render() {
-    return this.state.failed ? <PageLoader /> : this.props.children;
+    if (!this.state.failed) return this.props.children;
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', fontFamily: 'Inter, system-ui, sans-serif', background: '#f9fafb' }}>
+        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>⚠️</div>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', marginBottom: '0.5rem' }}>Что-то пошло не так</h2>
+        <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem', textAlign: 'center' }}>Произошла непредвиденная ошибка. Попробуйте обновить страницу.</p>
+        <button
+          onClick={() => { this.setState({ failed: false, error: null }); window.location.href = '/'; }}
+          style={{ padding: '0.625rem 1.5rem', borderRadius: '0.75rem', background: '#22a849', color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}
+        >
+          На главную
+        </button>
+      </div>
+    );
   }
 }
 

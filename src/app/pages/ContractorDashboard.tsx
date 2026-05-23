@@ -482,7 +482,7 @@ export default function ContractorDashboard() {
           />
           <div
             className="lg:hidden fixed top-0 left-0 h-full z-[70] flex flex-col"
-            style={{ width: '72vw', maxWidth: '300px', background: c.surface, borderRight: `2px solid ${ACCENT}` }}
+            style={{ width: 'min(72vw, calc(100% - 3rem))', maxWidth: '300px', background: c.surface, borderRight: `2px solid ${ACCENT}` }}
           >
             {/* Drawer header — profile, clickable */}
             <button
@@ -854,7 +854,7 @@ export default function ContractorDashboard() {
                                             setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
                                           } catch { setChatInput(text); } finally { setChatSending(false); }
                                         }}
-                                        style={{ width: '2rem', height: '2rem', borderRadius: '0.5rem', background: chatInput.trim() ? ACCENT : c.border, color: 'white', border: 'none', cursor: chatInput.trim() ? 'pointer' : 'default', fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                                        style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.5rem', background: chatInput.trim() ? ACCENT : c.border, color: 'white', border: 'none', cursor: chatInput.trim() ? 'pointer' : 'default', fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
                                       >→</button>
                                     </div>
                                   </div>
@@ -924,10 +924,16 @@ export default function ContractorDashboard() {
                 const cancelledJobs = myJobs.filter(j => j.status === 'cancelled');
                 const allDone = [...completedJobs, ...cancelledJobs];
                 return myJobsLoading ? (
-                  <div className="text-center py-12" style={card}>
-                    <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-t-transparent animate-spin" style={{ borderColor: `${c.border} ${c.border} ${c.border} ${ACCENT}` }} />
-                    <div className="font-medium mb-1" style={{ color: c.text }}>Загружаем информацию...</div>
-                    <div className="text-sm" style={{ color: c.muted }}>Пожалуйста, подождите</div>
+                  <div className="space-y-3">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} style={{ ...card, padding: '1rem' }}>
+                        <div className="animate-pulse space-y-2">
+                          <div className="h-4 rounded-lg w-2/3" style={{ background: c.border }} />
+                          <div className="h-3 rounded-lg w-1/2" style={{ background: c.border }} />
+                          <div className="h-3 rounded-lg w-1/4" style={{ background: c.border }} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : allDone.length === 0 ? (
                   <div className="text-center py-12" style={card}>

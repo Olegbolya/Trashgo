@@ -501,7 +501,7 @@ export default function OrderDetail() {
             </div>
 
             {/* Messages */}
-            <div style={{ maxHeight: 280, overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ maxHeight: 'clamp(180px, 40vh, 320px)', overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {chatMessages.length === 0 ? (
                 <div className="text-center py-4 text-xs" style={{ color: c.muted }}>Напишите исполнителю/заказчику</div>
               ) : chatMessages.map(msg => {
@@ -527,7 +527,7 @@ export default function OrderDetail() {
             </div>
 
             {/* Input */}
-            <div style={{ display: 'flex', gap: 8, padding: '0.75rem', borderTop: `1px solid ${c.border}` }}>
+            <div style={{ display: 'flex', gap: 8, padding: '0.75rem', paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))', borderTop: `1px solid ${c.border}` }}>
               <input
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}

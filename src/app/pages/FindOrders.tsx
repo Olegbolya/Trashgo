@@ -271,7 +271,7 @@ export default function FindOrders() {
         {/* Sort + Filter tabs */}
         <div style={{ background: '#fff', borderRadius: '0.875rem', border: '1px solid #e5e7eb', padding: '0.75rem', marginBottom: '1rem' }}>
           <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.7rem', color: '#9ca3af', alignSelf: 'center' }}>Сортировка:</span>
+            <span style={{ fontSize: '0.8rem', color: '#9ca3af', alignSelf: 'center' }}>Сортировка:</span>
             {([
               { key: 'smart' as SortType, label: '✨ Умный' },
               { key: 'price_desc' as SortType, label: '↓ Цена' },
@@ -292,7 +292,7 @@ export default function FindOrders() {
             ))}
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.7rem', color: '#9ca3af', alignSelf: 'center' }}>Фильтр:</span>
+            <span style={{ fontSize: '0.8rem', color: '#9ca3af', alignSelf: 'center' }}>Фильтр:</span>
             {([
               { key: 'all' as FilterType, label: `Все (${orders.length})` },
               { key: 'asap' as FilterType, label: `⚡ Срочные (${orders.filter(o => o.asap).length})` },
@@ -345,9 +345,9 @@ export default function FindOrders() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: isAsap ? '#f97316' : '#22c55e', flexShrink: 0 }} />
                       <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{formatAge(order.createdAt)}</span>
-                      {isAsap && <span style={{ background: '#f97316', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: 99, fontWeight: 700 }}>⚡ Срочно</span>}
-                      {isTop && !isAsap && <span style={{ background: accentColor, color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: 99, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}><Sparkles style={{ width: 10, height: 10 }} />Лучшее</span>}
-                      {isSameDistrict && !isTop && <span style={{ background: '#dcfce7', color: '#15803d', fontSize: '0.7rem', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>Ваш район</span>}
+                      {isAsap && <span style={{ background: '#f97316', color: '#fff', fontSize: '0.8rem', padding: '2px 8px', borderRadius: 99, fontWeight: 700 }}>⚡ Срочно</span>}
+                      {isTop && !isAsap && <span style={{ background: accentColor, color: '#fff', fontSize: '0.8rem', padding: '2px 8px', borderRadius: 99, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}><Sparkles style={{ width: 10, height: 10 }} />Лучшее</span>}
+                      {isSameDistrict && !isTop && <span style={{ background: '#dcfce7', color: '#15803d', fontSize: '0.8rem', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>Ваш район</span>}
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>

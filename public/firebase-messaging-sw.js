@@ -1,10 +1,21 @@
 // ── Static asset caching + offline fallback ───────────────────────────────
-const CACHE = 'trashgo-v2';
+const CACHE = 'trashgo-v3';
 const OFFLINE_URL = '/offline.html';
+const APP_SHELL = [
+  '/',
+  '/offline.html',
+  '/manifest.json',
+  '/favicon.png',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
+];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE).then(c => c.add(OFFLINE_URL)));
+  event.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(APP_SHELL).catch(() => c.add(OFFLINE_URL)))
+  );
 });
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -20,8 +31,8 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
 
-  // Static assets: cache-first
-  if (/\.(js|css|woff2?|ttf|png|svg|ico|webp)(\?|$)/.test(url.pathname)) {
+  // Static assets + fonts: cache-first
+  if (/\.(js|css|woff2?|ttf|png|svg|ico|webp|jpg|jpeg)(\?|$)/.test(url.pathname)) {
     event.respondWith(
       caches.match(req).then(cached => {
         if (cached) return cached;
@@ -35,11 +46,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Navigation requests: network-first, fall back to offline page
+  // Navigation requests: network-first with stale-while-revalidate fallback
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req).catch(() => caches.match(OFFLINE_URL))
+      fetch(req)
+        .then(res => {
+          if (res.ok) {
+            caches.open(CACHE).then(c => c.put(req, res.clone()));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req).then(cached => cached ?? caches.match(OFFLINE_URL)))
     );
+    return;
   }
 });
 // ── Background Sync — queue API POST requests while offline ──────────────────
@@ -83,7 +102,6 @@ async function replaySyncQueue() {
       if (res.ok) {
         const tx = db.transaction(SYNC_STORE_NAME, 'readwrite');
         tx.objectStore(SYNC_STORE_NAME).delete(item.id);
-        // Notify open tabs that a queued message was sent
         self.clients.matchAll({ type: 'window' }).then(clients => {
           clients.forEach(c => c.postMessage({ type: 'SYNC_COMPLETE', url: item.url }));
         });
@@ -96,8 +114,6 @@ async function replaySyncQueue() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Firebase Cloud Messaging service worker
-// Config is passed via URL search param `firebaseConfig` (JSON-encoded) when the SW is registered.
-// This avoids hardcoding credentials while keeping the SW self-contained.
 importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
 

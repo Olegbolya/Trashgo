@@ -55,6 +55,9 @@ export function connectSSE(token: string) {
         toast(event.title ?? 'Уведомление', {
           description: event.message,
           duration: 4000,
+          action: event.orderId
+            ? { label: 'Открыть', onClick: () => { window.location.href = `/order/${event.orderId}`; } }
+            : undefined,
         });
 
         // Notify open chat windows to refresh instantly (no polling delay)
