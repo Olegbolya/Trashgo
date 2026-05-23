@@ -54,12 +54,14 @@ export default function Notifications() {
   const { notifications, markRead, markAllRead, clearAll, settings, updateSettings } = useNotificationsStore();
   const { user, updateUser } = useAuthStore();
   const [tab, setTab] = useState<'list' | 'settings'>('list');
-  const [emailInput, setEmailInput] = useState(user?.notifEmailAddress ?? settings?.emailAddress ?? '');
+  const [emailInput, setEmailInput] = useState(user?.notifEmailAddress ?? user?.email ?? settings?.emailAddress ?? '');
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingEmailToggle, setSavingEmailToggle] = useState(false);
   const [savingPushToggle, setSavingPushToggle] = useState(false);
+  const [savingTgToggle, setSavingTgToggle] = useState(false);
   const [botUsername, setBotUsername] = useState<string | null>(null);
   const emailEnabled = user?.notifEmail ?? settings?.emailEnabled ?? false;
+  const tgNotifEnabled = user?.notifTelegram ?? true;
 
   useEffect(() => {
     if (tab === 'settings' && !user?.telegramLinked) {
@@ -178,33 +180,43 @@ export default function Notifications() {
             </div>
             <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
               <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: emailEnabled ? `1px solid ${c.border}` : 'none' }}>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" style={{ color: ACCENT }} />
-                  <span className="text-sm font-semibold" style={{ color: c.text }}>Email-уведомления</span>
-                  {savingEmailToggle && <div className="w-3.5 h-3.5 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: ACCENT }} />}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4" style={{ color: ACCENT }} />
+                    <span className="text-sm font-semibold" style={{ color: c.text }}>Email-уведомления</span>
+                    {savingEmailToggle && <div className="w-3.5 h-3.5 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: ACCENT }} />}
+                  </div>
+                  <div className="text-xs mt-0.5 ml-6" style={{ color: c.muted }}>
+                    {emailEnabled
+                      ? `Дублируются на ${user?.notifEmailAddress || user?.email || 'почту'}`
+                      : 'По умолчанию отключено'}
+                  </div>
                 </div>
                 <Toggle value={emailEnabled} onChange={async (v) => {
+                  if (v && !emailInput && user?.email) setEmailInput(user.email);
                   updateSettings({ emailEnabled: v });
                   setSavingEmailToggle(true);
                   try {
-                    const updated = await authApi.updateProfile({ notifEmail: v });
-                    updateUser({ notifEmail: updated.notifEmail });
+                    const patch: Record<string, any> = { notifEmail: v };
+                    if (v && !user?.notifEmailAddress && user?.email) patch.notifEmailAddress = user.email;
+                    const updated = await authApi.updateProfile(patch);
+                    updateUser({ notifEmail: updated.notifEmail, notifEmailAddress: updated.notifEmailAddress });
                   } catch { toast.error('Не удалось сохранить настройку'); }
                   finally { setSavingEmailToggle(false); }
                 }} />
               </div>
               {emailEnabled && (
                 <div className="px-4 py-3">
-                  <div className="text-xs mb-2" style={{ color: c.muted }}>Email для получения уведомлений</div>
+                  <div className="text-xs mb-2" style={{ color: c.muted }}>Email для уведомлений (привязан к аккаунту)</div>
                   <div className="flex gap-2">
-                    <input type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="example@mail.ru" style={{ flex: 1, height: '2.25rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: c.subtle, color: c.text, padding: '0 0.75rem', fontSize: '0.875rem', fontFamily: 'inherit', outline: 'none' }} />
+                    <input type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="your@email.com" style={{ flex: 1, height: '2.25rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: c.subtle, color: c.text, padding: '0 0.75rem', fontSize: '0.875rem', fontFamily: 'inherit', outline: 'none' }} />
                     <button
                       disabled={savingEmail}
                       onClick={async () => {
                         setSavingEmail(true);
                         try {
-                          const updated = await authApi.updateProfile({ notifEmailAddress: emailInput });
-                          updateUser({ notifEmailAddress: updated.notifEmailAddress });
+                          const updated = await authApi.updateProfile({ notifEmailAddress: emailInput, email: emailInput });
+                          updateUser({ notifEmailAddress: updated.notifEmailAddress, email: updated.email });
                           updateSettings({ emailAddress: emailInput });
                           toast.success('Email сохранён');
                         } catch { toast.error('Не удалось сохранить email'); }
@@ -215,13 +227,13 @@ export default function Notifications() {
                       {savingEmail ? '...' : 'Сохранить'}
                     </button>
                   </div>
-                  <div className="text-xs mt-2" style={{ color: c.muted }}>Уведомления о завершении заказов будут дублироваться на почту</div>
+                  <div className="text-xs mt-2" style={{ color: c.muted }}>Почта закреплена за аккаунтом — используется для входа и уведомлений</div>
                 </div>
               )}
             </div>
             {/* Telegram */}
             <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-              <div className="px-4 py-3 flex items-center justify-between">
+              <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${c.border}` }}>
                 <div className="flex items-center gap-2">
                   <Send className="w-4 h-4" style={{ color: '#2196F3' }} />
                   <span className="text-sm font-semibold" style={{ color: c.text }}>Telegram</span>
@@ -236,9 +248,31 @@ export default function Notifications() {
                       : <span className="text-xs" style={{ color: c.muted }}>Не привязан</span>
                   )}
               </div>
-              <div className="px-4 pb-3 text-xs" style={{ color: c.muted }}>
+              {user?.telegramLinked && (
+                <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${c.border}` }}>
+                  <div>
+                    <div className="text-sm font-medium" style={{ color: c.text }}>Уведомления о заказах</div>
+                    <div className="text-xs" style={{ color: c.muted }}>Статусы, чат, новые заявки</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {savingTgToggle && <div className="w-3.5 h-3.5 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: ACCENT }} />}
+                    <Toggle value={tgNotifEnabled} onChange={async (v) => {
+                      updateUser({ notifTelegram: v });
+                      setSavingTgToggle(true);
+                      try {
+                        const updated = await authApi.updateProfile({ notifTelegram: v });
+                        updateUser({ notifTelegram: (updated as any).notifTelegram });
+                      } catch { toast.error('Не удалось сохранить настройку'); }
+                      finally { setSavingTgToggle(false); }
+                    }} />
+                  </div>
+                </div>
+              )}
+              <div className="px-4 py-3 text-xs" style={{ color: c.muted }}>
                 {user?.telegramLinked
-                  ? 'Уведомления о заказах, чатах и статусах будут приходить в Telegram — даже когда приложение закрыто.'
+                  ? tgNotifEnabled
+                    ? 'Уведомления о заказах и чатах приходят в Telegram. Коды входа — всегда.'
+                    : 'В Telegram приходят только коды входа. Уведомления о заказах отключены.'
                   : 'Привяжите Telegram-бот, чтобы получать уведомления когда приложение закрыто.'}
               </div>
             </div>

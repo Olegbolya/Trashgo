@@ -79,7 +79,7 @@ export default function CustomerDashboard() {
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [ratingOrder, setRatingOrder] = useState<{ id: string; contractorName: string } | null>(null);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
-  const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '' });
+  const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '', email: '' });
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [referralCount, setReferralCount] = useState(0);
   const [apiAchievements, setApiAchievements] = useState<AchievementItem[]>([]);
@@ -927,7 +927,7 @@ export default function CustomerDashboard() {
                   <button
                     className="h-8 px-3 rounded-lg text-xs flex-shrink-0"
                     style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
-                    onClick={() => { setEditProfileForm({ name: user?.name || '', district: user?.district || '' }); setEditProfileOpen(true); }}
+                    onClick={() => { setEditProfileForm({ name: user?.name || '', district: user?.district || '', email: user?.email || '' }); setEditProfileOpen(true); }}
                   >
                     <Edit className="w-3.5 h-3.5 inline mr-1" />Изменить
                   </button>
@@ -2225,21 +2225,34 @@ export default function CustomerDashboard() {
                   style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                 />
               </div>
-              <div className="mb-5">
-                <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Район (для автозаполнения адреса)</div>
+              <div className="mb-4">
+                <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Адрес (для автозаполнения заявок)</div>
                 <input
                   value={editProfileForm.district}
                   onChange={e => setEditProfileForm(f => ({ ...f, district: e.target.value }))}
-                  placeholder="Например: Вахитовский"
+                  placeholder="ул. Баумана, 58, подъезд 1"
                   style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                 />
+              </div>
+              <div className="mb-5">
+                <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Email</div>
+                <input
+                  type="email"
+                  value={editProfileForm.email}
+                  onChange={e => setEditProfileForm(f => ({ ...f, email: e.target.value }))}
+                  placeholder="your@email.com"
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                />
+                <div className="text-xs mt-1" style={{ color: c.muted }}>Используется для входа в аккаунт</div>
               </div>
               <button
                 disabled={editProfileSaving || !editProfileForm.name.trim()}
                 onClick={async () => {
                   setEditProfileSaving(true);
                   try {
-                    const updated = await authApi.updateProfile({ name: editProfileForm.name.trim(), district: editProfileForm.district.trim() });
+                    const patch: Record<string, any> = { name: editProfileForm.name.trim(), district: editProfileForm.district.trim() };
+                    if (editProfileForm.email.trim()) patch.email = editProfileForm.email.trim();
+                    const updated = await authApi.updateProfile(patch);
                     updateUser(updated);
                     setEditProfileOpen(false);
                     toast.success('Профиль обновлён');

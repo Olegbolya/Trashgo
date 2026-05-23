@@ -88,7 +88,8 @@ export default function ContractorDashboard() {
   const [editInfoForm, setEditInfoForm] = useState({ transportMode: 'car' });
   const [editInfoSaving, setEditInfoSaving] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
-  const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '', inn: '' });
+  const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '', inn: '', email: '' });
+  const CONTRACTOR_DISTRICTS = ['Вахитовский', 'Приволжский', 'Советский', 'Ново-Савиновский', 'Московский', 'Авиастроительный', 'Кировский'];
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [myJobsLoading, setMyJobsLoading] = useState(false);
   const [apiAchievements, setApiAchievements] = useState<AchievementItem[]>([]);
@@ -1110,7 +1111,7 @@ export default function ContractorDashboard() {
                   <button
                     className="h-8 px-3 rounded-lg text-xs flex-shrink-0"
                     style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
-                    onClick={() => { setEditProfileForm({ name: user?.name || '', district: '', inn: user?.inn || '' }); setEditProfileOpen(true); }}
+                    onClick={() => { setEditProfileForm({ name: user?.name || '', district: user?.district || '', inn: user?.inn || '', email: user?.email || '' }); setEditProfileOpen(true); }}
                   >
                     <Edit className="w-3.5 h-3.5 inline mr-1" />Изменить
                   </button>
@@ -1859,6 +1860,16 @@ export default function ContractorDashboard() {
                 />
               </div>
               <div className="mb-4">
+                <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Район работы</div>
+                <select
+                  value={editProfileForm.district}
+                  onChange={e => setEditProfileForm(f => ({ ...f, district: e.target.value }))}
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit', appearance: 'none', cursor: 'pointer' }}
+                >
+                  {CONTRACTOR_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div className="mb-4">
                 <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>ИНН самозанятого <span style={{ fontWeight: 400, color: c.muted }}>(необязательно)</span></div>
                 <input
                   value={editProfileForm.inn}
@@ -1875,13 +1886,23 @@ export default function ContractorDashboard() {
                   <div className="text-xs mt-1" style={{ color: '#22c55e' }}>✓ ИНН принят</div>
                 )}
               </div>
+              <div className="mb-5">
+                <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Email</div>
+                <input
+                  type="email"
+                  value={editProfileForm.email}
+                  onChange={e => setEditProfileForm(f => ({ ...f, email: e.target.value }))}
+                  placeholder="your@email.com"
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                />
+                <div className="text-xs mt-1" style={{ color: c.muted }}>Используется для входа в аккаунт</div>
+              </div>
               <button
                 disabled={editProfileSaving || !editProfileForm.name.trim() || (editProfileForm.inn.length > 0 && editProfileForm.inn.length < 12)}
                 onClick={async () => {
                   setEditProfileSaving(true);
                   try {
                     if (editProfileForm.inn.length === 12 && editProfileForm.inn !== user?.inn) {
-                      // Verify INN via FNS when it changes
                       try {
                         const { selfEmployed } = await authApi.verifyInn(editProfileForm.inn);
                         updateUser({ inn: editProfileForm.inn, innVerified: selfEmployed });
@@ -1891,7 +1912,9 @@ export default function ContractorDashboard() {
                         await authApi.updateProfile({ inn: editProfileForm.inn });
                       }
                     }
-                    const updated = await authApi.updateProfile({ name: editProfileForm.name.trim() });
+                    const patch: Record<string, any> = { name: editProfileForm.name.trim(), district: editProfileForm.district };
+                    if (editProfileForm.email.trim()) patch.email = editProfileForm.email.trim();
+                    const updated = await authApi.updateProfile(patch);
                     updateUser(updated);
                     setEditProfileOpen(false);
                     toast.success('Профиль обновлён');

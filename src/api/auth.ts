@@ -98,14 +98,17 @@ export const authApi = {
   async updateProfile(data: {
     name?: string;
     district?: string;
+    email?: string | null;
     transportMode?: string;
     addresses?: string[];
     notifPush?: boolean;
     notifEmail?: boolean;
     notifEmailAddress?: string | null;
+    notifTelegram?: boolean;
     fcmToken?: string | null;
     isAvailable?: boolean;
     inn?: string | null;
+    [key: string]: any;
   }): Promise<User> {
     const res = await api.patch<{ data: User }>('/users/me', data);
     return res.data;
