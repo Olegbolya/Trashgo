@@ -397,7 +397,7 @@ export default function CustomerDashboard() {
     title: 'Новый клиент',
     rank: getRankLabel(currentLevel),
     achievements: apiAchievements.filter(a => a.unlocked).length,
-    totalOrders: stats.totalOrders,
+    totalOrders: myOrders.length,
   };
 
   // Local-only achievements not tracked in DB (level-based)
