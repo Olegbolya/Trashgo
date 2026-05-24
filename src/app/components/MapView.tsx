@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { API_BASE_URL } from '../../api/client';
 
 interface Props {
   address: string;
@@ -19,7 +20,7 @@ export function MapView({ address, isDark }: Props) {
     geocodedRef.current = true;
 
     const searchQuery = /казань|kazan/i.test(address) ? address : `${address}, Казань, Россия`;
-    fetch(`/api/v1/geocode?q=${encodeURIComponent(searchQuery)}`)
+    fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(searchQuery)}`)
       .then(r => r.json())
       .then((data: any[]) => {
         if (data[0]) {

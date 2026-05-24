@@ -117,15 +117,15 @@ export default function RegisterCustomer() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: c.label, marginBottom: '0.375rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>Подъезд</label>
-                <input placeholder="1" value={formData.entrance} onChange={(e) => setFormData({ ...formData, entrance: e.target.value })} style={inputStyle(!!formData.entrance)} />
+                <input inputMode="numeric" placeholder="1" value={formData.entrance} onChange={(e) => setFormData({ ...formData, entrance: e.target.value })} style={inputStyle(!!formData.entrance)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: c.label, marginBottom: '0.375rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>Этаж</label>
-                <input placeholder="5" value={formData.floor} onChange={(e) => setFormData({ ...formData, floor: e.target.value })} style={inputStyle(!!formData.floor)} />
+                <input inputMode="numeric" placeholder="5" value={formData.floor} onChange={(e) => setFormData({ ...formData, floor: e.target.value })} style={inputStyle(!!formData.floor)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: c.label, marginBottom: '0.375rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>Квартира</label>
-                <input placeholder="42" value={formData.apartment} onChange={(e) => setFormData({ ...formData, apartment: e.target.value })} style={inputStyle(!!formData.apartment)} />
+                <input inputMode="numeric" placeholder="42" value={formData.apartment} onChange={(e) => setFormData({ ...formData, apartment: e.target.value })} style={inputStyle(!!formData.apartment)} />
               </div>
             </div>
 

@@ -53,7 +53,7 @@ function NativeBootstrap() {
       try {
         // Status bar
         const { StatusBar, Style } = await import('@capacitor/status-bar');
-        await StatusBar.setStyle({ style: Style.Dark });
+        await StatusBar.setStyle({ style: Style.Light });
         await StatusBar.setBackgroundColor({ color: '#22a849' });
 
         // Back button

@@ -82,7 +82,7 @@ export default function Layout({ children }: LayoutProps) {
       </aside>
 
       {/* Mobile header with back button */}
-      <header className="lg:hidden sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}` }}>
+      <header className="lg:hidden sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}`, paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="flex items-center gap-3 px-4 h-12">
           <button
             onClick={() => navigate(-1)}

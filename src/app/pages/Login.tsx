@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { authApi } from '../../api/auth';
 import { useRoleStore } from '../../stores/role.store';
 import { toast } from 'sonner';
+import { isNative } from '../../lib/platform';
 
 function formatPhone(raw: string) {
   const digits = raw.replace(/\D/g, '').replace(/^7/, '').replace(/^8/, '').slice(0, 10);
@@ -144,11 +145,12 @@ export default function Login() {
               <label className="text-sm text-gray-600 mb-2 block">Email <span className="text-red-500">*</span></label>
               <Input
                 type="email"
+                inputMode="email"
                 placeholder="your@email.com"
                 className="h-12 border-gray-200"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoFocus
+                autoFocus={!isNative()}
                 required
               />
             </div>
@@ -179,11 +181,12 @@ export default function Login() {
               </label>
               <Input
                 type="tel"
+                inputMode="tel"
                 placeholder="+7 (___) ___-__-__"
                 className="h-12 border-gray-200 text-lg"
                 value={phone ? formatPhone(phone) : ''}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                autoFocus
+                autoFocus={!isNative()}
                 required
               />
               <p className="text-xs text-gray-500 mt-1.5">

@@ -25,10 +25,19 @@ export async function registerNativePush() {
 
   PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
     const data = notification.data ?? {};
+    let path: string | null = null;
     if (data.orderId) {
-      window.location.href = `/order/${data.orderId}`;
+      path = `/order/${data.orderId}`;
     } else if (data.url) {
-      window.location.href = data.url;
+      try {
+        path = new URL(data.url).pathname;
+      } catch {
+        path = data.url.startsWith('/') ? data.url : null;
+      }
+    }
+    if (path) {
+      history.pushState(null, '', path);
+      window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
     }
   });
 }

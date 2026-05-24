@@ -18,6 +18,7 @@ function getCurrentToken(): string | null {
 }
 
 export function connectSSE(token: string) {
+  if (es?.readyState === EventSource.CLOSED) { es = null; }
   if (es) return;
 
   const url = `${SSE_BASE}/api/v1/notifications/stream?token=${encodeURIComponent(token)}`;
@@ -56,7 +57,10 @@ export function connectSSE(token: string) {
           description: event.message,
           duration: 4000,
           action: event.orderId
-            ? { label: 'Открыть', onClick: () => { window.location.href = `/order/${event.orderId}`; } }
+            ? { label: 'Открыть', onClick: () => {
+                history.pushState(null, '', `/order/${event.orderId}`);
+                window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+              }}
             : undefined,
         });
 

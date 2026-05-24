@@ -2,9 +2,12 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { isNative } from '../lib/platform';
 
 async function dataUrlToFile(dataUrl: string, name: string): Promise<File> {
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
-  return new File([blob], name, { type: blob.type || 'image/jpeg' });
+  const [header, base64] = dataUrl.split(',');
+  const mime = header.match(/data:([^;]+)/)?.[1] ?? 'image/jpeg';
+  const binary = atob(base64);
+  const buffer = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) buffer[i] = binary.charCodeAt(i);
+  return new File([buffer], name, { type: mime });
 }
 
 /** On native: opens camera/gallery via Capacitor and returns File[].

@@ -26,6 +26,7 @@ import { TelegramReminder } from '../components/TelegramReminder';
 import { KazanAddressInput } from '../components/KazanAddressInput';
 import { isNative } from '../../lib/platform';
 import { pickPhotosNative } from '../../hooks/useNativeCamera';
+import { API_BASE_URL } from '../../api/client';
 
 const ACCENT = '#66BB6A';
 
@@ -527,7 +528,7 @@ export default function CustomerDashboard() {
       </aside>
 
       {/* Mobile header */}
-      <header className="lg:hidden sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}` }}>
+      <header className="lg:hidden sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}`, paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="container mx-auto px-3">
           <div className="flex items-center justify-between h-12">
             <button
@@ -1322,7 +1323,7 @@ export default function CustomerDashboard() {
                             if (val.length >= 4) {
                               geocodeTimerRef.current = setTimeout(async () => {
                                 try {
-                                  const res = await fetch(`/api/v1/geocode?q=${encodeURIComponent(val + ' Казань')}&limit=5`);
+                                  const res = await fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(val + ' Казань')}&limit=5`);
                                   const data: any[] = await res.json();
                                   const suggestions = data
                                     .filter(d => d.address)
@@ -2259,7 +2260,7 @@ export default function CustomerDashboard() {
       })()}
 
       {/* Bottom nav - mobile */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40" style={{ background: c.surface, borderTop: `1px solid ${c.border}` }}>
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40" style={{ background: c.surface, borderTop: `1px solid ${c.border}`, paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-around h-16">
             <button onClick={() => setActiveTab('home')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'home' ? ACCENT : c.muted }}>

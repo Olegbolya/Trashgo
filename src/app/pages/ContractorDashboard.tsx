@@ -23,6 +23,7 @@ import { FrozenBanner } from '../components/FrozenBanner';
 import { TelegramReminder } from '../components/TelegramReminder';
 import { isNative } from '../../lib/platform';
 import { pickPhotosNative } from '../../hooks/useNativeCamera';
+import { API_BASE_URL } from '../../api/client';
 
 const ACCENT = '#2196F3';
 
@@ -297,7 +298,7 @@ export default function ContractorDashboard() {
         geocodedIds.add(order.id);
         try {
           const q = /казань|kazan/i.test(order.address) ? order.address : `${order.address}, Казань, Россия`;
-          const res = await fetch(`/api/v1/geocode?q=${encodeURIComponent(q)}`);
+          const res = await fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(q)}`);
           const data = await res.json();
           if (!cancelled) setOrderCoords(prev => {
             const next = new Map(prev);
@@ -466,7 +467,7 @@ export default function ContractorDashboard() {
       </aside>
 
       {/* Mobile header */}
-      <header className="lg:hidden sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}` }}>
+      <header className="lg:hidden sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}`, paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="container mx-auto px-3">
           <div className="flex items-center justify-between h-12">
             <button
@@ -1843,7 +1844,7 @@ export default function ContractorDashboard() {
       )}
 
       {/* Bottom nav - mobile */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40" style={{ background: c.surface, borderTop: `1px solid ${c.border}` }}>
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40" style={{ background: c.surface, borderTop: `1px solid ${c.border}`, paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-around h-16">
             <button onClick={() => setActiveTab('active')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'active' ? ACCENT : c.muted }}>
