@@ -45,11 +45,14 @@ function PageLoader() {
   );
 }
 
-class ChunkErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean; error: Error | null }> {
+class ChunkErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean; error: Error | null; countdown: number }> {
+  private _timer: ReturnType<typeof setInterval> | null = null;
+
   constructor(props: { children: ReactNode }) {
     super(props);
-    this.state = { failed: false, error: null };
+    this.state = { failed: false, error: null, countdown: 5 };
   }
+
   static getDerivedStateFromError(error: Error) {
     const isChunk =
       error?.message?.includes('Failed to fetch dynamically imported module') ||
@@ -61,25 +64,65 @@ class ChunkErrorBoundary extends Component<{ children: ReactNode }, { failed: bo
       if (Date.now() - last > 15000) {
         sessionStorage.setItem(key, String(Date.now()));
         window.location.reload();
-        return { failed: false, error: null };
+        return { failed: false, error: null, countdown: 5 };
       }
     }
-    return { failed: true, error };
+    return { failed: true, error, countdown: 5 };
   }
-  componentDidCatch(_error: Error, _info: ErrorInfo) {}
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[ChunkErrorBoundary]', error, info.componentStack);
+  }
+
+  componentDidUpdate(_: unknown, prev: { failed: boolean }) {
+    if (this.state.failed && !prev.failed) {
+      this._timer = setInterval(() => {
+        this.setState((s) => {
+          if (s.countdown <= 1) {
+            clearInterval(this._timer!);
+            this._timer = null;
+            window.location.href = '/';
+            return { countdown: 0 };
+          }
+          return { countdown: s.countdown - 1 };
+        });
+      }, 1000);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this._timer) clearInterval(this._timer);
+  }
+
+  handleRetry = () => {
+    if (this._timer) { clearInterval(this._timer); this._timer = null; }
+    this.setState({ failed: false, error: null, countdown: 5 });
+  };
+
   render() {
     if (!this.state.failed) return this.props.children;
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', fontFamily: 'Inter, system-ui, sans-serif', background: '#f9fafb' }}>
         <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>⚠️</div>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', marginBottom: '0.5rem' }}>Что-то пошло не так</h2>
-        <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem', textAlign: 'center' }}>Произошла непредвиденная ошибка. Попробуйте обновить страницу.</p>
-        <button
-          onClick={() => { this.setState({ failed: false, error: null }); window.location.href = '/'; }}
-          style={{ padding: '0.625rem 1.5rem', borderRadius: '0.75rem', background: '#22a849', color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}
-        >
-          На главную
-        </button>
+        <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem', textAlign: 'center' }}>
+          Произошла непредвиденная ошибка.<br />
+          Переход на главную через {this.state.countdown} с…
+        </p>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={this.handleRetry}
+            style={{ padding: '0.625rem 1.5rem', borderRadius: '0.75rem', background: '#22a849', color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}
+          >
+            Попробовать снова
+          </button>
+          <button
+            onClick={() => { window.location.href = '/'; }}
+            style={{ padding: '0.625rem 1.5rem', borderRadius: '0.75rem', background: 'transparent', color: '#6b7280', border: '1px solid #d1d5db', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}
+          >
+            На главную
+          </button>
+        </div>
       </div>
     );
   }

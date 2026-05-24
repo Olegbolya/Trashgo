@@ -84,8 +84,14 @@ export function NotificationBell({ accentColor }: Props) {
         <Bell className="w-5 h-5" />
         {unread > 0 && (
           <span
-            className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-bold text-white px-1"
-            style={{ background: '#ef4444' }}
+            style={{
+              position: 'absolute', top: '-5px', right: '-5px',
+              minWidth: '18px', height: '18px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '9999px', fontSize: '10px', fontWeight: 700,
+              color: 'white', padding: '0 4px', background: '#ef4444',
+              lineHeight: 1, boxSizing: 'border-box', pointerEvents: 'none',
+            }}
           >
             {unread > 99 ? '99+' : unread}
           </span>
