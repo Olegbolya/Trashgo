@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Users, Copy, Share2, CheckCircle, MapPin, Gift, Zap, Phone, MessageCircle, Briefcase, ChevronRight, UserPlus } from 'lucide-react';
+import { Users, Copy, Share2, CheckCircle, MapPin, Gift, Zap, Briefcase, ChevronRight, UserPlus } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -76,24 +76,6 @@ export default function InviteNeighbor() {
 
   return (
     <div className="min-h-screen pb-14" style={{ background: c.bg }}>
-      {/* Header */}
-      <header className="sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}` }}>
-        <div className="container mx-auto px-3">
-          <div className="flex items-center justify-between h-12">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted }}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">Назад</span>
-            </button>
-            <div className="text-sm font-semibold" style={{ color: c.text }}>Пригласи соседей</div>
-            <div className="w-16" />
-          </div>
-        </div>
-      </header>
-
       {loading ? (
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="w-8 h-8 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: GREEN_LIGHT }} />
@@ -153,22 +135,27 @@ export default function InviteNeighbor() {
             </div>
           </div>
 
-          {/* Referral link */}
-          <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-            <h2 className="text-sm font-semibold mb-3" style={{ color: c.text }}>Ваша ссылка для соседей</h2>
-            <div className="rounded-xl p-3 mb-3" style={{ background: c.subtle, border: `1px solid ${c.border}` }}>
-              <div className="text-xs mb-1" style={{ color: c.muted }}>Ссылка для заказчиков</div>
-              <div className="text-sm font-mono break-all" style={{ color: c.text }}>{referralLink || '...'}</div>
+          {/* Referral link + CTA — merged */}
+          <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+            <div className="px-4 py-3" style={{ background: `${GREEN_LIGHT}15`, borderBottom: `1px solid ${c.border}` }}>
+              <div className="text-base font-bold mb-0.5" style={{ color: c.text }}>Расскажите соседям!</div>
+              <div className="text-xs" style={{ color: c.muted }}>Отправьте ссылку в чат подъезда или соседям напрямую</div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button onClick={copyLink} variant="outline" className="w-full" disabled={!referralLink}>
-                {copied
-                  ? <><CheckCircle className="w-4 h-4 mr-2 text-green-600" />Скопировано!</>
-                  : <><Copy className="w-4 h-4 mr-2" />Копировать</>}
-              </Button>
-              <Button onClick={shareLink} className="w-full text-white" style={{ background: GREEN }} disabled={!referralLink}>
-                <Share2 className="w-4 h-4 mr-2" />Поделиться
-              </Button>
+            <div className="p-4">
+              <div className="rounded-xl p-3 mb-3" style={{ background: c.subtle, border: `1px solid ${c.border}` }}>
+                <div className="text-xs mb-1" style={{ color: c.muted }}>Ваша реферальная ссылка</div>
+                <div className="text-sm font-mono break-all" style={{ color: c.text }}>{referralLink || '...'}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={copyLink} variant="outline" className="w-full" disabled={!referralLink}>
+                  {copied
+                    ? <><CheckCircle className="w-4 h-4 mr-2 text-green-600" />Скопировано!</>
+                    : <><Copy className="w-4 h-4 mr-2" />Копировать</>}
+                </Button>
+                <Button onClick={shareLink} className="w-full text-white" style={{ background: GREEN }} disabled={!referralLink}>
+                  <Share2 className="w-4 h-4 mr-2" />Поделиться
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -281,33 +268,6 @@ export default function InviteNeighbor() {
               <Gift className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: GREEN }} />
               <div className="text-xs leading-relaxed" style={{ color: isDark ? '#86efac' : '#14532d' }}>
                 <strong>Скидка личная:</strong> каждый участник программы получает свою скидку пропорционально количеству приглашённых соседей. Пригласили больше — экономите больше.
-              </div>
-            </div>
-          </div>
-
-          {/* CTA buttons */}
-          <div className="rounded-2xl p-5 text-white relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${GREEN}, #15803d)` }}>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
-            <div className="relative">
-              <div className="text-base font-bold mb-2">Расскажите соседям!</div>
-              <div className="text-sm text-white/90 mb-4">
-                Чем больше вас — тем больше скидка у каждого. Отправьте ссылку прямо сейчас.
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  onClick={() => toast.info('WhatsApp', { description: 'Используйте кнопку «Поделиться» выше' })}
-                  className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-                >
-                  <MessageCircle className="w-4 h-4 mr-1.5" />
-                  WhatsApp
-                </Button>
-                <Button
-                  onClick={() => toast.info('Звонок', { description: 'Функция звонков в разработке' })}
-                  className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-                >
-                  <Phone className="w-4 h-4 mr-1.5" />
-                  Позвонить
-                </Button>
               </div>
             </div>
           </div>

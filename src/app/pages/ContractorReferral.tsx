@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Users, Copy, Share2, CheckCircle, Gift, Zap, ChevronRight, UserCheck } from 'lucide-react';
+import { Users, Copy, Share2, CheckCircle, Gift, Zap, ChevronRight, UserCheck } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -66,23 +66,6 @@ export default function ContractorReferral() {
 
   return (
     <div className="min-h-screen pb-14" style={{ background: c.bg, fontFamily: "'Inter', system-ui, sans-serif" }}>
-      {/* Header */}
-      <header className="sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}` }}>
-        <div className="container mx-auto px-3">
-          <div className="flex items-center justify-between h-12">
-            <button
-              onClick={() => navigate(-1)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">Назад</span>
-            </button>
-            <div className="text-sm font-semibold" style={{ color: c.text }}>Программа для исполнителей</div>
-            <div className="w-16" />
-          </div>
-        </div>
-      </header>
-
       {loading ? (
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="w-8 h-8 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: ACCENT }} />
@@ -127,20 +110,25 @@ export default function ContractorReferral() {
             </div>
           </div>
 
-          {/* Referral link */}
-          <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-            <h2 className="text-base font-semibold mb-3" style={{ color: c.text }}>Ваша реферальная ссылка</h2>
-            <div className="rounded-lg p-3 mb-3" style={{ background: c.subtle, border: `1px solid ${c.border}` }}>
-              <div className="text-xs mb-1" style={{ color: c.muted }}>Ссылка для исполнителей</div>
-              <div className="text-sm font-mono break-all" style={{ color: c.text }}>{link || '...'}</div>
+          {/* Referral link + CTA — merged */}
+          <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+            <div className="px-4 py-3" style={{ background: `${ACCENT}14`, borderBottom: `1px solid ${c.border}` }}>
+              <div className="text-base font-bold mb-0.5" style={{ color: c.text }}>Расскажи напарникам!</div>
+              <div className="text-xs" style={{ color: c.muted }}>Поделись ссылкой — они зарегистрируются как исполнители, ты получишь бонус</div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button onClick={copyLink} variant="outline" className="w-full" disabled={!link}>
-                {copied ? <><CheckCircle className="w-4 h-4 mr-2 text-green-600" />Скопировано!</> : <><Copy className="w-4 h-4 mr-2" />Копировать</>}
-              </Button>
-              <Button onClick={shareLink} className="w-full text-white" style={{ background: ACCENT }} disabled={!link}>
-                <Share2 className="w-4 h-4 mr-2" />Поделиться
-              </Button>
+            <div className="p-4">
+              <div className="rounded-lg p-3 mb-3" style={{ background: c.subtle, border: `1px solid ${c.border}` }}>
+                <div className="text-xs mb-1" style={{ color: c.muted }}>Ваша реферальная ссылка для исполнителей</div>
+                <div className="text-sm font-mono break-all" style={{ color: c.text }}>{link || '...'}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={copyLink} variant="outline" className="w-full" disabled={!link}>
+                  {copied ? <><CheckCircle className="w-4 h-4 mr-2 text-green-600" />Скопировано!</> : <><Copy className="w-4 h-4 mr-2" />Копировать</>}
+                </Button>
+                <Button onClick={shareLink} className="w-full text-white" style={{ background: ACCENT }} disabled={!link}>
+                  <Share2 className="w-4 h-4 mr-2" />Поделиться
+                </Button>
+              </div>
             </div>
           </div>
 
