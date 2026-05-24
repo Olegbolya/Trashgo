@@ -983,6 +983,37 @@ export default function CustomerDashboard() {
                   </div>
                 );
               })()}
+              {/* Contact info */}
+              <div style={card}>
+                <h2 className="text-sm font-semibold mb-3" style={{ color: c.text }}>Контактные данные</h2>
+                <div className="space-y-2">
+                  {user?.email && (
+                    <div className="flex items-center justify-between gap-3 p-3 rounded-xl" style={{ background: c.subtle }}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span style={{ fontSize: '1rem', flexShrink: 0 }}>📧</span>
+                        <div className="min-w-0">
+                          <div className="text-xs mb-0.5" style={{ color: c.muted }}>Email</div>
+                          <div className="text-sm font-medium truncate" style={{ color: c.text }}>{user.email}</div>
+                        </div>
+                      </div>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#22c55e18', color: '#16a34a' }}>✓ Подтверждено</span>
+                    </div>
+                  )}
+                  {user?.phone && (
+                    <div className="flex items-center justify-between gap-3 p-3 rounded-xl" style={{ background: c.subtle }}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span style={{ fontSize: '1rem', flexShrink: 0 }}>📱</span>
+                        <div className="min-w-0">
+                          <div className="text-xs mb-0.5" style={{ color: c.muted }}>Телефон</div>
+                          <div className="text-sm font-medium truncate" style={{ color: c.text }}>{user.phone}</div>
+                        </div>
+                      </div>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#22c55e18', color: '#16a34a' }}>✓ Подтверждено</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <AchievementsPanel achievements={achievements} variant="customer" />
 
               {/* Address */}

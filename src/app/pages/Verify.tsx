@@ -28,6 +28,10 @@ export default function Verify() {
   const [error, setError] = useState('');
   const [tgLink, setTgLink] = useState<string | undefined>(telegramBotLink);
   const [tgLoading, setTgLoading] = useState(false);
+  const [showPhoneInput, setShowPhoneInput] = useState(false);
+  const [phoneInput, setPhoneInput] = useState('');
+  // When user switches to phone-based Telegram fallback, verify with phone instead of email
+  const [phoneOverride, setPhoneOverride] = useState<string | null>(null);
   const setAuth = useAuthStore((s) => s.setAuth);
   const accent = useRoleStore((s) => s.accentColor);
 
@@ -52,7 +56,10 @@ export default function Verify() {
     setLoading(true);
 
     try {
-      const res = await authApi.verify(otpKey, code, role, isEmailFlow);
+      // If user got code via Telegram using phone, verify by phone; otherwise by email
+      const effectiveKey = phoneOverride ?? otpKey;
+      const effectiveIsEmail = !phoneOverride && isEmailFlow;
+      const res = await authApi.verify(effectiveKey, code, role, effectiveIsEmail);
       if (res.isNewUser) {
         const target = role === 'contractor' ? '/register-contractor' : '/register-customer';
         navigate(target, { state: { email, phone, verifiedCode: code, role } });
@@ -137,16 +144,89 @@ export default function Verify() {
           </a>
         )}
 
-        {/* Fallback: get code via Telegram if email/SMS didn't arrive */}
-        {(channel === 'email' || channel === 'sms') && !tgLink && (
+        {/* Email fallback: enter phone → get code via Telegram bot */}
+        {channel === 'email' && !tgLink && (
+          !showPhoneInput ? (
+            <button
+              type="button"
+              onClick={() => setShowPhoneInput(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                background: c.hint, border: `1px solid ${c.border}`,
+                borderRadius: '0.75rem', padding: '0.875rem 1rem',
+                marginBottom: '1.25rem', cursor: 'pointer',
+                width: '100%', textAlign: 'left', fontFamily: 'inherit',
+              }}
+            >
+              <span style={{ fontSize: '1.5rem' }}>✈️</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: c.text }}>Не пришло письмо? Войти через Telegram</div>
+                <div style={{ fontSize: '0.72rem', color: c.muted, marginTop: '0.125rem' }}>Введите номер телефона — бот пришлёт код</div>
+              </div>
+            </button>
+          ) : (
+            <div style={{ marginBottom: '1.25rem', background: c.hint, border: `1px solid ${c.border}`, borderRadius: '0.75rem', padding: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>✈️</span>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: c.text }}>Войти через Telegram</div>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: c.muted, marginBottom: '0.625rem' }}>
+                Введите номер телефона, привязанный к аккаунту — бот пришлёт код подтверждения
+              </div>
+              <input
+                type="tel"
+                placeholder="+7 (___) ___-__-__"
+                value={phoneInput}
+                onChange={e => setPhoneInput(e.target.value.replace(/\D/g, ''))}
+                style={{
+                  display: 'block', width: '100%', padding: '0.625rem 0.75rem',
+                  borderRadius: '0.625rem', border: `1px solid ${c.border}`,
+                  background: c.input, color: c.text, fontSize: '0.9rem',
+                  fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                  marginBottom: '0.625rem',
+                }}
+              />
+              <button
+                type="button"
+                disabled={tgLoading || phoneInput.replace(/\D/g, '').length < 10}
+                onClick={async () => {
+                  const digits = phoneInput.replace(/\D/g, '');
+                  const formatted = digits.startsWith('7') ? '+' + digits : '+7' + digits.slice(-10);
+                  setTgLoading(true);
+                  try {
+                    const res = await authApi.requestTelegram(formatted);
+                    setTgLink(res.telegramBotLink);
+                    setPhoneOverride(formatted);
+                  } catch {
+                    toast.error('Telegram бот недоступен');
+                  } finally {
+                    setTgLoading(false);
+                  }
+                }}
+                style={{
+                  width: '100%', padding: '0.625rem',
+                  borderRadius: '0.625rem', border: 'none',
+                  background: '#229ED9', color: 'white',
+                  fontSize: '0.85rem', fontWeight: 700,
+                  cursor: tgLoading || phoneInput.replace(/\D/g, '').length < 10 ? 'not-allowed' : 'pointer',
+                  opacity: tgLoading || phoneInput.replace(/\D/g, '').length < 10 ? 0.5 : 1,
+                  fontFamily: 'inherit',
+                }}
+              >
+                {tgLoading ? 'Отправляем...' : '✈️ Получить код в Telegram'}
+              </button>
+            </div>
+          )
+        )}
+
+        {/* SMS fallback: get code via Telegram if SMS didn't arrive */}
+        {channel === 'sms' && !tgLink && (
           <button
             type="button"
             onClick={async () => {
               setTgLoading(true);
               try {
-                // For email flow the OTP is keyed by email; for SMS — by phone
-                const key = channel === 'email' ? (email ?? '') : (phone ?? '');
-                const res = await authApi.requestTelegram(key);
+                const res = await authApi.requestTelegram(phone ?? '');
                 setTgLink(res.telegramBotLink);
               } catch {
                 toast.error('Telegram бот недоступен');
@@ -167,17 +247,9 @@ export default function Verify() {
             <span style={{ fontSize: '1.5rem' }}>✈️</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '0.8rem', fontWeight: 700, color: c.text }}>
-                {tgLoading
-                  ? 'Получаем ссылку...'
-                  : channel === 'email'
-                    ? 'Не пришло письмо? Войти через Telegram'
-                    : 'SMS не пришло? Войти через Telegram'}
+                {tgLoading ? 'Получаем ссылку...' : 'SMS не пришло? Войти через Telegram'}
               </div>
-              <div style={{ fontSize: '0.72rem', color: c.muted, marginTop: '0.125rem' }}>
-                {channel === 'email'
-                  ? 'Бот TrashGo пришлёт тот же код в Telegram'
-                  : 'Бот пришлёт тот же код в Telegram'}
-              </div>
+              <div style={{ fontSize: '0.72rem', color: c.muted, marginTop: '0.125rem' }}>Бот пришлёт тот же код в Telegram</div>
             </div>
           </button>
         )}
