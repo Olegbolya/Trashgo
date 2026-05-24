@@ -127,8 +127,8 @@ export default function CustomerDashboard() {
       entrance: '',
       floor: '',
       apartment: '',
-      date: o.asap ? '' : (o.scheduledAt?.slice(0, 10) ?? ''),
-      time: o.asap ? '' : (o.scheduledAt?.slice(11, 16) ?? ''),
+      date: o.asap ? '' : o.scheduledAt ? new Date(o.scheduledAt).toLocaleDateString('en-CA', { timeZone: 'Europe/Moscow' }) : '',
+      time: o.asap ? '' : o.scheduledAt ? new Date(o.scheduledAt).toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit', hour12: false }) : '',
       asap: o.asap ?? false,
       volume: o.volume,
       price: o.price,
@@ -1932,18 +1932,25 @@ export default function CustomerDashboard() {
               </div>
 
               {/* Дата и время */}
-              <div className="grid grid-cols-2 gap-3">
-                <div style={{ background: c.subtle, borderRadius: '0.75rem', padding: '0.875rem' }}>
-                  <div className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: c.muted }}>Дата</div>
-                  <div className="font-medium" style={{ color: c.text }}>
-                    {new Date(selectedOrder.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
-                  </div>
-                </div>
+              {selectedOrder.asap ? (
                 <div style={{ background: c.subtle, borderRadius: '0.75rem', padding: '0.875rem' }}>
                   <div className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: c.muted }}>Время</div>
-                  <div className="font-medium" style={{ color: c.text }}>{selectedOrder.time}</div>
+                  <div className="font-medium" style={{ color: c.text }}>⚡ Как можно скорее</div>
                 </div>
-              </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div style={{ background: c.subtle, borderRadius: '0.75rem', padding: '0.875rem' }}>
+                    <div className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: c.muted }}>Дата</div>
+                    <div className="font-medium" style={{ color: c.text }}>
+                      {selectedOrder.date ? new Date(selectedOrder.date + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : '—'}
+                    </div>
+                  </div>
+                  <div style={{ background: c.subtle, borderRadius: '0.75rem', padding: '0.875rem' }}>
+                    <div className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: c.muted }}>Время</div>
+                    <div className="font-medium" style={{ color: c.text }}>{selectedOrder.time || '—'}</div>
+                  </div>
+                </div>
+              )}
 
               {/* Мешки и цена */}
               <div className="grid grid-cols-2 gap-3">
