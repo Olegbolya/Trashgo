@@ -96,7 +96,7 @@ export default function ContractorDashboard() {
   const [editInfoForm, setEditInfoForm] = useState({ transportMode: 'car' });
   const [editInfoSaving, setEditInfoSaving] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
-  const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '', inn: '', email: '' });
+  const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '', inn: '', email: '', sbpBank: '' });
   const CONTRACTOR_DISTRICTS = ['Вахитовский', 'Приволжский', 'Советский', 'Ново-Савиновский', 'Московский', 'Авиастроительный', 'Кировский'];
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [emailChangeStep, setEmailChangeStep] = useState<'idle' | 'verify'>('idle');
@@ -1159,7 +1159,7 @@ export default function ContractorDashboard() {
                       <button
                         className="h-8 px-3 rounded-lg text-xs flex-shrink-0"
                         style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
-                        onClick={() => { setEditProfileForm({ name: user?.name || '', district: user?.district || '', inn: user?.inn || '', email: user?.email || '' }); setEditProfileOpen(true); }}
+                        onClick={() => { setEditProfileForm({ name: user?.name || '', district: user?.district || '', inn: user?.inn || '', email: user?.email || '', sbpBank: (user as any)?.sbpBank || '' }); setEditProfileOpen(true); }}
                       >
                         <Edit className="w-3.5 h-3.5 inline mr-1" />Изменить
                       </button>
@@ -1223,6 +1223,17 @@ export default function ContractorDashboard() {
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#22c55e18', color: '#16a34a' }}>✓ Подтверждено</span>
                     </div>
                   )}
+                  <div className="flex items-center justify-between gap-3 p-3 rounded-xl" style={{ background: c.subtle }}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span style={{ fontSize: '1rem', flexShrink: 0 }}>🏦</span>
+                      <div className="min-w-0">
+                        <div className="text-xs mb-0.5" style={{ color: c.muted }}>Банк СБП для оплаты</div>
+                        <div className="text-sm font-medium truncate" style={{ color: (user as any)?.sbpBank ? c.text : c.muted }}>
+                          {(user as any)?.sbpBank || 'Не указан — укажите в редактировании'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1951,6 +1962,17 @@ export default function ContractorDashboard() {
                 />
               </div>
               <div className="mb-4">
+                <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Банк СБП для оплаты</div>
+                <select
+                  value={editProfileForm.sbpBank}
+                  onChange={e => setEditProfileForm(f => ({ ...f, sbpBank: e.target.value }))}
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit', appearance: 'none', cursor: 'pointer' }}
+                >
+                  <option value="">Выберите банк...</option>
+                  {['Сбербанк','Т-Банк (Тинькофф)','ВТБ','Альфа-Банк','Газпромбанк','Открытие','Совкомбанк','Росбанк','МТС Банк','Почта Банк','Райффайзен','ПСБ'].map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div className="mb-4">
                 <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Район работы</div>
                 <select
                   value={editProfileForm.district}
@@ -2065,7 +2087,7 @@ export default function ContractorDashboard() {
                             await authApi.updateProfile({ inn: editProfileForm.inn });
                           }
                         }
-                        const patch: Record<string, any> = { name: editProfileForm.name.trim(), district: editProfileForm.district };
+                        const patch: Record<string, any> = { name: editProfileForm.name.trim(), district: editProfileForm.district, ...(editProfileForm.sbpBank ? { sbpBank: editProfileForm.sbpBank } : {}) };
                         const updated = await authApi.updateProfile(patch);
                         updateUser(updated);
                         setEditProfileOpen(false);

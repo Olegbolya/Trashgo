@@ -74,7 +74,7 @@ export default function CustomerDashboard() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
-  const [orderContact, setOrderContact] = useState<{ contractorPhone: string; contractorName: string; contractorAvgRating?: number | null; contractorRatingCount?: number; contractorCompletedOrders?: number; acceptedAt?: string | null; history?: Array<{ status: string; createdAt: string; note: string }> } | null>(null);
+  const [orderContact, setOrderContact] = useState<{ contractorPhone: string; contractorName: string; contractorSbpBank?: string | null; contractorAvgRating?: number | null; contractorRatingCount?: number; contractorCompletedOrders?: number; acceptedAt?: string | null; history?: Array<{ status: string; createdAt: string; note: string }> } | null>(null);
   const [cancelSecondsLeft, setCancelSecondsLeft] = useState<number | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -100,7 +100,7 @@ export default function CustomerDashboard() {
   const [sentDisputeOrders, setSentDisputeOrders] = useState<string[]>([]);
   const [addAddressOpen, setAddAddressOpen] = useState(false);
   const [newAddress, setNewAddress] = useState('');
-  const [sbpModal, setSbpModal] = useState<{ orderId: string; phone: string; amount: number; contractorName: string } | null>(null);
+  const [sbpModal, setSbpModal] = useState<{ orderId: string; phone: string; amount: number; contractorName: string; sbpBank?: string | null } | null>(null);
   const [addressSaving, setAddressSaving] = useState(false);
 
   type MyOrder = {
@@ -231,6 +231,7 @@ export default function CustomerDashboard() {
         phone: orderContact?.contractorPhone || '',
         amount: price,
         contractorName: orderContact?.contractorName || 'Исполнитель',
+        sbpBank: orderContact?.contractorSbpBank || null,
       });
     } catch (err: any) {
       toast.error(err?.message || 'Ошибка подтверждения');
@@ -279,6 +280,7 @@ export default function CustomerDashboard() {
         setOrderContact({
           contractorPhone: d?.contractorPhone ?? '',
           contractorName: d?.contractorName ?? '',
+          contractorSbpBank: d?.contractorSbpBank ?? null,
           contractorAvgRating: d?.contractorAvgRating ?? null,
           contractorRatingCount: d?.contractorRatingCount,
           contractorCompletedOrders: d?.contractorCompletedOrders,
@@ -2126,6 +2128,7 @@ export default function CustomerDashboard() {
                       phone: orderContact?.contractorPhone || '',
                       amount: selectedOrder.price,
                       contractorName: orderContact?.contractorName || 'Исполнитель',
+                      sbpBank: orderContact?.contractorSbpBank || null,
                     })}
                   >
                     📋 Реквизиты для СБП
@@ -2504,6 +2507,17 @@ export default function CustomerDashboard() {
               <div style={{ fontSize: '2rem', fontWeight: 800, color: '#15803d' }}>{sbpModal.amount.toLocaleString('ru-RU')} ₽</div>
               <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.125rem' }}>{sbpModal.contractorName}</div>
             </div>
+
+            {/* Preferred bank */}
+            {sbpModal.sbpBank && (
+              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '1rem', padding: '0.75rem 1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>🏦</span>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Предпочитаемый банк</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e40af' }}>{sbpModal.sbpBank}</div>
+                </div>
+              </div>
+            )}
 
             {/* Phone */}
             {sbpModal.phone ? (

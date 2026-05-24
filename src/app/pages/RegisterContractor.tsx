@@ -7,6 +7,7 @@ import { useRoleStore } from '../../stores/role.store';
 import { useTheme } from '../context/ThemeContext';
 
 const DISTRICTS = ['Вахитовский', 'Приволжский', 'Советский', 'Ново-Савиновский', 'Московский', 'Авиастроительный', 'Кировский'];
+const SBP_BANKS = ['Сбербанк', 'Т-Банк (Тинькофф)', 'ВТБ', 'Альфа-Банк', 'Газпромбанк', 'Открытие', 'Совкомбанк', 'Росбанк', 'МТС Банк', 'Почта Банк', 'Райффайзен', 'ПСБ'];
 const TRANSPORT = [
   { key: 'pedestrian', emoji: '🚶', label: 'Пешком' },
   { key: 'bicycle',   emoji: '🚲', label: 'Велосипед' },
@@ -23,7 +24,7 @@ export default function RegisterContractor() {
   const phone = location.state?.phone || '';
   const verifiedCode = location.state?.verifiedCode || '';
   const setAuth = useAuthStore((s) => s.setAuth);
-  const [formData, setFormData] = useState({ name: '', district: 'Вахитовский', transport: 'pedestrian', inn: '' });
+  const [formData, setFormData] = useState({ name: '', district: 'Вахитовский', transport: 'pedestrian', inn: '', sbpBank: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -56,6 +57,7 @@ export default function RegisterContractor() {
       const extraFields = {
         transportMode: formData.transport,
         ...(formData.inn.length === 12 ? { inn: formData.inn } : {}),
+        ...(formData.sbpBank ? { sbpBank: formData.sbpBank } : {}),
       };
       const res = await authApi.register({ email, phone, code: verifiedCode, name: formData.name, role: 'contractor', district: formData.district, refCode, ...extraFields });
       sessionStorage.removeItem('pendingRefCode');
@@ -146,6 +148,25 @@ export default function RegisterContractor() {
                     <div style={{ fontSize: '0.8rem', fontWeight: 600, color: c.text }}>{t.label}</div>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* SBP Bank */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: c.label, marginBottom: '0.375rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+                Банк для получения оплаты по СБП
+              </label>
+              <select
+                value={formData.sbpBank}
+                onChange={(e) => setFormData({ ...formData, sbpBank: e.target.value })}
+                style={{ ...inputStyle(!!formData.sbpBank), appearance: 'none', cursor: 'pointer' }}
+                required
+              >
+                <option value="" disabled>Выберите банк...</option>
+                {SBP_BANKS.map((b) => <option key={b} value={b}>{b}</option>)}
+              </select>
+              <div style={{ fontSize: '0.75rem', color: c.muted, marginTop: '0.375rem' }}>
+                На этот банк заказчики будут переводить оплату через СБП
               </div>
             </div>
 
