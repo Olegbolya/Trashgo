@@ -137,14 +137,16 @@ export default function Verify() {
           </a>
         )}
 
-        {/* SMS fallback: request code via Telegram if SMS didn't arrive */}
-        {channel === 'sms' && !tgLink && (
+        {/* Fallback: get code via Telegram if email/SMS didn't arrive */}
+        {(channel === 'email' || channel === 'sms') && !tgLink && (
           <button
             type="button"
             onClick={async () => {
               setTgLoading(true);
               try {
-                const res = await authApi.requestTelegram(phone);
+                // For email flow the OTP is keyed by email; for SMS — by phone
+                const key = channel === 'email' ? (email ?? '') : (phone ?? '');
+                const res = await authApi.requestTelegram(key);
                 setTgLink(res.telegramBotLink);
               } catch {
                 toast.error('Telegram бот недоступен');
@@ -165,9 +167,17 @@ export default function Verify() {
             <span style={{ fontSize: '1.5rem' }}>✈️</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '0.8rem', fontWeight: 700, color: c.text }}>
-                {tgLoading ? 'Получаем ссылку...' : 'SMS не пришло? Войти через Telegram'}
+                {tgLoading
+                  ? 'Получаем ссылку...'
+                  : channel === 'email'
+                    ? 'Не пришло письмо? Войти через Telegram'
+                    : 'SMS не пришло? Войти через Telegram'}
               </div>
-              <div style={{ fontSize: '0.72rem', color: c.muted, marginTop: '0.125rem' }}>Бот пришлёт тот же код в Telegram</div>
+              <div style={{ fontSize: '0.72rem', color: c.muted, marginTop: '0.125rem' }}>
+                {channel === 'email'
+                  ? 'Бот TrashGo пришлёт тот же код в Telegram'
+                  : 'Бот пришлёт тот же код в Telegram'}
+              </div>
             </div>
           </button>
         )}
