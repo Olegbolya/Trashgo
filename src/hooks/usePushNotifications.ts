@@ -2,16 +2,16 @@ import { useEffect, useRef } from 'react';
 import { useAuthStore } from '../stores/auth.store';
 import { getFcmToken } from '../lib/firebase';
 import { api } from '../api/client';
+import { isNative } from '../lib/platform';
 
-// Registers FCM push notifications once the user is authenticated.
-// Sends the token to the backend via PATCH /users/me so the server
-// can deliver push when the user has no active SSE connection.
+// On native (Android/iOS), push is handled by NativeBootstrap via registerNativePush.
+// On web, use Firebase Web Messaging SDK.
 export function usePushNotifications() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const registeredRef = useRef(false);
 
   useEffect(() => {
-    if (!isAuthenticated || registeredRef.current) return;
+    if (!isAuthenticated || registeredRef.current || isNative()) return;
 
     let cancelled = false;
     (async () => {
@@ -21,7 +21,7 @@ export function usePushNotifications() {
         await api.patch('/users/me', { fcmToken: token });
         registeredRef.current = true;
       } catch {
-        // Non-fatal — app works fine without push notifications
+        // Non-fatal
       }
     })();
 

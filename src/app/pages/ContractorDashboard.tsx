@@ -21,6 +21,8 @@ import { useNotificationsStore } from '../../stores/notifications.store';
 import { uploadPhotoWithFallback } from '../../api/upload';
 import { FrozenBanner } from '../components/FrozenBanner';
 import { TelegramReminder } from '../components/TelegramReminder';
+import { isNative } from '../../lib/platform';
+import { pickPhotosNative } from '../../hooks/useNativeCamera';
 
 const ACCENT = '#2196F3';
 
@@ -710,24 +712,41 @@ export default function ContractorDashboard() {
                                 {job.status === 'in_progress' && (
                                   <div className="space-y-2">
                                     <div className="text-xs font-medium" style={{ color: c.muted }}>Сфотографируйте мусор у бака:</div>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', border: `1.5px solid #2196F3`, borderRadius: '0.625rem', cursor: 'pointer', background: '#2196F310' }}>
-                                      <input
-                                        type="file"
-                                        accept="image/*"
-                                        capture="environment"
-                                        style={{ display: 'none' }}
-                                        onChange={(e) => {
-                                          const files = Array.from(e.target.files || []);
-                                          setCompletionPhotos(prev => ({ ...prev, [job.id]: [...(prev[job.id] || []), ...files].slice(0, 3) }));
+                                    {isNative() ? (
+                                      <button
+                                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', border: `1.5px solid #2196F3`, borderRadius: '0.625rem', cursor: 'pointer', background: '#2196F310', width: '100%', fontFamily: 'inherit' }}
+                                        onClick={async () => {
+                                          const files = await pickPhotosNative(3, 'prompt');
+                                          if (files) setCompletionPhotos(prev => ({ ...prev, [job.id]: [...(prev[job.id] || []), ...files].slice(0, 3) }));
                                         }}
-                                      />
-                                      <span style={{ fontSize: '1.1rem' }}>📷</span>
-                                      <span className="text-xs font-medium" style={{ color: (completionPhotos[job.id]?.length ?? 0) > 0 ? c.textSub : '#2196F3' }}>
-                                        {(completionPhotos[job.id]?.length ?? 0) > 0
-                                          ? `${completionPhotos[job.id].length} фото выбрано`
-                                          : 'Добавить фото (до 3)'}
-                                      </span>
-                                    </label>
+                                      >
+                                        <span style={{ fontSize: '1.1rem' }}>📷</span>
+                                        <span className="text-xs font-medium" style={{ color: (completionPhotos[job.id]?.length ?? 0) > 0 ? c.textSub : '#2196F3' }}>
+                                          {(completionPhotos[job.id]?.length ?? 0) > 0
+                                            ? `${completionPhotos[job.id].length} фото выбрано`
+                                            : 'Добавить фото (до 3)'}
+                                        </span>
+                                      </button>
+                                    ) : (
+                                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', border: `1.5px solid #2196F3`, borderRadius: '0.625rem', cursor: 'pointer', background: '#2196F310' }}>
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          capture="environment"
+                                          style={{ display: 'none' }}
+                                          onChange={(e) => {
+                                            const files = Array.from(e.target.files || []);
+                                            setCompletionPhotos(prev => ({ ...prev, [job.id]: [...(prev[job.id] || []), ...files].slice(0, 3) }));
+                                          }}
+                                        />
+                                        <span style={{ fontSize: '1.1rem' }}>📷</span>
+                                        <span className="text-xs font-medium" style={{ color: (completionPhotos[job.id]?.length ?? 0) > 0 ? c.textSub : '#2196F3' }}>
+                                          {(completionPhotos[job.id]?.length ?? 0) > 0
+                                            ? `${completionPhotos[job.id].length} фото выбрано`
+                                            : 'Добавить фото (до 3)'}
+                                        </span>
+                                      </label>
+                                    )}
                                     {(completionPhotos[job.id]?.length ?? 0) > 0 && (
                                       <div className="flex gap-1.5 flex-wrap">
                                         {completionPhotos[job.id].map((file, i) => (

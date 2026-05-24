@@ -1,4 +1,11 @@
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api/v1' : 'http://localhost:3000/api/v1');
+// In native Capacitor builds there is no relative-URL server, so we always need
+// the absolute Railway URL. VITE_API_URL is set in Vercel env for web and in
+// .env.production for Android/iOS builds.
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD
+    ? 'https://api-production-8470.up.railway.app/api/v1'
+    : 'http://localhost:3000/api/v1');
 
 class ApiClient {
   private baseUrl: string;
