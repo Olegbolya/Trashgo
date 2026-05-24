@@ -118,8 +118,8 @@ export const authApi = {
     return api.get<{ username: string | null }>('/auth/bot-info');
   },
 
-  async requestTelegram(phone: string): Promise<{ telegramBotLink: string }> {
-    const res = await api.post<{ data: { telegramBotLink: string } }>('/auth/request-telegram', { phone });
+  async requestTelegram(phone: string, linkOnly?: boolean): Promise<{ telegramBotLink: string }> {
+    const res = await api.post<{ data: { telegramBotLink: string } }>('/auth/request-telegram', { phone, ...(linkOnly ? { linkOnly: true } : {}) });
     return res.data;
   },
 

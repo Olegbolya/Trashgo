@@ -33,7 +33,7 @@ export function TelegramReminder() {
     setLoading(true);
     try {
       const phone = (user as any).phone || '';
-      const res = await authApi.requestTelegram(phone);
+      const res = await authApi.requestTelegram(phone, true);
       if (res.telegramBotLink) {
         setBotUsername(res.telegramBotLink);
         window.open(res.telegramBotLink, '_blank');
