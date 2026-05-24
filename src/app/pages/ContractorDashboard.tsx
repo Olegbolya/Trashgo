@@ -64,6 +64,8 @@ export default function ContractorDashboard() {
   const [chatSending, setChatSending] = useState(false);
   const [jobContacts, setJobContacts] = useState<Record<string, { phone: string; name: string }>>({});
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const scrollChatToBottom = () => { if (chatScrollRef.current) chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight; };
   const [hiddenOrderIds, setHiddenOrderIds] = useState<Set<string>>(new Set());
   const [showMap, setShowMap] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
@@ -223,7 +225,7 @@ export default function ContractorDashboard() {
       const msgs = res?.data ?? [];
       setChatMessages(msgs);
       prevChatCountsRef.current[chatJobId] = msgs.length;
-      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      setTimeout(scrollChatToBottom, 50);
     }).catch(() => {});
     fetchMessages();
     const interval = setInterval(fetchMessages, 5000);
@@ -821,7 +823,7 @@ export default function ContractorDashboard() {
                                 {/* Chat panel */}
                                 {chatJobId === job.id && (
                                   <div style={{ border: `1.5px solid ${c.border}`, borderRadius: '0.75rem', overflow: 'hidden', marginTop: '0.25rem' }}>
-                                    <div style={{ height: '200px', overflowY: 'auto', padding: '0.625rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', background: c.subtle }}>
+                                    <div ref={chatScrollRef} style={{ height: '200px', overflowY: 'auto', padding: '0.625rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', background: c.subtle }}>
                                       {chatMessages.length === 0 && (
                                         <div style={{ textAlign: 'center', color: c.muted, fontSize: '0.75rem', marginTop: '1.5rem' }}>Начните переписку с заказчиком</div>
                                       )}
@@ -850,7 +852,7 @@ export default function ContractorDashboard() {
                                               await ordersApi.sendMessage(job.id, text);
                                               const res = await ordersApi.getMessages(job.id) as any;
                                               setChatMessages(res?.data ?? []);
-                                              setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+                                              setTimeout(scrollChatToBottom, 50);
                                             } catch { setChatInput(text); } finally { setChatSending(false); }
                                           }
                                         }}
@@ -866,7 +868,7 @@ export default function ContractorDashboard() {
                                             await ordersApi.sendMessage(job.id, text);
                                             const res = await ordersApi.getMessages(job.id) as any;
                                             setChatMessages(res?.data ?? []);
-                                            setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+                                            setTimeout(scrollChatToBottom, 50);
                                           } catch { setChatInput(text); } finally { setChatSending(false); }
                                         }}
                                         style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.5rem', background: chatInput.trim() ? ACCENT : c.border, color: 'white', border: 'none', cursor: chatInput.trim() ? 'pointer' : 'default', fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}

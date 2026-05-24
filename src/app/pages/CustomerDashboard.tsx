@@ -77,6 +77,8 @@ export default function CustomerDashboard() {
   const [orderContact, setOrderContact] = useState<{ contractorPhone: string; contractorName: string; contractorAvgRating?: number | null; contractorRatingCount?: number; contractorCompletedOrders?: number; acceptedAt?: string | null; history?: Array<{ status: string; createdAt: string; note: string }> } | null>(null);
   const [cancelSecondsLeft, setCancelSecondsLeft] = useState<number | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const scrollChatToBottom = () => { if (chatScrollRef.current) chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight; };
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [ratingOrder, setRatingOrder] = useState<{ id: string; contractorName: string } | null>(null);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
@@ -337,7 +339,7 @@ export default function CustomerDashboard() {
       const msgs = res?.data ?? [];
       setChatMessages(msgs);
       prevChatCountsRef.current[selectedOrder.id] = msgs.length;
-      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      setTimeout(scrollChatToBottom, 50);
     }).catch(() => {});
     fetch();
     const interval = setInterval(fetch, 15000);
@@ -1786,7 +1788,7 @@ export default function CustomerDashboard() {
             await ordersApi.sendMessage(selectedOrder.id, text);
             const res = await ordersApi.getMessages(selectedOrder.id) as any;
             setChatMessages(res?.data ?? []);
-            setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+            setTimeout(scrollChatToBottom, 50);
           } catch { setChatInput(text); }
           finally { setChatSending(false); }
         };
@@ -1878,7 +1880,7 @@ export default function CustomerDashboard() {
             {/* Chat panel */}
             {chatOpen && selectedOrder && (
               <div style={{ marginBottom: '1rem', border: `1.5px solid ${c.border}`, borderRadius: '0.875rem', overflow: 'hidden' }}>
-                <div style={{ height: 'clamp(150px, 35vh, 280px)', overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: c.subtle }}>
+                <div ref={chatScrollRef} style={{ height: 'clamp(150px, 35vh, 280px)', overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: c.subtle }}>
                   {chatMessages.length === 0 && (
                     <div style={{ textAlign: 'center', color: c.muted, fontSize: '0.8rem', marginTop: '2rem' }}>
                       Начните переписку с исполнителем
