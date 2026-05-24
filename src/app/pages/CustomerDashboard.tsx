@@ -23,6 +23,7 @@ import { searchKazanStreets } from '../../data/kazanStreets';
 import { uploadPhotoWithFallback } from '../../api/upload';
 import { MapPicker } from '../components/MapPicker';
 import { TelegramReminder } from '../components/TelegramReminder';
+import { KazanAddressInput } from '../components/KazanAddressInput';
 
 const ACCENT = '#66BB6A';
 
@@ -2261,10 +2262,10 @@ export default function CustomerDashboard() {
               </div>
               <div className="mb-4">
                 <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Адрес (для автозаполнения заявок)</div>
-                <input
+                <KazanAddressInput
                   value={editProfileForm.district}
-                  onChange={e => setEditProfileForm(f => ({ ...f, district: e.target.value }))}
-                  placeholder="ул. Баумана, 58, подъезд 1"
+                  onChange={val => setEditProfileForm(f => ({ ...f, district: val }))}
+                  placeholder="ул. Баумана, 58"
                   style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                 />
               </div>
@@ -2380,10 +2381,10 @@ export default function CustomerDashboard() {
               </div>
               <div className="mb-5">
                 <div className="text-xs font-medium mb-1.5" style={{ color: c.muted }}>Адрес вывоза мусора</div>
-                <input
+                <KazanAddressInput
                   value={newAddress}
-                  onChange={e => setNewAddress(e.target.value)}
-                  placeholder="ул. Ленина, 45, кв. 12"
+                  onChange={setNewAddress}
+                  placeholder="ул. Ленина, 45"
                   autoFocus
                   style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                 />
