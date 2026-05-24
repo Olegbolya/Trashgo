@@ -16,13 +16,13 @@ export async function uploadPhoto(file: File, folder = 'orders'): Promise<string
   return res.data.url;
 }
 
-/** Falls back to a data URL if the upload endpoint is not configured (503). */
+/** Falls back to a data URL if storage is unavailable or upload fails. */
 export async function uploadPhotoWithFallback(file: File, folder = 'orders'): Promise<string> {
   try {
     return await uploadPhoto(file, folder);
   } catch (e: any) {
-    // 503 = storage not configured; fall back to inline base64 for dev
-    if (e?.status === 503 || e?.code === 'NOT_CONFIGURED') {
+    const code = e?.code ?? '';
+    if (code === 'NOT_CONFIGURED' || code === 'UPLOAD_FAILED' || code === 'UNKNOWN') {
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
