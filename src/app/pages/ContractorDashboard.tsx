@@ -1704,18 +1704,18 @@ export default function ContractorDashboard() {
                                   </>
                                 )}
                               </div>
-                              <div className="flex items-center gap-1.5 mb-1">
-                                <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: c.muted }} />
-                                <span className="text-sm font-medium truncate flex-1" style={{ color: c.text }}>{order.address}</span>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(order.address + ', Казань').catch(() => {}); toast.success('Адрес скопирован', { duration: 1500 }); }}
-                                  title="Скопировать адрес"
-                                  style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '1.75rem', height: '1.75rem', borderRadius: '0.4rem', background: c.subtle, border: `1px solid ${c.border}`, cursor: 'pointer', color: ACCENT, transition: 'background 0.15s' }}
-                                ><Copy className="w-3.5 h-3.5" /></button>
+                              <div className="flex items-start gap-1.5 mb-1">
+                                <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: c.muted, marginTop: '0.15rem' }} />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <span className="text-sm font-medium" style={{ color: c.text, wordBreak: 'break-word' }}>{order.address}</span>
+                                  {' '}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(order.address + ', Казань').catch(() => {}); toast.success('Адрес скопирован', { duration: 1500 }); }}
+                                    title="Скопировать адрес"
+                                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '1.5rem', height: '1.5rem', borderRadius: '0.35rem', background: c.subtle, border: `1px solid ${c.border}`, cursor: 'pointer', color: ACCENT, verticalAlign: 'middle', flexShrink: 0 }}
+                                  ><Copy className="w-3 h-3" /></button>
+                                </div>
                               </div>
-                              {order.description && (
-                                <div className="text-xs mb-2" style={{ color: c.muted }}>{order.description}</div>
-                              )}
                               <div className="flex items-center gap-2">
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: `${ACCENT}18`, border: `1px solid ${ACCENT}20`, color: ACCENT }}>
                                   <Package className="w-3 h-3" />{order.volume} мешк.
