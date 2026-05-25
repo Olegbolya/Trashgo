@@ -6,6 +6,7 @@ import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore, ROLE_COLORS } from '../../stores/role.store';
 import { authApi } from '../../api/auth';
 import { toast } from 'sonner';
+import { isNative } from '../../lib/platform';
 
 function formatPhone(raw: string) {
   const digits = raw.replace(/\D/g, '').replace(/^7/, '').replace(/^8/, '').slice(0, 10);
@@ -68,6 +69,8 @@ export default function Home() {
   const [formError, setFormError] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [accountFound, setAccountFound] = useState(false);
+  const [verifyNavState, setVerifyNavState] = useState<Record<string, unknown> | null>(null);
 
   const accent = accentColor;
 
@@ -128,16 +131,20 @@ export default function Home() {
         setStep('phone');
         return;
       }
-      navigate('/verify', {
-        state: {
-          email: email.trim(),
-          role,
-          devCode: res.devCode,
-          channel: res.channel,
-          deliveryEmail: res.deliveryEmail || email.trim(),
-          telegramBotLink: res.telegramBotLink,
-        },
-      });
+      const navState = {
+        email: email.trim(),
+        role,
+        devCode: res.devCode,
+        channel: res.channel,
+        deliveryEmail: res.deliveryEmail || email.trim(),
+        telegramBotLink: res.telegramBotLink,
+      };
+      if (!res.isNewUser) {
+        setVerifyNavState(navState);
+        setAccountFound(true);
+        return;
+      }
+      navigate('/verify', { state: navState });
     } catch {
       setFormError('Ошибка. Проверьте email и попробуйте снова.');
     } finally {
@@ -233,6 +240,7 @@ export default function Home() {
                   onClick={() => {
                     setDropdownOpen(false);
                     if (isAuthenticated) navigate(user?.role === 'contractor' ? '/contractor' : '/customer');
+                    else if (isNative()) navigate('/login');
                     else authSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
                   }}
                 />
@@ -339,16 +347,47 @@ export default function Home() {
             </div>
 
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '0.25rem', color: c.text }}>
-              Регистрация
+              {accountFound ? 'Вход' : 'Регистрация'}
             </h2>
-            <p style={{ fontSize: '0.82rem', color: c.textMuted, marginBottom: '1.375rem' }}>
-              {step === 'email'
-                ? 'Введите email — пришлём код подтверждения'
-                : 'Укажите номер телефона для связи'
-              }
-            </p>
+            {!accountFound && (
+              <p style={{ fontSize: '0.82rem', color: c.textMuted, marginBottom: '1.375rem' }}>
+                {step === 'email'
+                  ? 'Введите email — пришлём код подтверждения'
+                  : 'Укажите номер телефона для связи'
+                }
+              </p>
+            )}
 
-            {step === 'email' ? (
+            {accountFound && verifyNavState ? (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>✅</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: c.text, marginBottom: '0.375rem' }}>
+                  Аккаунт уже существует
+                </div>
+                <div style={{ fontSize: '0.82rem', color: c.textMuted, marginBottom: '1.5rem' }}>
+                  Код входа отправлен на <span style={{ color: c.text, fontWeight: 600 }}>{email}</span>
+                </div>
+                <button
+                  onClick={() => navigate('/verify', { state: verifyNavState })}
+                  style={{
+                    display: 'block', width: '100%', height: '2.875rem',
+                    borderRadius: '0.625rem', background: accent,
+                    color: '#ffffff', fontSize: '0.875rem', fontWeight: 600,
+                    border: 'none', cursor: 'pointer',
+                    fontFamily: 'inherit', marginBottom: '0.75rem',
+                  }}
+                >
+                  Войти →
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setAccountFound(false); setVerifyNavState(null); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.82rem', color: c.textMuted, fontFamily: 'inherit' }}
+                >
+                  ← Изменить email
+                </button>
+              </div>
+            ) : step === 'email' ? (
               <form onSubmit={handleEmailSubmit}>
                 <input
                   type="email"
