@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, UserRole } from '../types/user';
 import { connectSSE, disconnectSSE } from '../services/sse';
+import { useNotificationsStore } from './notifications.store';
 
 interface AuthStore {
   user: User | null;
@@ -23,6 +24,8 @@ export const useAuthStore = create<AuthStore>()(
       isAuthenticated: false,
 
       setAuth: (user, token, refreshToken) => {
+        // Clear previous user's notifications before setting new user
+        useNotificationsStore.getState().clearAll();
         set({ user, token, refreshToken, isAuthenticated: true });
         connectSSE(token);
       },
@@ -34,6 +37,7 @@ export const useAuthStore = create<AuthStore>()(
 
       logout: () => {
         disconnectSSE();
+        useNotificationsStore.getState().clearAll();
         set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
       },
     }),

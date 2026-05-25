@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router';
 import { Bell, X, Trash2, CheckCheck, MessageCircle, Package, Zap } from 'lucide-react';
 import { useNotificationsStore, type AppNotification } from '../../stores/notifications.store';
@@ -30,6 +31,8 @@ export function NotificationBell({ accentColor }: Props) {
   const { notifications, markAllRead, clearAll, markRead } = useNotificationsStore();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [panelPos, setPanelPos] = useState({ top: 56, right: 8 });
 
   const unread = notifications.filter((n) => !n.read).length;
 
@@ -46,6 +49,13 @@ export function NotificationBell({ accentColor }: Props) {
   }, [open]);
 
   const handleOpen = () => {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPanelPos({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
     setOpen((v) => !v);
   };
 
@@ -69,9 +79,10 @@ export function NotificationBell({ accentColor }: Props) {
   };
 
   return (
-    <div className="relative" ref={panelRef}>
+    <div className="relative">
       {/* Bell button */}
       <button
+        ref={buttonRef}
         onClick={handleOpen}
         className="relative flex items-center justify-center w-9 h-9 rounded-xl transition-colors"
         style={{
@@ -98,10 +109,10 @@ export function NotificationBell({ accentColor }: Props) {
         )}
       </button>
 
-      {/* Dropdown panel */}
-      {open && (
-        <div
-          style={{ position: 'fixed', right: '8px', top: '56px', width: '320px', maxWidth: 'calc(100vw - 16px)', borderRadius: '1rem', boxShadow: '0 8px 32px rgba(0,0,0,0.25)', zIndex: 9999, overflow: 'hidden', background: c.surface, border: `1px solid ${c.border}` }}
+      {/* Dropdown panel — rendered via Portal to escape map stacking context */}
+      {open && createPortal(
+        <div ref={panelRef}
+          style={{ position: 'fixed', right: `${panelPos.right}px`, top: `${panelPos.top}px`, width: '320px', maxWidth: 'calc(100vw - 16px)', borderRadius: '1rem', boxShadow: '0 8px 32px rgba(0,0,0,0.25)', zIndex: 99999, overflow: 'hidden', background: c.surface, border: `1px solid ${c.border}` }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${c.border}` }}>
@@ -185,7 +196,8 @@ export function NotificationBell({ accentColor }: Props) {
           >
             Все уведомления →
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
