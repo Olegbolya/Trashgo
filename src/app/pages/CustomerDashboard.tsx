@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../api/auth';
-import { Home, MapPin, User, Plus, Package, CheckCircle, Clock, RefreshCw, Edit, LogOut, Bell, CreditCard, UserPlus, HelpCircle, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Star, Phone, MessageCircle, Menu, X, Trophy } from 'lucide-react';
+import { Home, MapPin, User, Plus, Package, CheckCircle, Clock, RefreshCw, Edit, LogOut, Bell, CreditCard, UserPlus, HelpCircle, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Star, Phone, MessageCircle, Menu, X, Trophy, Pause, Play, Trash2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { LevelSystem, getRankLabel, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
@@ -28,8 +28,10 @@ import { isNative } from '../../lib/platform';
 import { pickPhotosNative } from '../../hooks/useNativeCamera';
 import { API_BASE_URL } from '../../api/client';
 import { useNativeBackClose } from '../../hooks/useNativeBackClose';
+import { subscriptionsApi, type Subscription } from '../../api/subscriptions';
 
 const ACCENT = '#66BB6A';
+const DAY_LABELS: Record<number, string> = { 1: 'ПН', 2: 'ВТ', 3: 'СР', 4: 'ЧТ', 5: 'ПТ', 6: 'СБ', 7: 'ВС' };
 
 function parseAddressParts(full: string): { address: string; entrance: string; floor: string; apartment: string } {
   let remaining = full;
@@ -51,7 +53,7 @@ export default function CustomerDashboard() {
   const { isDark, toggleTheme } = useTheme();
   const { user, logout, updateUser } = useAuthStore();
   const { addNotification } = useNotificationsStore();
-  const VALID_TABS_C = ['home', 'calendar', 'profile', 'create'] as const;
+  const VALID_TABS_C = ['home', 'calendar', 'profile', 'create', 'subscriptions'] as const;
   type CTabType = typeof VALID_TABS_C[number];
   const activeTab: CTabType = (VALID_TABS_C.includes(searchParams.get('tab') as CTabType) ? searchParams.get('tab') : 'home') as CTabType;
   const setActiveTab = (tab: CTabType) => setSearchParams({ tab });
@@ -103,6 +105,10 @@ export default function CustomerDashboard() {
   const [disputeSending, setDisputeSending] = useState(false);
   const [sentDisputeOrders, setSentDisputeOrders] = useState<string[]>([]);
   const [addAddressOpen, setAddAddressOpen] = useState(false);
+  const [subs, setSubs] = useState<Subscription[]>([]);
+  const [subsLoading, setSubsLoading] = useState(false);
+  const [subsToggling, setSubsToggling] = useState<string | null>(null);
+  const [subsDeleting, setSubsDeleting] = useState<string | null>(null);
   const [newAddress, setNewAddress] = useState('');
   const [sbpModal, setSbpModal] = useState<{ orderId: string; phone: string; amount: number; contractorName: string; sbpBank?: string | null } | null>(null);
   const [addressSaving, setAddressSaving] = useState(false);
@@ -262,6 +268,46 @@ export default function CustomerDashboard() {
     const interval = setInterval(poll, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  // Load subscriptions when switching to subscriptions tab
+  useEffect(() => {
+    if (activeTab !== 'subscriptions') return;
+    setSubsLoading(true);
+    subscriptionsApi.list()
+      .then(res => setSubs(res.data))
+      .catch(() => toast.error('Не удалось загрузить подписки'))
+      .finally(() => setSubsLoading(false));
+  }, [activeTab]);
+
+  const handleSubToggle = async (sub: Subscription) => {
+    setSubsToggling(sub.id);
+    const prev = subs;
+    setSubs(s => s.map(x => x.id === sub.id ? { ...x, active: !x.active } : x));
+    try {
+      await subscriptionsApi.update(sub.id, { active: !sub.active });
+    } catch {
+      setSubs(prev);
+      toast.error('Не удалось обновить подписку');
+    } finally {
+      setSubsToggling(null);
+    }
+  };
+
+  const handleSubDelete = async (id: string) => {
+    if (!confirm('Удалить подписку?')) return;
+    setSubsDeleting(id);
+    const prev = subs;
+    setSubs(s => s.filter(x => x.id !== id));
+    try {
+      await subscriptionsApi.remove(id);
+      toast.success('Подписка удалена');
+    } catch {
+      setSubs(prev);
+      toast.error('Не удалось удалить подписку');
+    } finally {
+      setSubsDeleting(null);
+    }
+  };
 
   // Refresh when switching to home tab + poll every 10s while on home tab
   useEffect(() => {
@@ -501,9 +547,9 @@ export default function CustomerDashboard() {
             </button>
           ))}
           <button
-            onClick={() => navigate('/my-subscriptions')}
+            onClick={() => setActiveTab('subscriptions')}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
-            style={{ background: 'transparent', color: c.textSub, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ background: activeTab === 'subscriptions' ? `${ACCENT}18` : 'transparent', color: activeTab === 'subscriptions' ? ACCENT : c.textSub, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
           >
             <RefreshCw className="w-5 h-5" />
             Подписки
@@ -625,9 +671,9 @@ export default function CustomerDashboard() {
                 </button>
               ))}
               <button
-                onClick={() => { navigate('/my-subscriptions'); setMobileMenuOpen(false); }}
+                onClick={() => { setActiveTab('subscriptions'); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
-                style={{ background: 'transparent', color: c.textSub, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ background: activeTab === 'subscriptions' ? `${ACCENT}18` : 'transparent', color: activeTab === 'subscriptions' ? ACCENT : c.textSub, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 <RefreshCw className="w-5 h-5" />
                 Подписки
@@ -822,20 +868,6 @@ export default function CustomerDashboard() {
                 ))}
               </div>
 
-              {/* Subscriptions placeholder */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-lg font-semibold" style={{ color: c.text }}>Подписки</h2>
-                  <button className="text-sm flex items-center gap-1" style={{ background: 'none', border: 'none', color: c.muted, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => navigate('/create-subscription')}>
-                    <Plus className="w-4 h-4" /> Создать
-                  </button>
-                </div>
-                <div className="text-center py-8" style={card}>
-                  <RefreshCw className="w-8 h-8 mx-auto mb-3" style={{ color: c.border }} />
-                  <div className="text-sm font-medium mb-1" style={{ color: c.text }}>Нет активных подписок</div>
-                  <div className="text-xs" style={{ color: c.muted }}>Регулярный вывоз по расписанию</div>
-                </div>
-              </div>
             </div>
           )}
 
@@ -933,6 +965,83 @@ export default function CustomerDashboard() {
             </div>
             );
           })()}
+
+          {/* SUBSCRIPTIONS TAB */}
+          {activeTab === 'subscriptions' && (
+            <div className="max-w-4xl mx-auto space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold" style={{ color: c.text }}>Подписки</h2>
+                <button
+                  onClick={() => navigate('/create-subscription')}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 0.875rem', borderRadius: '0.75rem', background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, fontFamily: 'inherit' }}
+                >
+                  <Plus className="w-4 h-4" /> Создать
+                </button>
+              </div>
+              {subsLoading ? (
+                <div className="flex justify-center py-16">
+                  <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: c.border, borderTopColor: ACCENT }} />
+                </div>
+              ) : subs.length === 0 ? (
+                <div className="text-center py-12" style={card}>
+                  <RefreshCw className="w-12 h-12 mx-auto mb-4" style={{ color: c.border }} />
+                  <div className="text-base font-medium mb-1" style={{ color: c.text }}>Нет подписок</div>
+                  <div className="text-sm mb-4" style={{ color: c.muted }}>Настройте регулярный вывоз по расписанию</div>
+                  <button
+                    onClick={() => navigate('/create-subscription')}
+                    style={{ padding: '0.5rem 1.25rem', borderRadius: '0.75rem', background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit' }}
+                  >
+                    Создать расписание
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {subs.map(sub => (
+                    <div key={sub.id} style={{ ...card, padding: '1rem', borderColor: sub.active ? ACCENT : c.border }}>
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start gap-1.5 mb-2">
+                            <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: ACCENT, marginTop: '0.15rem' }} />
+                            <span className="text-sm font-medium" style={{ color: c.text, wordBreak: 'break-word' }}>{sub.address}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {sub.days.map(d => (
+                              <span key={d} className="text-xs px-1.5 py-0.5 rounded-md font-medium" style={{ background: `${ACCENT}18`, color: ACCENT }}>
+                                {DAY_LABELS[d] ?? d}
+                              </span>
+                            ))}
+                            {sub.time && <span className="text-xs px-1.5 py-0.5 rounded-md" style={{ background: c.subtle, color: c.muted }}><Clock className="w-3 h-3 inline mr-0.5" />{sub.time}</span>}
+                          </div>
+                          <div className="text-base font-bold" style={{ color: c.text }}>{sub.price}₽</div>
+                          {sub.contractorName && <div className="text-xs mt-1" style={{ color: c.muted }}>👤 {sub.contractorName}</div>}
+                        </div>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0" style={{ background: sub.active ? `${ACCENT}18` : c.subtle, color: sub.active ? ACCENT : c.muted }}>
+                          {sub.active ? 'Активна' : 'На паузе'}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSubToggle(sub)}
+                          disabled={subsToggling === sub.id}
+                          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.5rem', borderRadius: '0.625rem', border: `1px solid ${c.border}`, background: c.subtle, color: c.textSub, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, fontFamily: 'inherit' }}
+                        >
+                          {sub.active ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                          {subsToggling === sub.id ? '...' : sub.active ? 'Пауза' : 'Возобновить'}
+                        </button>
+                        <button
+                          onClick={() => handleSubDelete(sub.id)}
+                          disabled={subsDeleting === sub.id}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '2.5rem', borderRadius: '0.625rem', border: `1px solid ${c.border}`, background: c.subtle, color: '#ef4444', cursor: 'pointer' }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* PROFILE TAB */}
           {activeTab === 'profile' && (() => {
@@ -2291,6 +2400,10 @@ export default function CustomerDashboard() {
             <button onClick={() => setActiveTab('calendar')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'calendar' ? ACCENT : c.muted }}>
               <Clock className="w-6 h-6" />
               <span className="text-xs">История</span>
+            </button>
+            <button onClick={() => setActiveTab('subscriptions')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'subscriptions' ? ACCENT : c.muted }}>
+              <RefreshCw className="w-6 h-6" />
+              <span className="text-xs">Подписки</span>
             </button>
             <button onClick={() => setActiveTab('profile')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'profile' ? ACCENT : c.muted }}>
               <User className="w-6 h-6" />
