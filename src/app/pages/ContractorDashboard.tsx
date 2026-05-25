@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
-import { Home, MapPin, Map as MapIcon, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy } from 'lucide-react';
+import { Home, MapPin, Map as MapIcon, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy, Copy } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { LevelSystem, getRankLabel, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
@@ -664,8 +664,8 @@ export default function ContractorDashboard() {
                                   >🗺️ Открыть в Яндекс Картах</a>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(job.address + ', Казань').catch(() => {}); toast.success('Адрес скопирован', { description: 'Вставьте в Яндекс Карты или навигатор', duration: 2500 }); }}
-                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', width: '100%', marginBottom: '0.375rem' }}
-                                  >📋 Скопировать адрес</button>
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: c.subtle, color: ACCENT, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', width: '100%', marginBottom: '0.375rem' }}
+                                  ><Copy className="w-3.5 h-3.5" /> Скопировать адрес</button>
                                   {job.description && (
                                     <div className="text-xs" style={{ color: c.muted }}>{job.description}</div>
                                   )}
@@ -1710,8 +1710,8 @@ export default function ContractorDashboard() {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(order.address + ', Казань').catch(() => {}); toast.success('Адрес скопирован', { duration: 1500 }); }}
                                   title="Скопировать адрес"
-                                  style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '0.95rem', padding: '0.1rem 0.2rem', lineHeight: 1 }}
-                                >📋</button>
+                                  style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '1.75rem', height: '1.75rem', borderRadius: '0.4rem', background: c.subtle, border: `1px solid ${c.border}`, cursor: 'pointer', color: ACCENT, transition: 'background 0.15s' }}
+                                ><Copy className="w-3.5 h-3.5" /></button>
                               </div>
                               {order.description && (
                                 <div className="text-xs mb-2" style={{ color: c.muted }}>{order.description}</div>
@@ -1775,9 +1775,9 @@ export default function ContractorDashboard() {
                 </div>
                 <button
                   onClick={() => { navigator.clipboard.writeText(selectedOrder.address + ', Казань').catch(() => {}); toast.success('Адрес скопирован', { description: 'Вставьте в навигатор', duration: 2000 }); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: c.subtle, color: c.textSub, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: '0.75rem' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: c.subtle, color: ACCENT, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: '0.75rem' }}
                 >
-                  📋 Скопировать адрес
+                  <Copy className="w-3.5 h-3.5" /> Скопировать адрес
                 </button>
                 <div className="flex items-center gap-3">
                   <Clock className="w-5 h-5 flex-shrink-0" style={{ color: selectedOrder.asap ? ACCENT : c.muted }} />
