@@ -560,6 +560,7 @@ export default function CustomerDashboard() {
         </nav>
 
         <div className="p-4 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
+          {!isNative() && (
           <button
             onClick={() => navigate('/download')}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
@@ -568,6 +569,7 @@ export default function CustomerDashboard() {
             <Smartphone className="w-5 h-5" />
             Скачать приложение
           </button>
+          )}
           <button
             onClick={() => setShowHowItWorks(true)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
@@ -693,6 +695,7 @@ export default function CustomerDashboard() {
 
             {/* Drawer footer */}
             <div className="p-3 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
+              {!isNative() && (
               <button
                 onClick={() => { navigate('/download'); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
@@ -701,6 +704,7 @@ export default function CustomerDashboard() {
                 <Smartphone className="w-5 h-5" />
                 Скачать приложение
               </button>
+              )}
               <button
                 onClick={() => { setShowHowItWorks(true); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
