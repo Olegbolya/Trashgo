@@ -39,6 +39,11 @@ export async function registerNativePush() {
     console.error('[NativePush] registration error', err);
   });
 
+  // When push arrives while app is in foreground — add to in-app notification store
+  PushNotifications.addListener('pushNotificationReceived', (notification) => {
+    window.dispatchEvent(new CustomEvent('push:foreground', { detail: notification }));
+  });
+
   PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
     const data = notification.data ?? {};
     let path: string | null = null;

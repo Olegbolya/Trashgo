@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { isNative } from '../lib/platform';
 import { API_BASE_URL } from '../api/client';
+import { api } from '../api/client';
 
 export function useAndroidUpdateCheck() {
   useEffect(() => {
@@ -17,8 +18,10 @@ export function useAndroidUpdateCheck() {
         const { latestBuild } = await res.json();
 
         if (latestBuild > currentBuild) {
-          // Dispatch event — UpdateBanner listens and renders in-app notification
+          // Show in-app banner
           window.dispatchEvent(new CustomEvent('app:update_available', { detail: { latestBuild } }));
+          // Also send a system push notification via server so it appears in the notification shade
+          try { await api.post('/users/me/update-push'); } catch { /* non-critical */ }
         }
       } catch { /* silently ignore — non-critical */ }
     })();

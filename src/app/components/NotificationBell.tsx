@@ -32,7 +32,7 @@ export function NotificationBell({ accentColor }: Props) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [panelPos, setPanelPos] = useState({ top: 56, right: 8 });
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number }>({ top: 56, left: 8 });
 
   const unread = notifications.filter((n) => !n.read).length;
 
@@ -51,10 +51,11 @@ export function NotificationBell({ accentColor }: Props) {
   const handleOpen = () => {
     if (!open && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      setPanelPos({
-        top: rect.bottom + 8,
-        right: window.innerWidth - rect.right,
-      });
+      const panelWidth = Math.min(320, window.innerWidth - 16);
+      // Right-align panel with button, but clamp so it never goes off either edge
+      const idealLeft = rect.right - panelWidth;
+      const clampedLeft = Math.max(8, Math.min(idealLeft, window.innerWidth - panelWidth - 8));
+      setPanelPos({ top: rect.bottom + 8, left: clampedLeft });
     }
     setOpen((v) => !v);
   };
@@ -112,7 +113,7 @@ export function NotificationBell({ accentColor }: Props) {
       {/* Dropdown panel — rendered via Portal to escape map stacking context */}
       {open && createPortal(
         <div ref={panelRef}
-          style={{ position: 'fixed', right: `${panelPos.right}px`, top: `${panelPos.top}px`, width: '320px', maxWidth: 'calc(100vw - 16px)', borderRadius: '1rem', boxShadow: '0 8px 32px rgba(0,0,0,0.25)', zIndex: 99999, overflow: 'hidden', background: c.surface, border: `1px solid ${c.border}` }}
+          style={{ position: 'fixed', left: `${panelPos.left}px`, top: `${panelPos.top}px`, width: '320px', maxWidth: `calc(100vw - 16px)`, borderRadius: '1rem', boxShadow: '0 8px 32px rgba(0,0,0,0.25)', zIndex: 99999, overflow: 'hidden', background: c.surface, border: `1px solid ${c.border}` }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${c.border}` }}>
