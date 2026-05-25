@@ -3,7 +3,7 @@ import { ArrowLeft, Smartphone, Zap, Star, Shield, Bell, MessageCircle, RefreshC
 import { useTheme } from '../context/ThemeContext';
 
 const ACCENT = '#22a849';
-const ANDROID_APK_URL = 'https://github.com/Olegbolya/Trashgo/releases/latest/download/app-release.apk';
+const ANDROID_APK_URL = 'https://github.com/Olegbolya/Trashgo-API/releases/latest/download/app-release.apk';
 
 const FEATURES = [
   { icon: Zap, title: 'Быстрый поиск исполнителей', desc: 'Исполнители откликаются в течение нескольких минут' },
