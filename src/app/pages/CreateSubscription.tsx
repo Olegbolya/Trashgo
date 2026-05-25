@@ -1,37 +1,79 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, MapPin, Clock, DollarSign, Check } from 'lucide-react';
-import { Button } from '../components/ui/button';
+import { ArrowLeft, Check } from 'lucide-react';
 import { subscriptionsApi } from '../../api/subscriptions';
 import { toast } from 'sonner';
+import { useTheme } from '../context/ThemeContext';
+import { KazanAddressInput } from '../components/KazanAddressInput';
+
+const ACCENT = '#4CAF50';
+
+const weekDays = [
+  { id: 1, label: 'ПН', full: 'Понедельник' },
+  { id: 2, label: 'ВТ', full: 'Вторник' },
+  { id: 3, label: 'СР', full: 'Среда' },
+  { id: 4, label: 'ЧТ', full: 'Четверг' },
+  { id: 5, label: 'ПТ', full: 'Пятница' },
+  { id: 6, label: 'СБ', full: 'Суббота' },
+  { id: 7, label: 'ВС', full: 'Воскресенье' },
+];
 
 export default function CreateSubscription() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [time, setTime] = useState('18:00');
   const [address, setAddress] = useState('');
-  const [price, setPrice] = useState('50');
+  const [entrance, setEntrance] = useState('');
+  const [apartment, setApartment] = useState('');
+  const [floor, setFloor] = useState('');
   const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('50');
 
-  const weekDays = [
-    { id: 1, label: 'ПН', full: 'Понедельник' },
-    { id: 2, label: 'ВТ', full: 'Вторник' },
-    { id: 3, label: 'СР', full: 'Среда' },
-    { id: 4, label: 'ЧТ', full: 'Четверг' },
-    { id: 5, label: 'ПТ', full: 'Пятница' },
-    { id: 6, label: 'СБ', full: 'Суббота' },
-    { id: 7, label: 'ВС', full: 'Воскресенье' },
-  ];
+  const c = {
+    bg:      isDark ? '#111827' : '#f9fafb',
+    surface: isDark ? '#1e2433' : '#ffffff',
+    border:  isDark ? '#374151' : '#e5e7eb',
+    text:    isDark ? '#f9fafb' : '#111827',
+    textSub: isDark ? '#d1d5db' : '#374151',
+    muted:   isDark ? '#9ca3af' : '#6b7280',
+    subtle:  isDark ? '#1f2937' : '#f3f4f6',
+    input:   isDark ? '#1f2937' : '#f9fafb',
+  };
 
-  const toggleDay = (dayId: number) => {
-    if (selectedDays.includes(dayId)) {
-      setSelectedDays(selectedDays.filter(id => id !== dayId));
-    } else {
-      setSelectedDays([...selectedDays, dayId]);
-    }
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '0.75rem 1rem',
+    border: `1px solid ${c.border}`,
+    borderRadius: '0.75rem',
+    background: c.input,
+    color: c.text,
+    fontFamily: 'inherit',
+    fontSize: '0.9375rem',
+    outline: 'none',
+    boxSizing: 'border-box',
+  };
+
+  const card: React.CSSProperties = {
+    background: c.surface,
+    border: `1px solid ${c.border}`,
+    borderRadius: '1rem',
+    padding: '1.25rem',
+  };
+
+  const toggleDay = (id: number) =>
+    setSelectedDays(prev => prev.includes(id) ? prev.filter(d => d !== id) : [...prev, id]);
+
+  const buildDescription = () => {
+    const parts: string[] = [];
+    if (entrance) parts.push(`подъезд ${entrance}`);
+    if (floor)    parts.push(`этаж ${floor}`);
+    if (apartment) parts.push(`кв. ${apartment}`);
+    if (description) parts.push(description);
+    return parts.join(', ');
   };
 
   const handleSubmit = async () => {
@@ -42,10 +84,10 @@ export default function CreateSubscription() {
         days: selectedDays,
         time,
         price: Number(price),
-        description,
+        description: buildDescription(),
       });
       toast.success('Расписание создано');
-      navigate('/my-subscriptions');
+      navigate(-1);
     } catch {
       toast.error('Не удалось создать расписание');
     } finally {
@@ -53,330 +95,327 @@ export default function CreateSubscription() {
     }
   };
 
+  const canNext = step === 1 ? selectedDays.length > 0
+    : step === 3 ? address.trim().length > 0
+    : true;
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: c.bg, fontFamily: "'Inter', system-ui, sans-serif" }}>
+
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <header className="sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}`, paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-14">
             <button
-              onClick={() => navigate(-1)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              onClick={() => step > 1 ? setStep(step - 1) : navigate(-1)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.text, padding: '0.25rem', display: 'flex', alignItems: 'center' }}
             >
-              <ArrowLeft className="w-6 h-6 text-gray-900" />
+              <ArrowLeft className="w-6 h-6" />
             </button>
-            <h1 className="font-semibold text-gray-900">График вывоза</h1>
-            <div className="w-10" />
+            <span className="font-semibold text-sm" style={{ color: c.text }}>График вывоза</span>
+            <div className="w-8" />
           </div>
         </div>
-      </header>
 
-      {/* Progress */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-2">
-            {[1, 2, 3, 4].map((s) => (
+        {/* Step progress */}
+        <div className="container mx-auto px-4 pb-3">
+          <div className="flex gap-1.5 max-w-lg mx-auto">
+            {[1, 2, 3, 4].map(s => (
               <div
                 key={s}
-                className={`flex-1 h-1 rounded-full transition-colors ${
-                  s <= step ? 'bg-gray-900' : 'bg-gray-200'
-                }`}
+                className="flex-1 h-1 rounded-full"
+                style={{ background: s <= step ? ACCENT : c.border, transition: 'background 0.2s' }}
               />
             ))}
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main content */}
-      <div className="container mx-auto px-4 py-6 pb-24">
-        <div className="max-w-2xl mx-auto">
-          {/* Step 1: Days */}
-          {step === 1 && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-                  Выберите дни недели
-                </h2>
-                <p className="text-gray-600">
-                  В какие дни вам нужен вывоз мусора?
-                </p>
-              </div>
+      {/* Content */}
+      <div className="container mx-auto px-4 py-5 pb-28 max-w-lg">
 
-              <div className="bg-white border border-gray-200 rounded-2xl p-6">
-                <div className="grid grid-cols-2 gap-3">
-                  {weekDays.map((day) => (
-                    <button
-                      key={day.id}
-                      onClick={() => toggleDay(day.id)}
-                      className={`p-4 rounded-xl border-2 transition-all ${
-                        selectedDays.includes(day.id)
-                          ? 'border-gray-900 bg-gray-900 text-white'
-                          : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="text-sm mb-1">{day.label}</div>
-                      <div className="text-xs opacity-70">{day.full}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {selectedDays.length > 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                  <div className="text-sm text-blue-900">
-                    Выбрано дней: {selectedDays.length}
-                  </div>
-                  <div className="text-xs text-blue-700 mt-1">
-                    {selectedDays.map(id => weekDays.find(d => d.id === id)?.label).join(', ')}
-                  </div>
-                </div>
-              )}
+        {/* STEP 1 — Days */}
+        {step === 1 && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-xl font-bold mb-1" style={{ color: c.text }}>Дни недели</h2>
+              <p className="text-sm" style={{ color: c.muted }}>В какие дни нужен вывоз мусора?</p>
             </div>
-          )}
-
-          {/* Step 2: Time */}
-          {step === 2 && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-                  Выберите время
-                </h2>
-                <p className="text-gray-600">
-                  Во сколько исполнитель должен приехать?
-                </p>
+            <div className="grid grid-cols-2 gap-2">
+              {weekDays.map(day => {
+                const sel = selectedDays.includes(day.id);
+                return (
+                  <button
+                    key={day.id}
+                    onClick={() => toggleDay(day.id)}
+                    style={{
+                      padding: '0.875rem',
+                      borderRadius: '0.875rem',
+                      border: `2px solid ${sel ? ACCENT : c.border}`,
+                      background: sel ? `${ACCENT}18` : c.surface,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      textAlign: 'left',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <div className="text-sm font-bold" style={{ color: sel ? ACCENT : c.text }}>{day.label}</div>
+                    <div className="text-xs mt-0.5" style={{ color: c.muted }}>{day.full}</div>
+                  </button>
+                );
+              })}
+            </div>
+            {selectedDays.length > 0 && (
+              <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium" style={{ background: `${ACCENT}15`, color: ACCENT }}>
+                <Check className="w-4 h-4 flex-shrink-0" />
+                <span>
+                  {selectedDays.map(id => weekDays.find(d => d.id === id)?.label).join(', ')}
+                  {' · '}
+                  {selectedDays.length === 1 ? '1 день' : selectedDays.length < 5 ? `${selectedDays.length} дня` : `${selectedDays.length} дней`}
+                </span>
               </div>
+            )}
+          </div>
+        )}
 
-              <div className="bg-white border border-gray-200 rounded-2xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <Clock className="w-5 h-5 text-gray-400" />
-                  <label className="text-sm font-medium text-gray-900">
-                    Время вывоза
-                  </label>
-                </div>
-                <input
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  className="w-full text-3xl font-semibold text-gray-900 bg-gray-50 rounded-xl p-4 border border-gray-200 focus:outline-none focus:border-gray-900"
-                />
-              </div>
-
-              <div className="bg-white border border-gray-200 rounded-2xl p-6">
-                <h3 className="text-sm font-medium text-gray-900 mb-3">Популярное время</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {['08:00', '12:00', '14:00', '16:00', '18:00', '20:00'].map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setTime(t)}
-                      className={`py-3 px-4 rounded-lg border transition-colors ${
-                        time === t
-                          ? 'border-gray-900 bg-gray-900 text-white'
-                          : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300'
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+        {/* STEP 2 — Time */}
+        {step === 2 && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-xl font-bold mb-1" style={{ color: c.text }}>Время вывоза</h2>
+              <p className="text-sm" style={{ color: c.muted }}>Во сколько должен приехать исполнитель?</p>
+            </div>
+            <div style={card}>
+              <input
+                type="time"
+                value={time}
+                onChange={e => setTime(e.target.value)}
+                style={{ ...inputStyle, fontSize: '2rem', fontWeight: 700, textAlign: 'center', background: c.subtle }}
+              />
+            </div>
+            <div style={card}>
+              <p className="text-xs font-medium mb-3" style={{ color: c.muted }}>Популярное время</p>
+              <div className="grid grid-cols-3 gap-2">
+                {['08:00', '12:00', '14:00', '16:00', '18:00', '20:00'].map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setTime(t)}
+                    style={{
+                      padding: '0.625rem',
+                      borderRadius: '0.625rem',
+                      border: `1.5px solid ${time === t ? ACCENT : c.border}`,
+                      background: time === t ? `${ACCENT}18` : c.subtle,
+                      color: time === t ? ACCENT : c.textSub,
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >{t}</button>
+                ))}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Step 3: Address */}
-          {step === 3 && (
-            <div className="space-y-6">
+        {/* STEP 3 — Address */}
+        {step === 3 && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-xl font-bold mb-1" style={{ color: c.text }}>Адрес</h2>
+              <p className="text-sm" style={{ color: c.muted }}>Откуда забирать мусор?</p>
+            </div>
+            <div style={card} className="space-y-3">
               <div>
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-                  Укажите адрес
-                </h2>
-                <p className="text-gray-600">
-                  Откуда забирать мусор?
-                </p>
-              </div>
-
-              <div className="bg-white border border-gray-200 rounded-2xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <MapPin className="w-5 h-5 text-gray-400" />
-                  <label className="text-sm font-medium text-gray-900">
-                    Адрес
-                  </label>
-                </div>
-                <input
-                  type="text"
+                <label className="text-xs font-medium block mb-1.5" style={{ color: c.muted }}>Улица и дом</label>
+                <KazanAddressInput
                   value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  onChange={setAddress}
                   placeholder="ул. Баумана, 58"
-                  className="w-full text-lg text-gray-900 bg-gray-50 rounded-xl p-4 border border-gray-200 focus:outline-none focus:border-gray-900"
+                  style={inputStyle}
                 />
               </div>
-
-              <div className="bg-white border border-gray-200 rounded-2xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <label className="text-sm font-medium text-gray-900">
-                    Описание (необязательно)
-                  </label>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-xs font-medium block mb-1.5" style={{ color: c.muted }}>Подъезд</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={entrance}
+                    onChange={e => setEntrance(e.target.value)}
+                    placeholder="1"
+                    style={inputStyle}
+                  />
                 </div>
+                <div>
+                  <label className="text-xs font-medium block mb-1.5" style={{ color: c.muted }}>Этаж</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={floor}
+                    onChange={e => setFloor(e.target.value)}
+                    placeholder="5"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium block mb-1.5" style={{ color: c.muted }}>Квартира</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={apartment}
+                    onChange={e => setApartment(e.target.value)}
+                    placeholder="42"
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium block mb-1.5" style={{ color: c.muted }}>Комментарий (необязательно)</label>
                 <textarea
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Например: подъезд 2, домофон 58"
-                  rows={3}
-                  className="w-full text-gray-900 bg-gray-50 rounded-xl p-4 border border-gray-200 focus:outline-none focus:border-gray-900 resize-none"
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Домофон 58, второй корпус"
+                  rows={2}
+                  style={{ ...inputStyle, resize: 'none' }}
                 />
               </div>
+            </div>
+          </div>
+        )}
 
-              <div className="bg-white border border-gray-200 rounded-2xl p-6">
-                <h3 className="text-sm font-medium text-gray-900 mb-3">Недавние адреса</h3>
-                <div className="space-y-2">
-                  {['ул. Баумана, 58', 'пр. Победы, 120', 'ул. Пушкина, 23'].map((addr) => (
-                    <button
-                      key={addr}
-                      onClick={() => setAddress(addr)}
-                      className="w-full text-left py-3 px-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-900">{addr}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+        {/* STEP 4 — Price & Summary */}
+        {step === 4 && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-xl font-bold mb-1" style={{ color: c.text }}>Цена за вывоз</h2>
+              <p className="text-sm" style={{ color: c.muted }}>Сколько платить за один раз?</p>
+            </div>
+            <div style={card}>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={price}
+                  onChange={e => setPrice(e.target.value)}
+                  style={{ ...inputStyle, fontSize: '2rem', fontWeight: 700, textAlign: 'center', flex: 1 }}
+                />
+                <span className="text-2xl font-bold" style={{ color: c.text }}>₽</span>
               </div>
             </div>
-          )}
-
-          {/* Step 4: Price & Summary */}
-          {step === 4 && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-                  Цена за вывоз
-                </h2>
-                <p className="text-gray-600">
-                  Сколько готовы платить за один вывоз?
-                </p>
+            <div style={card}>
+              <p className="text-xs font-medium mb-3" style={{ color: c.muted }}>Рекомендуемая цена</p>
+              <div className="grid grid-cols-3 gap-2">
+                {['40', '50', '60', '70', '80', '100'].map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setPrice(p)}
+                    style={{
+                      padding: '0.625rem',
+                      borderRadius: '0.625rem',
+                      border: `1.5px solid ${price === p ? ACCENT : c.border}`,
+                      background: price === p ? `${ACCENT}18` : c.subtle,
+                      color: price === p ? ACCENT : c.textSub,
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >{p}₽</button>
+                ))}
               </div>
+            </div>
 
-              <div className="bg-white border border-gray-200 rounded-2xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <DollarSign className="w-5 h-5 text-gray-400" />
-                  <label className="text-sm font-medium text-gray-900">
-                    Цена за раз
-                  </label>
+            {/* Summary */}
+            <div className="rounded-2xl p-5" style={{ background: isDark ? '#0d1f0d' : '#f0fdf4', border: `1px solid ${ACCENT}40` }}>
+              <h3 className="text-sm font-bold mb-3" style={{ color: ACCENT }}>Сводка подписки</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span style={{ color: c.muted }}>Дни:</span>
+                  <span className="font-medium" style={{ color: c.text }}>
+                    {selectedDays.map(id => weekDays.find(d => d.id === id)?.label).join(', ')}
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="50"
-                    className="flex-1 text-3xl font-semibold text-gray-900 bg-gray-50 rounded-xl p-4 border border-gray-200 focus:outline-none focus:border-gray-900"
-                  />
-                  <span className="text-2xl font-semibold text-gray-900">₽</span>
+                <div className="flex justify-between">
+                  <span style={{ color: c.muted }}>Время:</span>
+                  <span className="font-medium" style={{ color: c.text }}>{time}</span>
                 </div>
-              </div>
-
-              <div className="bg-white border border-gray-200 rounded-2xl p-6">
-                <h3 className="text-sm font-medium text-gray-900 mb-3">Рекомендуемая цена</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {['40', '50', '60', '70', '80', '100'].map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => setPrice(p)}
-                      className={`py-3 px-4 rounded-lg border transition-colors ${
-                        price === p
-                          ? 'border-gray-900 bg-gray-900 text-white'
-                          : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300'
-                      }`}
-                    >
-                      {p}₽
-                    </button>
-                  ))}
+                <div className="flex justify-between gap-3">
+                  <span style={{ color: c.muted, flexShrink: 0 }}>Адрес:</span>
+                  <span className="font-medium text-right" style={{ color: c.text }}>
+                    {[address, entrance && `подъезд ${entrance}`, floor && `эт. ${floor}`, apartment && `кв. ${apartment}`].filter(Boolean).join(', ') || '—'}
+                  </span>
                 </div>
-              </div>
-
-              {/* Summary */}
-              <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-2xl p-6">
-                <h3 className="text-lg font-semibold mb-4">Сводка подписки</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Дней в неделю:</span>
-                    <span className="font-semibold">{selectedDays.length}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Время:</span>
-                    <span className="font-semibold">{time}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Адрес:</span>
-                    <span className="font-semibold text-right">{address || 'Не указан'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Цена за раз:</span>
-                    <span className="font-semibold">{price}₽</span>
-                  </div>
-                  <div className="border-t border-gray-700 pt-3 mt-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-300">В неделю:</span>
-                      <span className="text-2xl font-bold">{selectedDays.length * Number(price)}₽</span>
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-gray-300">В месяц (~4 недели):</span>
-                      <span className="text-xl font-semibold">{selectedDays.length * Number(price) * 4}₽</span>
-                    </div>
-                  </div>
+                <div className="flex justify-between">
+                  <span style={{ color: c.muted }}>За раз:</span>
+                  <span className="font-medium" style={{ color: c.text }}>{price}₽</span>
                 </div>
-              </div>
-
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                <div className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-green-900">
-                    <div className="font-medium mb-1">Бонус за регулярность</div>
-                    <div className="text-green-700">
-                      Исполнители платят на 10₽ больше за постоянных клиентов. 
-                      Вы получите более стабильный сервис.
-                    </div>
+                <div className="pt-2 mt-1 border-t" style={{ borderColor: `${ACCENT}30` }}>
+                  <div className="flex justify-between items-center">
+                    <span style={{ color: c.muted }}>В неделю:</span>
+                    <span className="text-lg font-bold" style={{ color: ACCENT }}>{selectedDays.length * Number(price)}₽</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-1">
+                    <span style={{ color: c.muted }}>В месяц (~4 нед.):</span>
+                    <span className="font-semibold" style={{ color: c.textSub }}>{selectedDays.length * Number(price) * 4}₽</span>
                   </div>
                 </div>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Bottom navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="max-w-2xl mx-auto flex items-center gap-3">
+      {/* Bottom actions */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-50"
+        style={{ background: c.surface, borderTop: `1px solid ${c.border}`, paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="container mx-auto px-4 py-3 max-w-lg">
+          <div className="flex items-center gap-3">
             {step > 1 && (
-              <Button
-                variant="outline"
+              <button
                 onClick={() => setStep(step - 1)}
-                className="flex-1"
+                style={{
+                  flex: 1, padding: '0.875rem', borderRadius: '0.875rem',
+                  border: `1px solid ${c.border}`, background: 'transparent',
+                  color: c.textSub, fontSize: '0.9375rem', fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}
               >
                 Назад
-              </Button>
+              </button>
             )}
             {step < 4 ? (
-              <Button
+              <button
                 onClick={() => setStep(step + 1)}
-                disabled={
-                  (step === 1 && selectedDays.length === 0) ||
-                  (step === 3 && !address)
-                }
-                className="flex-1 bg-gray-900 hover:bg-gray-800 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!canNext}
+                style={{
+                  flex: 1, padding: '0.875rem', borderRadius: '0.875rem',
+                  border: 'none', background: ACCENT, color: 'white',
+                  fontSize: '0.9375rem', fontWeight: 600,
+                  cursor: canNext ? 'pointer' : 'not-allowed',
+                  opacity: canNext ? 1 : 0.45,
+                  fontFamily: 'inherit',
+                }}
               >
                 Далее
-              </Button>
+              </button>
             ) : (
-              <Button
+              <button
                 onClick={handleSubmit}
                 disabled={!address || !price || submitting}
-                className="flex-1 bg-gray-900 hover:bg-gray-800 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  flex: 1, padding: '0.875rem', borderRadius: '0.875rem',
+                  border: 'none', background: ACCENT, color: 'white',
+                  fontSize: '0.9375rem', fontWeight: 600,
+                  cursor: (!address || !price || submitting) ? 'not-allowed' : 'pointer',
+                  opacity: (!address || !price || submitting) ? 0.45 : 1,
+                  fontFamily: 'inherit',
+                }}
               >
                 {submitting ? 'Создание...' : 'Создать подписку'}
-              </Button>
+              </button>
             )}
           </div>
         </div>

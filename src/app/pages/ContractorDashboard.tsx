@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
-import { Home, MapPin, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy } from 'lucide-react';
+import { Home, MapPin, Map, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { LevelSystem, getRankLabel, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
@@ -25,6 +25,7 @@ import { isNative } from '../../lib/platform';
 import { pickPhotosNative } from '../../hooks/useNativeCamera';
 import { API_BASE_URL } from '../../api/client';
 import { useNativeBackClose } from '../../hooks/useNativeBackClose';
+import { OrdersMapAll } from '../components/OrdersMapAll';
 
 const ACCENT = '#2196F3';
 
@@ -47,7 +48,7 @@ export default function ContractorDashboard() {
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuthStore();
   const { addNotification } = useNotificationsStore();
-  const VALID_TABS = ['active', 'home', 'find', 'history', 'profile'] as const;
+  const VALID_TABS = ['active', 'home', 'find', 'map', 'history', 'profile'] as const;
   type TabType = typeof VALID_TABS[number];
   const activeTab: TabType = (VALID_TABS.includes(searchParams.get('tab') as TabType) ? searchParams.get('tab') : 'active') as TabType;
   const setActiveTab = (tab: TabType) => setSearchParams({ tab });
@@ -99,6 +100,7 @@ export default function ContractorDashboard() {
   const [editInfoOpen, setEditInfoOpen] = useState(false);
   const [editInfoForm, setEditInfoForm] = useState({ transportMode: 'car' });
   const [editInfoSaving, setEditInfoSaving] = useState(false);
+  const [showPhotoSheet, setShowPhotoSheet] = useState<string | null>(null);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [editProfileForm, setEditProfileForm] = useState({ name: '', district: '', inn: '', email: '', sbpBank: '' });
   const CONTRACTOR_DISTRICTS = ['Вахитовский', 'Приволжский', 'Советский', 'Ново-Савиновский', 'Московский', 'Авиастроительный', 'Кировский'];
@@ -125,7 +127,7 @@ export default function ContractorDashboard() {
   const prevLevelRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (activeTab !== 'find') return;
+    if (activeTab !== 'find' && activeTab !== 'map') return;
     const load = (initial: boolean) => {
       if (initial) setOrdersLoading(true);
       ordersApi.available().then((res: any) => {
@@ -285,7 +287,7 @@ export default function ContractorDashboard() {
   // Geocode order addresses for distance calculation (throttled to 1 req/s)
   // Runs once per tab visit; checks ref for newly added orders on each iteration
   useEffect(() => {
-    if (activeTab !== 'find') return;
+    if (activeTab !== 'find' && activeTab !== 'map') return;
     const geocodedIds = new Set<string>();
     let cancelled = false;
     let running = false;
@@ -329,6 +331,7 @@ export default function ContractorDashboard() {
   useNativeBackClose(showFilters, () => setShowFilters(false));
   useNativeBackClose(!!selectedOrder, () => setSelectedOrder(null));
   useNativeBackClose(!!historyDetailOrder, () => setHistoryDetailOrder(null));
+  useNativeBackClose(!!showPhotoSheet, () => setShowPhotoSheet(null));
   useNativeBackClose(!!lightboxUrl, () => setLightboxUrl(null)); // innermost — closes first
 
   const c = {
@@ -432,6 +435,7 @@ export default function ContractorDashboard() {
             { id: 'active' as const, icon: CheckCircle, label: 'Активные заказы' },
             { id: 'home' as const, icon: Home, label: 'Главная' },
             { id: 'find' as const, icon: Search, label: 'Найти заказ' },
+            { id: 'map' as const, icon: Map, label: 'Карта заказов' },
             { id: 'history' as const, icon: Calendar, label: 'История заказов' },
           ].map(({ id, icon: Icon, label }) => (
             <button
@@ -543,6 +547,7 @@ export default function ContractorDashboard() {
                 { id: 'active' as const, icon: CheckCircle, label: 'Активные заказы' },
                 { id: 'home' as const, icon: Home, label: 'Главная' },
                 { id: 'find' as const, icon: Search, label: 'Найти заказ' },
+                { id: 'map' as const, icon: Map, label: 'Карта заказов' },
                 { id: 'history' as const, icon: Calendar, label: 'История заказов' },
               ].map(({ id, icon: Icon, label }) => (
                 <button
@@ -728,10 +733,7 @@ export default function ContractorDashboard() {
                                     {isNative() ? (
                                       <button
                                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', border: `1.5px solid #2196F3`, borderRadius: '0.625rem', cursor: 'pointer', background: '#2196F310', width: '100%', fontFamily: 'inherit' }}
-                                        onClick={async () => {
-                                          const files = await pickPhotosNative(3, 'prompt');
-                                          if (files) setCompletionPhotos(prev => ({ ...prev, [job.id]: [...(prev[job.id] || []), ...files].slice(0, 3) }));
-                                        }}
+                                        onClick={() => setShowPhotoSheet(job.id)}
                                       >
                                         <span style={{ fontSize: '1.1rem' }}>📷</span>
                                         <span className="text-xs font-medium" style={{ color: (completionPhotos[job.id]?.length ?? 0) > 0 ? c.textSub : '#2196F3' }}>
@@ -1449,6 +1451,30 @@ export default function ContractorDashboard() {
             );
           })()}
 
+          {/* MAP TAB */}
+          {activeTab === 'map' && (
+            <div className="max-w-4xl mx-auto" style={{ height: 'calc(100vh - 10rem)' }}>
+              <div className="flex items-center justify-between mb-3">
+                <h1 className="text-xl font-semibold" style={{ color: c.text }}>Карта заказов</h1>
+                <span className="text-xs px-2 py-1 rounded-full" style={{ background: `${ACCENT}18`, color: ACCENT }}>
+                  Казань
+                </span>
+              </div>
+              <div style={{ height: 'calc(100% - 2.5rem)' }}>
+                <OrdersMapAll
+                  orders={availableOrders.filter(o => o.customerId !== user?.id)}
+                  orderCoords={orderCoords}
+                  isDark={isDark}
+                  accentColor={ACCENT}
+                  onOrderClick={(orderId) => {
+                    const order = availableOrders.find(o => o.id === orderId);
+                    if (order) setSelectedOrder(order);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* FIND ORDERS TAB */}
           {activeTab === 'find' && (() => {
             const hasActiveFilters = !!(filterDateFrom || filterDateTo || filterTimeFrom || filterTimeTo || filterDistrict || (contractorGps && filterDistanceKm < 50));
@@ -1848,6 +1874,59 @@ export default function ContractorDashboard() {
         </div>
       )}
 
+      {/* Photo source bottom sheet */}
+      {showPhotoSheet && (
+        <>
+          <div
+            className="fixed inset-0 z-[85]"
+            style={{ background: 'rgba(0,0,0,0.6)' }}
+            onClick={() => setShowPhotoSheet(null)}
+          />
+          <div
+            className="fixed bottom-0 left-0 right-0 z-[86] rounded-t-2xl"
+            style={{ background: c.surface, paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
+          >
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: c.border, margin: '12px auto 16px' }} />
+            <div className="px-4 pb-2">
+              <div className="text-sm font-semibold mb-4 text-center" style={{ color: c.text }}>Добавить фото</div>
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl mb-3 text-sm font-medium"
+                style={{ background: `${ACCENT}15`, color: ACCENT, border: `1.5px solid ${ACCENT}40`, cursor: 'pointer', fontFamily: 'inherit' }}
+                onClick={async () => {
+                  const jobId = showPhotoSheet;
+                  setShowPhotoSheet(null);
+                  const files = await pickPhotosNative(3, 'gallery');
+                  if (files) setCompletionPhotos(prev => ({ ...prev, [jobId]: [...(prev[jobId] || []), ...files].slice(0, 3) }));
+                }}
+              >
+                <span style={{ fontSize: '1.3rem' }}>🖼️</span>
+                Из галереи
+              </button>
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl mb-3 text-sm font-medium"
+                style={{ background: `${ACCENT}15`, color: ACCENT, border: `1.5px solid ${ACCENT}40`, cursor: 'pointer', fontFamily: 'inherit' }}
+                onClick={async () => {
+                  const jobId = showPhotoSheet;
+                  setShowPhotoSheet(null);
+                  const files = await pickPhotosNative(3, 'camera');
+                  if (files) setCompletionPhotos(prev => ({ ...prev, [jobId]: [...(prev[jobId] || []), ...files].slice(0, 3) }));
+                }}
+              >
+                <span style={{ fontSize: '1.3rem' }}>📷</span>
+                Сделать фото
+              </button>
+              <button
+                className="w-full py-3 rounded-xl text-sm font-medium"
+                style={{ background: c.subtle, color: c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                onClick={() => setShowPhotoSheet(null)}
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Lightbox */}
       {lightboxUrl && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.9)' }} onClick={() => setLightboxUrl(null)}>
@@ -1870,6 +1949,10 @@ export default function ContractorDashboard() {
             <button onClick={() => setActiveTab('find')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'find' ? ACCENT : c.muted }}>
               <Search className="w-6 h-6" />
               <span className="text-xs">Найти</span>
+            </button>
+            <button onClick={() => setActiveTab('map')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'map' ? ACCENT : c.muted }}>
+              <Map className="w-6 h-6" />
+              <span className="text-xs">Карта</span>
             </button>
             <button onClick={() => setActiveTab('history')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'history' ? ACCENT : c.muted }}>
               <Calendar className="w-6 h-6" />
