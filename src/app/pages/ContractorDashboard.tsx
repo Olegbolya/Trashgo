@@ -86,6 +86,8 @@ export default function ContractorDashboard() {
   const [sortOrders, setSortOrders] = useState<'newest' | 'price_asc' | 'price_desc' | 'date_asc' | 'date_desc' | 'distance_asc'>(_lsFilters.sort ?? 'newest');
   const [contractorGps, setContractorGps] = useState<{ lat: number; lon: number } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
+  // orderCoords kept as empty stub — distance filter UI preserved but geocoding removed with map tab
+  const orderCoords = new Map<string, { lat: number; lon: number } | null>();
   const availableOrdersRef = useRef<Order[]>([]);
   const [historyDetailOrder, setHistoryDetailOrder] = useState<Order | null>(null);
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
