@@ -4,6 +4,7 @@ import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../api/auth';
 import { Home, MapPin, User, Plus, Package, CheckCircle, Clock, RefreshCw, Edit, LogOut, Bell, CreditCard, UserPlus, HelpCircle, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Star, Phone, MessageCircle, Menu, X, Trophy, Pause, Play, Trash2, Smartphone } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { hapticTap, hapticSuccess, hapticError } from '../../lib/haptics';
 import { LevelSystem, getRankLabel, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
 import { toast } from 'sonner';
@@ -1988,6 +1989,7 @@ export default function CustomerDashboard() {
                 onClick={(e) => {
                   e.stopPropagation();
                   if (confirmingId) return;
+                  hapticTap();
                   doConfirmOrder(selectedOrder.id);
                 }}
               >
@@ -2335,11 +2337,13 @@ export default function CustomerDashboard() {
                         disabled={cancelingId === selectedOrder.id}
                         style={{ border: `1px solid #fca5a5`, background: 'transparent', color: '#ef4444', cursor: cancelingId === selectedOrder.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: cancelingId === selectedOrder.id ? 0.6 : 1 }}
                         onClick={async () => {
+                          hapticTap();
                           setCancelingId(selectedOrder.id);
                           try { await ordersApi.updateStatus(selectedOrder.id, 'cancelled'); } catch {}
                           setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
                           setSelectedOrder(null);
                           setCancelingId(null);
+                          hapticSuccess();
                           toast.success('Заказ отменён');
                         }}
                       >

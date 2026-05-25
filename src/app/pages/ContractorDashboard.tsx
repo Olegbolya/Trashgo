@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { Home, MapPin, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy, Copy, Smartphone } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { hapticTap, hapticSuccess, hapticError } from '../../lib/haptics';
 import { LevelSystem, getRankLabel, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
 import { toast } from 'sonner';
@@ -1798,6 +1799,7 @@ export default function ContractorDashboard() {
                 disabled={acceptingId === selectedOrder.id}
                 style={{ background: ACCENT, color: 'white', border: 'none', cursor: acceptingId === selectedOrder.id ? 'not-allowed' : 'pointer', opacity: acceptingId === selectedOrder.id ? 0.6 : 1, fontFamily: 'inherit' }}
                 onClick={async () => {
+                  hapticTap();
                   setAcceptingId(selectedOrder.id);
                   try {
                     const res = await ordersApi.updateStatus(selectedOrder.id, 'accepted') as any;
@@ -1806,10 +1808,11 @@ export default function ContractorDashboard() {
                     setMyJobs((prev) => [accepted, ...prev]);
                     setSelectedOrder(null);
                     setShowMap(false);
-                    
                     setActiveTab('active');
+                    hapticSuccess();
                     toast.success('Заказ принят!', { description: 'Он появился в разделе «Активные заказы»', duration: 3000 });
                   } catch (err: any) {
+                    hapticError();
                     toast.error(err?.message || 'Не удалось принять заказ');
                   } finally {
                     setAcceptingId(null);

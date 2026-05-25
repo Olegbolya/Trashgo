@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Phone, ArrowLeft, Send } from 'lucide-react';
 import { isNative } from '../../lib/platform';
+import { hapticTap } from '../../lib/haptics';
 import type { ChatMessage } from '../../types/order';
 
 interface Props {
@@ -24,10 +25,28 @@ export function ChatScreen({
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const [overlayHeight, setOverlayHeight] = useState<number | null>(null);
 
+  // Scroll to bottom on new messages
   useEffect(() => {
     setTimeout(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, 50);
   }, [messages.length]);
+
+  // Android keyboard fix: use visualViewport to shrink overlay when keyboard opens
+  useEffect(() => {
+    if (!isNative()) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      setOverlayHeight(vv.height);
+      // Scroll to bottom so input stays visible
+      setTimeout(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, 80);
+    };
+    vv.addEventListener('resize', update);
+    update();
+    return () => vv.removeEventListener('resize', update);
+  }, []);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -44,9 +63,13 @@ export function ChatScreen({
 
   const overlay = (
     <div
+      ref={overlayRef}
       style={{
         position: 'fixed',
-        inset: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        height: overlayHeight ? `${overlayHeight}px` : '100%',
         zIndex: 99990,
         display: 'flex',
         flexDirection: 'column',
@@ -161,7 +184,7 @@ export function ChatScreen({
         />
         <button
           disabled={!input.trim() || sending}
-          onClick={onSend}
+          onClick={() => { hapticTap(); onSend(); }}
           style={{
             width: '2.5rem',
             height: '2.5rem',

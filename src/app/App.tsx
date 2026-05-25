@@ -14,6 +14,7 @@ import { UpdateBanner } from './components/UpdateBanner';
 import { useAndroidUpdateCheck } from '../hooks/useAndroidUpdateCheck';
 import { isNative } from '../lib/platform';
 import { handleNativeBack } from '../lib/nativeBack';
+import { useNotificationsStore } from '../stores/notifications.store';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -100,6 +101,21 @@ function NativeBootstrap() {
         console.error('[NativeBootstrap]', e);
       }
     })();
+
+    // Forward foreground push notifications into the in-app bell
+    const addNotification = useNotificationsStore.getState().addNotification;
+    const handler = (e: Event) => {
+      const n = (e as CustomEvent).detail;
+      if (!n?.title) return;
+      addNotification({
+        type: (n.data?.type as any) ?? 'order_status',
+        title: n.title,
+        message: n.body ?? '',
+        orderId: n.data?.orderId ?? undefined,
+      });
+    };
+    window.addEventListener('push:foreground', handler);
+    return () => window.removeEventListener('push:foreground', handler);
   }, []);
   return null;
 }

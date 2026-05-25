@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { isNative } from '../../lib/platform';
 
+const APK_URL = 'https://github.com/Olegbolya/Trashgo-API/releases/latest/download/app-release.apk';
+
 export function UpdateBanner() {
   const [show, setShow] = useState(false);
 
@@ -32,13 +34,19 @@ export function UpdateBanner() {
       <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>🆕</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>Вышла новая версия!</div>
-        <div style={{ fontSize: '0.75rem', opacity: 0.9 }}>Обновите приложение в Google Play</div>
+        <div style={{ fontSize: '0.75rem', opacity: 0.9 }}>Скачайте обновлённый APK</div>
       </div>
+      <a
+        href={APK_URL}
+        style={{ background: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontWeight: 700, fontSize: '0.8rem', textDecoration: 'none', flexShrink: 0 }}
+      >
+        Скачать
+      </a>
       <button
         onClick={() => setShow(false)}
-        style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', fontFamily: 'inherit', flexShrink: 0 }}
+        style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, padding: '0 0.25rem', flexShrink: 0, fontFamily: 'inherit' }}
       >
-        Позже
+        ✕
       </button>
     </div>
   );

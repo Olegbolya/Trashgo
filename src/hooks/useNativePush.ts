@@ -2,22 +2,22 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { isNative } from '../lib/platform';
 import { api } from '../api/client';
 
-let registered = false;
+// Listeners are added once per app session; register() is called every time to refresh token
+let listenersAdded = false;
 
 export async function registerNativePush() {
-  if (!isNative() || registered) return;
+  if (!isNative()) return;
 
   const permission = await PushNotifications.requestPermissions();
   if (permission.receive !== 'granted') return;
 
-  // Create notification channel required for Android 8+ (API 26+)
-  // Must be created before register() so FCM can route to it
+  // Create channel required for Android 8+ (idempotent — Android ignores if already exists)
   try {
     await PushNotifications.createChannel({
       id: 'trashgo_default',
       name: 'TrashGo уведомления',
       description: 'Уведомления о заказах и чате',
-      importance: 5,  // IMPORTANCE_HIGH — heads-up + sound + vibration
+      importance: 5,  // IMPORTANCE_HIGH
       visibility: 1,  // VISIBILITY_PUBLIC
       vibration: true,
       lights: true,
@@ -26,8 +26,11 @@ export async function registerNativePush() {
     console.warn('[NativePush] createChannel failed:', e);
   }
 
+  // Always register so FCM token is refreshed if it was rotated or cleared by server
   await PushNotifications.register();
-  registered = true;
+
+  if (listenersAdded) return;
+  listenersAdded = true;
 
   PushNotifications.addListener('registration', async ({ value: token }) => {
     try {
@@ -39,7 +42,7 @@ export async function registerNativePush() {
     console.error('[NativePush] registration error', err);
   });
 
-  // When push arrives while app is in foreground — add to in-app notification store
+  // When push arrives while app is in foreground — relay to notification store via DOM event
   PushNotifications.addListener('pushNotificationReceived', (notification) => {
     window.dispatchEvent(new CustomEvent('push:foreground', { detail: notification }));
   });
