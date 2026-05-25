@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
-import { Home, MapPin, Map, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy } from 'lucide-react';
+import { Home, MapPin, Map as MapIcon, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { LevelSystem, getRankLabel, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
@@ -435,7 +435,7 @@ export default function ContractorDashboard() {
             { id: 'active' as const, icon: CheckCircle, label: 'Активные заказы' },
             { id: 'home' as const, icon: Home, label: 'Главная' },
             { id: 'find' as const, icon: Search, label: 'Найти заказ' },
-            { id: 'map' as const, icon: Map, label: 'Карта заказов' },
+            { id: 'map' as const, icon: MapIcon, label: 'Карта заказов' },
             { id: 'history' as const, icon: Calendar, label: 'История заказов' },
           ].map(({ id, icon: Icon, label }) => (
             <button
@@ -547,7 +547,7 @@ export default function ContractorDashboard() {
                 { id: 'active' as const, icon: CheckCircle, label: 'Активные заказы' },
                 { id: 'home' as const, icon: Home, label: 'Главная' },
                 { id: 'find' as const, icon: Search, label: 'Найти заказ' },
-                { id: 'map' as const, icon: Map, label: 'Карта заказов' },
+                { id: 'map' as const, icon: MapIcon, label: 'Карта заказов' },
                 { id: 'history' as const, icon: Calendar, label: 'История заказов' },
               ].map(({ id, icon: Icon, label }) => (
                 <button
@@ -1951,7 +1951,7 @@ export default function ContractorDashboard() {
               <span className="text-xs">Найти</span>
             </button>
             <button onClick={() => setActiveTab('map')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'map' ? ACCENT : c.muted }}>
-              <Map className="w-6 h-6" />
+              <MapIcon className="w-6 h-6" />
               <span className="text-xs">Карта</span>
             </button>
             <button onClick={() => setActiveTab('history')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'history' ? ACCENT : c.muted }}>
