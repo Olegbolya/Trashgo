@@ -2,12 +2,13 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, HelpCircle, MessageCircle, Mail, ChevronDown, ChevronUp, ExternalLink, Zap, Shield, Package, Clock, Star, Trash2, Send, X, WifiOff } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { api } from '../../api/client';
+import { api, API_BASE_URL } from '../../api/client';
+import { isNative } from '../../lib/platform';
+import { useNativeBackClose } from '../../hooks/useNativeBackClose';
 import PrivacyFooter from '../components/PrivacyFooter';
 
 const ACCENT = '#2196F3';
 const GREEN  = '#4CAF50';
-const API_BASE = (import.meta.env.VITE_API_URL as string) || (import.meta.env.PROD ? '/api/v1' : 'http://localhost:3000/api/v1');
 
 const SYNC_DB_NAME = 'trashgo-bg-sync';
 const SYNC_STORE_NAME = 'pending-requests';
@@ -228,7 +229,7 @@ export default function Help() {
         const token = getToken();
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
-        await queueForSync(`${API_BASE}/support`, 'POST', headers, JSON.stringify(payload)).catch(() => {});
+        await queueForSync(`${API_BASE_URL}/support`, 'POST', headers, JSON.stringify(payload)).catch(() => {});
         // Optimistic message
         setMessages(prev => [...prev, {
           id: `pending-${Date.now()}`,
@@ -249,6 +250,8 @@ export default function Help() {
     }
   };
 
+  useNativeBackClose(chatOpen, () => setChatOpen(false));
+
   const contacts = [
     { icon: MessageCircle, color: GREEN,     title: 'Написать в чат', sub: 'Ответим в течение 15 минут',  action: () => setChatOpen(true), badge: hasUnread },
     { icon: Mail,          color: '#FF9800', title: 'trashgo.support@gmail.com', sub: 'Ответ в течение 2 часов',  action: () => { window.location.href = 'mailto:trashgo.support@gmail.com'; }, badge: false },
@@ -263,7 +266,7 @@ export default function Help() {
 
   return (
     <div className="min-h-screen pb-14" style={{ background: c.bg, fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <header className="sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}` }}>
+      <header className="sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}`, paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="container mx-auto px-3">
           <div className="flex items-center justify-between h-12">
             <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'inherit' }}>
@@ -494,7 +497,7 @@ export default function Help() {
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                 placeholder="Напишите сообщение..."
                 style={{ flex: 1, height: '2.5rem', padding: '0 0.875rem', borderRadius: '0.75rem', border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, fontSize: '0.9375rem', outline: 'none', fontFamily: 'inherit' }}
-                autoFocus
+                autoFocus={!isNative()}
               />
               <button onClick={handleSend} disabled={sending || !newMessage.trim()} style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', background: sending || !newMessage.trim() ? c.subtle : ACCENT, border: 'none', cursor: sending || !newMessage.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {isOffline ? <WifiOff style={{ width: '1rem', height: '1rem', color: c.muted }} /> : <Send style={{ width: '1rem', height: '1rem', color: sending || !newMessage.trim() ? c.muted : '#fff' }} />}

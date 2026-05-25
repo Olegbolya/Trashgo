@@ -161,7 +161,7 @@ export default function UnifiedDashboard() {
         <div className={viewMode === 'mobile' ? 'lg:flex lg:justify-center lg:py-8 lg:bg-gray-100' : ''}>
           <div className={viewMode === 'mobile' ? 'lg:w-[390px] lg:bg-white lg:rounded-2xl lg:shadow-2xl lg:overflow-hidden lg:border lg:border-gray-300' : ''}>
             {/* Mobile Header */}
-            <header className={`${viewMode === 'mobile' ? 'bg-white' : 'lg:hidden bg-white'} border-b border-gray-200 sticky top-0 z-40`}>
+            <header className={`${viewMode === 'mobile' ? 'bg-white' : 'lg:hidden bg-white'} border-b border-gray-200 sticky top-0 z-40`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
               <div className="px-4 py-3">
                 <div className="flex items-center justify-between">
                   <div>

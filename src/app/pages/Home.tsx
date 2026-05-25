@@ -176,11 +176,14 @@ export default function Home() {
 
       {/* ── HEADER ── */}
       <header style={{
-        position: 'fixed', top: 0, left: 0, right: 0, height: '3.25rem',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 1.25rem', zIndex: 50,
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
         background: c.headerBg, backdropFilter: 'blur(12px)',
         borderBottom: `1px solid ${c.border}`,
+        paddingTop: 'env(safe-area-inset-top)',
+      }}>
+      <div style={{
+        height: '3.25rem', display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', padding: '0 1.25rem',
       }}>
         <span style={{ fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.02em', color: accent, transition: 'color 0.4s' }}>
           TrashGo
@@ -248,6 +251,7 @@ export default function Home() {
             )}
           </div>
         </div>
+      </div>
       </header>
 
       {/* ── HERO ── */}

@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../api/auth';
 import { toast } from 'sonner';
+import { useNativeBackClose } from '../../hooks/useNativeBackClose';
 import PrivacyFooter from '../components/PrivacyFooter';
 
 const ACCENT = '#2196F3';
@@ -46,6 +47,8 @@ export default function Payment() {
     subtle:  isDark ? '#1f2937' : '#f3f4f6',
   };
 
+  useNativeBackClose(innModalOpen, () => setInnModalOpen(false));
+
   const balance = user?.balance ?? 0;
 
   useEffect(() => {
@@ -59,7 +62,7 @@ export default function Payment() {
 
   return (
     <div className="min-h-screen pb-14" style={{ background: c.bg, fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <header className="sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}` }}>
+      <header className="sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}`, paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="container mx-auto px-3">
           <div className="flex items-center justify-between h-12">
             <button

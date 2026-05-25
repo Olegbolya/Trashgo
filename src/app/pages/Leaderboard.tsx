@@ -46,7 +46,7 @@ export default function Leaderboard() {
 
   return (
     <div className={`min-h-screen ${bg}`}>
-      <header className={`${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border-b sticky top-0 z-50`}>
+      <header className={`${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border-b sticky top-0 z-50`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <button onClick={() => navigate(-1)} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}>

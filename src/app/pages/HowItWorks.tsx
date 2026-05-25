@@ -138,7 +138,7 @@ export default function HowItWorks() {
   return (
     <div className="min-h-screen pb-10" style={{ background: c.bg, fontFamily: "'Inter', system-ui, sans-serif" }}>
       {/* Header */}
-      <header className="sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}` }}>
+      <header className="sticky top-0 z-50" style={{ background: c.surface, borderBottom: `1px solid ${c.border}`, paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="container mx-auto px-3">
           <div className="flex items-center justify-between h-12">
             <button
