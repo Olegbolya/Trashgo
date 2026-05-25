@@ -32,6 +32,8 @@ export default function Verify() {
   const [phoneInput, setPhoneInput] = useState('');
   // When user switches to phone-based Telegram fallback, verify with phone instead of email
   const [phoneOverride, setPhoneOverride] = useState<string | null>(null);
+  // Tracks which channel the code was actually sent via (may differ from initial channel)
+  const [activeChannel, setActiveChannel] = useState<string | undefined>(channel);
   const setAuth = useAuthStore((s) => s.setAuth);
   const accent = useRoleStore((s) => s.accentColor);
 
@@ -112,12 +114,12 @@ export default function Verify() {
           Введите код
         </h1>
         <p style={{ fontSize: '0.875rem', color: c.muted, marginBottom: '1.75rem' }}>
-          {channel === 'email' && deliveryEmail
-            ? <>Отправили код на <span style={{ color: c.text, fontWeight: 600 }}>{deliveryEmail}</span> — проверьте почту</>
-            : channel === 'telegram'
-              ? telegramBotLink
-                ? <>Откройте бота TrashGo в Telegram и он пришлёт код для <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
-                : <>Код отправлен в ваш <span style={{ color: c.text, fontWeight: 600 }}>Telegram</span></>
+          {activeChannel === 'telegram'
+            ? tgLink
+              ? <>Откройте бота TrashGo в Telegram — он пришлёт вам код</>
+              : <>Код отправлен в ваш <span style={{ color: c.text, fontWeight: 600 }}>Telegram</span></>
+            : activeChannel === 'email' && deliveryEmail
+              ? <>Отправили код на <span style={{ color: c.text, fontWeight: 600 }}>{deliveryEmail}</span> — проверьте почту</>
               : <>Отправили SMS на <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
           }
         </p>
@@ -197,6 +199,7 @@ export default function Verify() {
                     const res = await authApi.requestTelegram(formatted);
                     setTgLink(res.telegramBotLink);
                     setPhoneOverride(formatted);
+                    setActiveChannel('telegram');
                   } catch {
                     toast.error('Telegram бот недоступен');
                   } finally {
@@ -228,6 +231,7 @@ export default function Verify() {
               try {
                 const res = await authApi.requestTelegram(phone ?? '');
                 setTgLink(res.telegramBotLink);
+                setActiveChannel('telegram');
               } catch {
                 toast.error('Telegram бот недоступен');
               } finally {
