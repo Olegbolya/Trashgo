@@ -1706,7 +1706,12 @@ export default function ContractorDashboard() {
                               </div>
                               <div className="flex items-center gap-1.5 mb-1">
                                 <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: c.muted }} />
-                                <span className="text-sm font-medium truncate" style={{ color: c.text }}>{order.address}</span>
+                                <span className="text-sm font-medium truncate flex-1" style={{ color: c.text }}>{order.address}</span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(order.address + ', Казань').catch(() => {}); toast.success('Адрес скопирован', { duration: 1500 }); }}
+                                  title="Скопировать адрес"
+                                  style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '0.95rem', padding: '0.1rem 0.2rem', lineHeight: 1 }}
+                                >📋</button>
                               </div>
                               {order.description && (
                                 <div className="text-xs mb-2" style={{ color: c.muted }}>{order.description}</div>
@@ -1761,13 +1766,19 @@ export default function ContractorDashboard() {
             <div className="p-4 space-y-4">
               {/* Address & time */}
               <div style={{ ...card, padding: '1rem' }}>
-                <div className="flex items-start gap-3 mb-3">
+                <div className="flex items-start gap-3 mb-2">
                   <MapPin className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: ACCENT }} />
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <div className="font-semibold" style={{ color: c.text }}>{selectedOrder.address}</div>
                     <div className="text-sm mt-0.5" style={{ color: c.muted }}>{selectedOrder.district}</div>
                   </div>
                 </div>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(selectedOrder.address + ', Казань').catch(() => {}); toast.success('Адрес скопирован', { description: 'Вставьте в навигатор', duration: 2000 }); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: c.subtle, color: c.textSub, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: '0.75rem' }}
+                >
+                  📋 Скопировать адрес
+                </button>
                 <div className="flex items-center gap-3">
                   <Clock className="w-5 h-5 flex-shrink-0" style={{ color: selectedOrder.asap ? ACCENT : c.muted }} />
                   {selectedOrder.asap ? (
