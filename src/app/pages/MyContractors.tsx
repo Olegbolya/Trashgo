@@ -4,6 +4,7 @@ import { ArrowLeft, Star, MapPin, Package, User } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { authApi } from '../../api/auth';
 import { toast } from 'sonner';
+import { API_BASE_URL } from '../../api/client';
 
 const ACCENT = '#66BB6A';
 
@@ -43,7 +44,7 @@ export default function MyContractors() {
   };
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL ?? 'https://api-production-8470.up.railway.app/api/v1'}/users/my-contractors`, {
+    fetch(`${API_BASE_URL}/users/my-contractors`, {
       headers: { Authorization: `Bearer ${JSON.parse(localStorage.getItem('auth-storage') ?? '{}')?.state?.token ?? ''}` },
     })
       .then(r => r.json())

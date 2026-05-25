@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { API_BASE_URL } from '../../api/client';
 
-const API_URL = (import.meta.env.VITE_API_URL as string) || (import.meta.env.PROD ? '/api/v1' : 'http://localhost:3000/api/v1');
+const API_URL = API_BASE_URL;
 
 interface Stats {
   users: number;
