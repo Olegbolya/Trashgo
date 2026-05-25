@@ -15,6 +15,7 @@ interface Order {
 interface Props {
   orders: Order[];
   orderCoords: Map<string, { lat: number; lon: number } | null>;
+  ordersLoading?: boolean;
   isDark: boolean;
   onOrderClick?: (orderId: string) => void;
   accentColor?: string;
@@ -23,6 +24,7 @@ interface Props {
 export function OrdersMapAll({
   orders,
   orderCoords,
+  ordersLoading = false,
   isDark,
   onOrderClick,
   accentColor = '#4CAF50',
@@ -162,7 +164,17 @@ export function OrdersMapAll({
   const badgeBg = isDark ? 'rgba(17,24,39,0.85)' : 'rgba(255,255,255,0.92)';
   const badgeText = isDark ? '#f9fafb' : '#111827';
 
-  const noCoords = resolvedCount === 0;
+  // Show overlay only while geocoding is actually in progress
+  const pendingGeocode = orders.some(o => orderCoords.get(o.id) === undefined);
+  const overlayText =
+    ordersLoading || (orders.length === 0 && pendingGeocode)
+      ? 'Загружаем заказы...'
+      : orders.length === 0
+      ? null // no overlay — badge shows "0 заказов"
+      : pendingGeocode
+      ? 'Определяем адреса...'
+      : null;
+  const noCoords = overlayText !== null;
 
   return (
     <div
@@ -224,7 +236,7 @@ export function OrdersMapAll({
               fontWeight: 500,
             }}
           >
-            Загружаем адреса...
+            {overlayText}
           </span>
         </div>
       )}

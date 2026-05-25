@@ -327,10 +327,16 @@ export default function ContractorDashboard() {
     };
 
     runGeocoding();
-    // Re-check for new orders every 12s (slightly after the 10s poll interval)
-    const interval = setInterval(runGeocoding, 12000);
+    // Re-check every 2s so geocoding starts promptly after orders load
+    const interval = setInterval(runGeocoding, 2000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [activeTab]);
+
+  // Also kick off geocoding whenever new orders arrive (covers immediate load)
+  const geocodeTriggerRef = useRef(0);
+  useEffect(() => {
+    geocodeTriggerRef.current += 1;
+  }, [availableOrders.length]);
 
   // Android back button: last-declared = highest priority (stack top = closes first)
   useNativeBackClose(showHowItWorks, () => setShowHowItWorks(false));
@@ -1474,6 +1480,7 @@ export default function ContractorDashboard() {
                 <OrdersMapAll
                   orders={availableOrders.filter(o => o.customerId !== user?.id)}
                   orderCoords={orderCoords}
+                  ordersLoading={ordersLoading}
                   isDark={isDark}
                   accentColor={ACCENT}
                   onOrderClick={(orderId) => {
