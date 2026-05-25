@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../api/auth';
-import { Home, MapPin, User, Plus, Package, CheckCircle, Clock, RefreshCw, Edit, LogOut, Bell, CreditCard, UserPlus, HelpCircle, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Star, Phone, MessageCircle, Menu, X, Trophy, Pause, Play, Trash2 } from 'lucide-react';
+import { Home, MapPin, User, Plus, Package, CheckCircle, Clock, RefreshCw, Edit, LogOut, Bell, CreditCard, UserPlus, HelpCircle, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Star, Phone, MessageCircle, Menu, X, Trophy, Pause, Play, Trash2, Smartphone } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { LevelSystem, getRankLabel, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
@@ -561,6 +561,14 @@ export default function CustomerDashboard() {
 
         <div className="p-4 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
           <button
+            onClick={() => navigate('/download')}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
+            style={{ background: `${ACCENT}12`, color: ACCENT, border: `1px solid ${ACCENT}30`, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            <Smartphone className="w-5 h-5" />
+            Скачать приложение
+          </button>
+          <button
             onClick={() => setShowHowItWorks(true)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
             style={{ background: 'transparent', color: c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
@@ -685,6 +693,14 @@ export default function CustomerDashboard() {
 
             {/* Drawer footer */}
             <div className="p-3 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
+              <button
+                onClick={() => { navigate('/download'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
+                style={{ background: `${ACCENT}12`, color: ACCENT, border: `1px solid ${ACCENT}30`, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                <Smartphone className="w-5 h-5" />
+                Скачать приложение
+              </button>
               <button
                 onClick={() => { setShowHowItWorks(true); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"

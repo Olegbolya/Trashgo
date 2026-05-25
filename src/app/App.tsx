@@ -10,6 +10,8 @@ import { connectSSE } from '../services/sse';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { InstallBanner } from './components/InstallBanner';
 import { CookieBanner } from './components/CookieBanner';
+import { UpdateBanner } from './components/UpdateBanner';
+import { useAndroidUpdateCheck } from '../hooks/useAndroidUpdateCheck';
 import { isNative } from '../lib/platform';
 import { handleNativeBack } from '../lib/nativeBack';
 
@@ -69,6 +71,11 @@ function NativeStatusBarSync() {
   return null;
 }
 
+function NativeUpdateCheck() {
+  useAndroidUpdateCheck();
+  return null;
+}
+
 function NativeBootstrap() {
   useEffect(() => {
     if (!isNative()) return;
@@ -121,6 +128,8 @@ export default function App() {
         <SSEConnector />
         <NativeStatusBarSync />
         <NativeBootstrap />
+        <NativeUpdateCheck />
+        <UpdateBanner />
         <OfflineBanner />
         {!isNative() && <InstallBanner />}
         <CookieBanner />

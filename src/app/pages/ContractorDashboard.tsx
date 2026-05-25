@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
-import { Home, MapPin, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy, Copy } from 'lucide-react';
+import { Home, MapPin, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy, Copy, Smartphone } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { LevelSystem, getRankLabel, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
@@ -126,18 +126,39 @@ export default function ContractorDashboard() {
 
   useEffect(() => {
     if (activeTab !== 'find') return;
+    // Reset error state immediately so stale error doesn't flash on re-open
+    setOrdersError(false);
+    let cancelled = false;
+    let retries = 0;
+
     const load = (initial: boolean) => {
       if (initial) setOrdersLoading(true);
       ordersApi.available().then((res: any) => {
-        const orders: Order[] = res?.data ?? [];
-        setAvailableOrders(orders.filter(o => o.customerId !== user?.id));
-        if (initial) setOrdersError(false);
-      }).catch(() => { if (initial) setOrdersError(true); }).finally(() => { if (initial) setOrdersLoading(false); });
+        if (cancelled) return;
+        const fetched: Order[] = Array.isArray(res) ? res : (res?.data ?? []);
+        const userId = user?.id;
+        setAvailableOrders(fetched.filter(o => o.customerId !== userId));
+        retries = 0;
+        if (initial) { setOrdersError(false); setOrdersLoading(false); }
+      }).catch(() => {
+        if (cancelled) return;
+        if (initial) {
+          retries++;
+          if (retries < 3) {
+            // Auto-retry up to 3 times before showing error
+            setTimeout(() => load(true), 2000 * retries);
+          } else {
+            setOrdersError(true);
+            setOrdersLoading(false);
+          }
+        }
+      });
     };
+
     load(true);
     const interval = setInterval(() => load(false), 10000);
-    return () => clearInterval(interval);
-  }, [activeTab]);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [activeTab, user?.id]);
 
   useEffect(() => {
     if (activeTab !== 'active' && activeTab !== 'home' && activeTab !== 'history' && activeTab !== 'profile') return;
@@ -416,6 +437,14 @@ export default function ContractorDashboard() {
 
         <div className="p-4 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
           <button
+            onClick={() => navigate('/download')}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
+            style={{ background: `${ACCENT}12`, color: ACCENT, border: `1px solid ${ACCENT}30`, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            <Smartphone className="w-5 h-5" />
+            Скачать приложение
+          </button>
+          <button
             onClick={() => setShowHowItWorks(true)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
             style={{ background: 'transparent', color: c.muted, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
@@ -527,6 +556,14 @@ export default function ContractorDashboard() {
 
             {/* Drawer footer */}
             <div className="p-3 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
+              <button
+                onClick={() => { navigate('/download'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
+                style={{ background: `${ACCENT}12`, color: ACCENT, border: `1px solid ${ACCENT}30`, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                <Smartphone className="w-5 h-5" />
+                Скачать приложение
+              </button>
               <button
                 onClick={() => { setShowHowItWorks(true); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
