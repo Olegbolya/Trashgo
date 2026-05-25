@@ -27,6 +27,7 @@ import { KazanAddressInput } from '../components/KazanAddressInput';
 import { isNative } from '../../lib/platform';
 import { pickPhotosNative } from '../../hooks/useNativeCamera';
 import { API_BASE_URL } from '../../api/client';
+import { useNativeBackClose } from '../../hooks/useNativeBackClose';
 
 const ACCENT = '#66BB6A';
 
@@ -381,6 +382,16 @@ export default function CustomerDashboard() {
     const interval = setInterval(poll, 15000);
     return () => clearInterval(interval);
   }, [myOrders, chatOpen]);
+
+  // Android back button: last-declared = highest priority (stack top = closes first)
+  useNativeBackClose(showHowItWorks, () => setShowHowItWorks(false));
+  useNativeBackClose(!!ratingOrder, () => setRatingOrder(null));
+  useNativeBackClose(editProfileOpen, () => setEditProfileOpen(false));
+  useNativeBackClose(mobileMenuOpen, () => setMobileMenuOpen(false));
+  useNativeBackClose(mapPickerOpen, () => setMapPickerOpen(false));
+  useNativeBackClose(!!selectedOrder, () => setSelectedOrder(null));
+  useNativeBackClose(!!sbpModal, () => setSbpModal(null));
+  useNativeBackClose(!!lightboxUrl, () => setLightboxUrl(null)); // innermost — closes first
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',

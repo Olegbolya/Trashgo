@@ -24,6 +24,7 @@ import { TelegramReminder } from '../components/TelegramReminder';
 import { isNative } from '../../lib/platform';
 import { pickPhotosNative } from '../../hooks/useNativeCamera';
 import { API_BASE_URL } from '../../api/client';
+import { useNativeBackClose } from '../../hooks/useNativeBackClose';
 
 const ACCENT = '#2196F3';
 
@@ -318,6 +319,17 @@ export default function ContractorDashboard() {
     const interval = setInterval(runGeocoding, 12000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [activeTab]);
+
+  // Android back button: last-declared = highest priority (stack top = closes first)
+  useNativeBackClose(showHowItWorks, () => setShowHowItWorks(false));
+  useNativeBackClose(!!ratingOrder, () => setRatingOrder(null));
+  useNativeBackClose(editInfoOpen, () => setEditInfoOpen(false));
+  useNativeBackClose(editProfileOpen, () => setEditProfileOpen(false));
+  useNativeBackClose(mobileMenuOpen, () => setMobileMenuOpen(false));
+  useNativeBackClose(showFilters, () => setShowFilters(false));
+  useNativeBackClose(!!selectedOrder, () => setSelectedOrder(null));
+  useNativeBackClose(!!historyDetailOrder, () => setHistoryDetailOrder(null));
+  useNativeBackClose(!!lightboxUrl, () => setLightboxUrl(null)); // innermost — closes first
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',

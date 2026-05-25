@@ -4,12 +4,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router } from './routes.tsx';
 import { Toaster } from './components/ui/sonner';
 import { ThemeProvider } from './context/ThemeContext';
+import { useTheme } from './context/ThemeContext';
 import { useAuthStore } from '../stores/auth.store';
 import { connectSSE } from '../services/sse';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { InstallBanner } from './components/InstallBanner';
 import { CookieBanner } from './components/CookieBanner';
 import { isNative } from '../lib/platform';
+import { handleNativeBack } from '../lib/nativeBack';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,19 +48,36 @@ function SSEConnector() {
   return null;
 }
 
+// Keeps the Android status bar background/icon style in sync with the app theme.
+function NativeStatusBarSync() {
+  const { isDark } = useTheme();
+  useEffect(() => {
+    if (!isNative()) return;
+    (async () => {
+      try {
+        const { StatusBar, Style } = await import('@capacitor/status-bar');
+        if (isDark) {
+          await StatusBar.setStyle({ style: Style.Light });       // white icons
+          await StatusBar.setBackgroundColor({ color: '#111827' }); // dark bg
+        } else {
+          await StatusBar.setStyle({ style: Style.Dark });        // dark icons
+          await StatusBar.setBackgroundColor({ color: '#ffffff' }); // white bg
+        }
+      } catch {}
+    })();
+  }, [isDark]);
+  return null;
+}
+
 function NativeBootstrap() {
   useEffect(() => {
     if (!isNative()) return;
     (async () => {
       try {
-        // Status bar
-        const { StatusBar, Style } = await import('@capacitor/status-bar');
-        await StatusBar.setStyle({ style: Style.Light });
-        await StatusBar.setBackgroundColor({ color: '#22a849' });
-
-        // Back button
+        // Back button — check modal stack first, then history, then exit
         const { App: CapApp } = await import('@capacitor/app');
         CapApp.addListener('backButton', ({ canGoBack }) => {
+          if (handleNativeBack()) return;
           if (canGoBack) window.history.back();
           else CapApp.exitApp();
         });
@@ -100,6 +119,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <SSEConnector />
+        <NativeStatusBarSync />
         <NativeBootstrap />
         <OfflineBanner />
         {!isNative() && <InstallBanner />}
