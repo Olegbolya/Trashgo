@@ -10,19 +10,21 @@ export async function registerNativePush() {
   const permission = await PushNotifications.requestPermissions();
   if (permission.receive !== 'granted') return;
 
-  // Create notification channel required for Android 8+
+  // Create notification channel required for Android 8+ (API 26+)
+  // Must be created before register() so FCM can route to it
   try {
-    await (PushNotifications as any).createChannel({
+    await PushNotifications.createChannel({
       id: 'trashgo_default',
       name: 'TrashGo уведомления',
       description: 'Уведомления о заказах и чате',
-      importance: 5,
-      visibility: 1,
-      sound: 'default',
+      importance: 5,  // IMPORTANCE_HIGH — heads-up + sound + vibration
+      visibility: 1,  // VISIBILITY_PUBLIC
       vibration: true,
       lights: true,
     });
-  } catch { /* channel API may not exist on older plugin versions */ }
+  } catch (e) {
+    console.warn('[NativePush] createChannel failed:', e);
+  }
 
   await PushNotifications.register();
   registered = true;

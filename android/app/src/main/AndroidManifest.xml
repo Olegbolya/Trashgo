@@ -36,6 +36,11 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Tell FCM which channel to use for notifications when app is killed -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="trashgo_default" />
     </application>
 
     <!-- Permissions -->
