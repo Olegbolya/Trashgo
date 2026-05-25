@@ -280,6 +280,7 @@ export default function Verify() {
           <input
             type="text"
             inputMode="numeric"
+            autoComplete="one-time-code"
             placeholder="• • • •"
             maxLength={codeLen}
             value={code}
