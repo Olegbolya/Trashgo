@@ -301,8 +301,18 @@ export default function ContractorDashboard() {
         geocodedIds.add(order.id);
         try {
           const q = /казань|kazan/i.test(order.address) ? order.address : `${order.address}, Казань, Россия`;
-          const res = await fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(q)}`);
-          const data = await res.json();
+          // Try API proxy first (has cache), fall back to Nominatim directly
+          let data: Array<{ lat: string; lon: string }> = [];
+          try {
+            const r1 = await fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(q)}`);
+            if (r1.ok) { data = await r1.json(); }
+          } catch { /* fallback below */ }
+          if (!data.length) {
+            try {
+              const r2 = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=ru`);
+              data = await r2.json();
+            } catch { /* ignore */ }
+          }
           if (!cancelled) setOrderCoords(prev => {
             const next = new Map(prev);
             next.set(order.id, data[0] ? { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) } : null);
