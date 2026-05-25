@@ -29,6 +29,7 @@ import { pickPhotosNative } from '../../hooks/useNativeCamera';
 import { API_BASE_URL } from '../../api/client';
 import { useNativeBackClose } from '../../hooks/useNativeBackClose';
 import { subscriptionsApi, type Subscription } from '../../api/subscriptions';
+import { ChatScreen } from '../components/ChatScreen';
 
 const ACCENT = '#66BB6A';
 const DAY_LABELS: Record<number, string> = { 1: 'ПН', 2: 'ВТ', 3: 'СР', 4: 'ЧТ', 5: 'ПТ', 6: 'СБ', 7: 'ВС' };
@@ -68,6 +69,7 @@ export default function CustomerDashboard() {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [unassigningId, setUnassigningId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('trashgo_onboarded'));
   const [isPublishing, setIsPublishing] = useState(false);
@@ -435,7 +437,8 @@ export default function CustomerDashboard() {
   useNativeBackClose(editProfileOpen, () => setEditProfileOpen(false));
   useNativeBackClose(mobileMenuOpen, () => setMobileMenuOpen(false));
   useNativeBackClose(mapPickerOpen, () => setMapPickerOpen(false));
-  useNativeBackClose(!!selectedOrder, () => setSelectedOrder(null));
+  useNativeBackClose(!!selectedOrder && !chatOpen, () => setSelectedOrder(null));
+  useNativeBackClose(chatOpen, () => setChatOpen(false));
   useNativeBackClose(!!sbpModal, () => setSbpModal(null));
   useNativeBackClose(!!lightboxUrl, () => setLightboxUrl(null)); // innermost — closes first
 
@@ -2021,46 +2024,22 @@ export default function CustomerDashboard() {
               </div>
             )}
 
-            {/* Chat panel */}
+            {/* Chat screen */}
             {chatOpen && selectedOrder && (
-              <div style={{ marginBottom: '1rem', border: `1.5px solid ${c.border}`, borderRadius: '0.875rem', overflow: 'hidden' }}>
-                <div ref={chatScrollRef} style={{ height: 'clamp(150px, 35vh, 280px)', overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: c.subtle }}>
-                  {chatMessages.length === 0 && (
-                    <div style={{ textAlign: 'center', color: c.muted, fontSize: '0.8rem', marginTop: '2rem' }}>
-                      Начните переписку с исполнителем
-                    </div>
-                  )}
-                  {chatMessages.map(msg => {
-                    const isMine = msg.senderId === user?.id;
-                    return (
-                      <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
-                        {!isMine && <span style={{ fontSize: '0.7rem', color: c.muted, marginBottom: '0.15rem', paddingLeft: '0.25rem' }}>{msg.senderName}</span>}
-                        <div style={{ maxWidth: '80%', padding: '0.5rem 0.75rem', borderRadius: isMine ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem', background: isMine ? ACCENT : c.surface, color: isMine ? 'white' : c.text, fontSize: '0.875rem', wordBreak: 'break-word' }}>
-                          {msg.text}
-                        </div>
-                        <span style={{ fontSize: '0.65rem', color: c.muted, marginTop: '0.15rem', paddingLeft: '0.25rem', paddingRight: '0.25rem' }}>
-                          {new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  <div ref={chatBottomRef} />
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', padding: '0.625rem', background: c.surface, borderTop: `1px solid ${c.border}` }}>
-                  <input
-                    value={chatInput}
-                    onChange={e => setChatInput(e.target.value)}
-                    onKeyDown={async e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); await sendChatMessage(); } }}
-                    placeholder="Написать исполнителю…"
-                    style={{ flex: 1, height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.625rem', border: `1.5px solid ${c.border}`, background: c.input, color: c.text, fontSize: '0.875rem', outline: 'none', fontFamily: 'inherit' }}
-                  />
-                  <button
-                    disabled={!chatInput.trim() || chatSending}
-                    onClick={sendChatMessage}
-                    style={{ width: '2.25rem', height: '2.25rem', borderRadius: '0.625rem', background: chatInput.trim() ? ACCENT : c.border, color: 'white', border: 'none', cursor: chatInput.trim() ? 'pointer' : 'default', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-                  >→</button>
-                </div>
-              </div>
+              <ChatScreen
+                otherName={orderContact?.contractorName || 'Исполнитель'}
+                otherPhone={orderContact?.contractorPhone}
+                messages={chatMessages}
+                input={chatInput}
+                sending={chatSending}
+                myUserId={user?.id ?? ''}
+                accentColor={ACCENT}
+                isDark={isDark}
+                onClose={() => setChatOpen(false)}
+                onInputChange={setChatInput}
+                onSend={sendChatMessage}
+                emptyText="Начните переписку с исполнителем"
+              />
             )}
 
             <div className="space-y-3">
@@ -2376,7 +2355,38 @@ export default function CustomerDashboard() {
                           : `Отменить исполнителя (${Math.floor(cancelSecondsLeft / 60)}:${String(cancelSecondsLeft % 60).padStart(2, '0')})`}
                       </button>
                     )}
+                    {/* Unassign contractor — visible after 10-min cancel window expires and contractor hasn't started */}
+                    {selectedOrder.status === 'active' && !selectedOrder.pickedUp && (cancelSecondsLeft === null || cancelSecondsLeft === 0) && (
+                      <button
+                        className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+                        disabled={unassigningId === selectedOrder.id}
+                        style={{ border: `1px solid #fca5a5`, background: 'transparent', color: '#ef4444', cursor: unassigningId === selectedOrder.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: unassigningId === selectedOrder.id ? 0.6 : 1 }}
+                        onClick={async () => {
+                          if (!window.confirm('Убрать исполнителя? Заказ вернётся в пул и другой исполнитель сможет его взять.')) return;
+                          setUnassigningId(selectedOrder.id);
+                          try {
+                            await ordersApi.unassignContractor(selectedOrder.id);
+                            setMyOrders((prev) => prev.map(o => o.id === selectedOrder.id ? { ...o, status: 'waiting' as const, contractorName: '' } : o));
+                            setSelectedOrder(null);
+                            toast.success('Исполнитель убран, заказ ищет нового исполнителя');
+                          } catch (err: any) {
+                            toast.error(err?.message || 'Ошибка');
+                          } finally {
+                            setUnassigningId(null);
+                          }
+                        }}
+                      >
+                        {unassigningId === selectedOrder.id ? '⏳...' : 'Исполнитель не отвечает?'}
+                      </button>
+                    )}
                   </div>
+                  {/* Write to support */}
+                  <button
+                    onClick={() => navigate(`/help?orderId=${selectedOrder.id}`)}
+                    style={{ width: '100%', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '0.78rem', fontFamily: 'inherit', textAlign: 'center' }}
+                  >
+                    Написать в поддержку по этому заказу →
+                  </button>
                 </>
               )}
             </div>

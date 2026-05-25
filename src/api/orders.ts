@@ -85,4 +85,8 @@ export const ordersApi = {
   blockCustomer(id: string) {
     return api.post<{ ok: boolean }>(`/orders/${id}/block-customer`, {});
   },
+
+  unassignContractor(id: string) {
+    return api.post<{ ok: true }>(`/orders/${id}/unassign-contractor`, {});
+  },
 };

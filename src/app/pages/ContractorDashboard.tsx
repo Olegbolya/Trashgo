@@ -24,6 +24,7 @@ import { TelegramReminder } from '../components/TelegramReminder';
 import { isNative } from '../../lib/platform';
 import { pickPhotosNative } from '../../hooks/useNativeCamera';
 import { useNativeBackClose } from '../../hooks/useNativeBackClose';
+import { ChatScreen } from '../components/ChatScreen';
 
 const ACCENT = '#2196F3';
 
@@ -291,6 +292,7 @@ export default function ContractorDashboard() {
   useNativeBackClose(!!selectedOrder, () => setSelectedOrder(null));
   useNativeBackClose(!!historyDetailOrder, () => setHistoryDetailOrder(null));
   useNativeBackClose(!!showPhotoSheet, () => setShowPhotoSheet(null));
+  useNativeBackClose(!!chatJobId, () => setChatJobId(null));
   useNativeBackClose(!!lightboxUrl, () => setLightboxUrl(null)); // innermost — closes first
 
   const c = {
@@ -811,62 +813,38 @@ export default function ContractorDashboard() {
                                     <MessageCircle className="w-3 h-3" />Чат
                                   </button>
                                 </div>
-                                {/* Chat panel */}
+                                {/* Chat screen */}
                                 {chatJobId === job.id && (
-                                  <div style={{ border: `1.5px solid ${c.border}`, borderRadius: '0.75rem', overflow: 'hidden', marginTop: '0.25rem' }}>
-                                    <div ref={chatScrollRef} style={{ height: '200px', overflowY: 'auto', padding: '0.625rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', background: c.subtle }}>
-                                      {chatMessages.length === 0 && (
-                                        <div style={{ textAlign: 'center', color: c.muted, fontSize: '0.75rem', marginTop: '1.5rem' }}>Начните переписку с заказчиком</div>
-                                      )}
-                                      {chatMessages.map(msg => {
-                                        const isMine = msg.senderId === user?.id;
-                                        return (
-                                          <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
-                                            {!isMine && <span style={{ fontSize: '0.65rem', color: c.muted, marginBottom: '0.1rem', paddingLeft: '0.2rem' }}>{msg.senderName}</span>}
-                                            <div style={{ maxWidth: '80%', padding: '0.4rem 0.625rem', borderRadius: isMine ? '0.875rem 0.875rem 0.2rem 0.875rem' : '0.875rem 0.875rem 0.875rem 0.2rem', background: isMine ? ACCENT : c.surface, color: isMine ? 'white' : c.text, fontSize: '0.8rem', wordBreak: 'break-word' }}>{msg.text}</div>
-                                            <span style={{ fontSize: '0.6rem', color: c.muted, marginTop: '0.1rem' }}>{new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
-                                          </div>
-                                        );
-                                      })}
-                                      <div ref={chatBottomRef} />
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '0.4rem', padding: '0.5rem', background: c.surface, borderTop: `1px solid ${c.border}` }}>
-                                      <input
-                                        value={chatInput}
-                                        onChange={e => setChatInput(e.target.value)}
-                                        onKeyDown={async e => {
-                                          if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault();
-                                            if (!chatInput.trim() || chatSending) return;
-                                            const text = chatInput.trim(); setChatInput(''); setChatSending(true);
-                                            try {
-                                              await ordersApi.sendMessage(job.id, text);
-                                              const res = await ordersApi.getMessages(job.id) as any;
-                                              setChatMessages(res?.data ?? []);
-                                              setTimeout(scrollChatToBottom, 50);
-                                            } catch { setChatInput(text); } finally { setChatSending(false); }
-                                          }
-                                        }}
-                                        placeholder="Написать заказчику…"
-                                        style={{ flex: 1, height: '2rem', padding: '0 0.625rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: c.input, color: c.text, fontSize: '0.8rem', outline: 'none', fontFamily: 'inherit' }}
-                                      />
-                                      <button
-                                        disabled={!chatInput.trim() || chatSending}
-                                        onClick={async () => {
-                                          if (!chatInput.trim() || chatSending) return;
-                                          const text = chatInput.trim(); setChatInput(''); setChatSending(true);
-                                          try {
-                                            await ordersApi.sendMessage(job.id, text);
-                                            const res = await ordersApi.getMessages(job.id) as any;
-                                            setChatMessages(res?.data ?? []);
-                                            setTimeout(scrollChatToBottom, 50);
-                                          } catch { setChatInput(text); } finally { setChatSending(false); }
-                                        }}
-                                        style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.5rem', background: chatInput.trim() ? ACCENT : c.border, color: 'white', border: 'none', cursor: chatInput.trim() ? 'pointer' : 'default', fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-                                      >→</button>
-                                    </div>
-                                  </div>
+                                  <ChatScreen
+                                    otherName={jobContacts[job.id]?.name || 'Заказчик'}
+                                    otherPhone={jobContacts[job.id]?.phone}
+                                    messages={chatMessages}
+                                    input={chatInput}
+                                    sending={chatSending}
+                                    myUserId={user?.id ?? ''}
+                                    accentColor={ACCENT}
+                                    isDark={isDark}
+                                    onClose={() => { setChatJobId(null); setChatMessages([]); setChatInput(''); }}
+                                    onInputChange={setChatInput}
+                                    onSend={async () => {
+                                      if (!chatInput.trim() || chatSending) return;
+                                      const text = chatInput.trim(); setChatInput(''); setChatSending(true);
+                                      try {
+                                        await ordersApi.sendMessage(job.id, text);
+                                        const res = await ordersApi.getMessages(job.id) as any;
+                                        setChatMessages(res?.data ?? []);
+                                        setTimeout(scrollChatToBottom, 50);
+                                      } catch { setChatInput(text); } finally { setChatSending(false); }
+                                    }}
+                                    emptyText="Начните переписку с заказчиком"
+                                  />
                                 )}
+                                <button
+                                  onClick={() => navigate(`/help?orderId=${job.id}`)}
+                                  style={{ width: '100%', marginTop: '0.5rem', padding: '0.375rem', background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: '0.72rem', fontFamily: 'inherit', textAlign: 'center' }}
+                                >
+                                  Написать в поддержку →
+                                </button>
                               </div>
                             </div>
                           );
