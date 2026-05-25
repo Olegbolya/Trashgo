@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
-import { Home, MapPin, Map as MapIcon, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy, Copy } from 'lucide-react';
+import { Home, MapPin, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy, Copy } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { LevelSystem, getRankLabel, type LevelData } from '../components/LevelSystem';
 import { AchievementsPanel, type Achievement } from '../components/AchievementsPanel';
@@ -23,9 +23,7 @@ import { FrozenBanner } from '../components/FrozenBanner';
 import { TelegramReminder } from '../components/TelegramReminder';
 import { isNative } from '../../lib/platform';
 import { pickPhotosNative } from '../../hooks/useNativeCamera';
-import { API_BASE_URL } from '../../api/client';
 import { useNativeBackClose } from '../../hooks/useNativeBackClose';
-import { OrdersMapAll } from '../components/OrdersMapAll';
 
 const ACCENT = '#2196F3';
 
@@ -48,7 +46,7 @@ export default function ContractorDashboard() {
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuthStore();
   const { addNotification } = useNotificationsStore();
-  const VALID_TABS = ['active', 'home', 'find', 'map', 'history', 'profile'] as const;
+  const VALID_TABS = ['active', 'home', 'find', 'history', 'profile'] as const;
   type TabType = typeof VALID_TABS[number];
   const activeTab: TabType = (VALID_TABS.includes(searchParams.get('tab') as TabType) ? searchParams.get('tab') : 'active') as TabType;
   const setActiveTab = (tab: TabType) => setSearchParams({ tab });
@@ -87,7 +85,6 @@ export default function ContractorDashboard() {
   const [sortOrders, setSortOrders] = useState<'newest' | 'price_asc' | 'price_desc' | 'date_asc' | 'date_desc' | 'distance_asc'>(_lsFilters.sort ?? 'newest');
   const [contractorGps, setContractorGps] = useState<{ lat: number; lon: number } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
-  const [orderCoords, setOrderCoords] = useState<Map<string, { lat: number; lon: number } | null>>(new Map());
   const availableOrdersRef = useRef<Order[]>([]);
   const [historyDetailOrder, setHistoryDetailOrder] = useState<Order | null>(null);
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
@@ -127,7 +124,7 @@ export default function ContractorDashboard() {
   const prevLevelRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (activeTab !== 'find' && activeTab !== 'map') return;
+    if (activeTab !== 'find') return;
     const load = (initial: boolean) => {
       if (initial) setOrdersLoading(true);
       ordersApi.available().then((res: any) => {
@@ -281,62 +278,8 @@ export default function ContractorDashboard() {
     );
   }, [activeTab]);
 
-  // Keep a ref so the geocoding effect can read current orders without restarting on every poll
+  // Keep a ref so effects can read current orders without restarting on every poll
   availableOrdersRef.current = availableOrders;
-
-  // Geocode order addresses for distance calculation (throttled to 1 req/s)
-  // Runs once per tab visit; checks ref for newly added orders on each iteration
-  useEffect(() => {
-    if (activeTab !== 'find' && activeTab !== 'map') return;
-    const geocodedIds = new Set<string>();
-    let cancelled = false;
-    let running = false;
-
-    const runGeocoding = async () => {
-      if (running || cancelled) return;
-      running = true;
-      const toGeocode = availableOrdersRef.current.filter(o => !geocodedIds.has(o.id));
-      for (const order of toGeocode) {
-        if (cancelled) break;
-        geocodedIds.add(order.id);
-        try {
-          const q = /казань|kazan/i.test(order.address) ? order.address : `${order.address}, Казань, Россия`;
-          // Try API proxy first (has cache), fall back to Nominatim directly
-          let data: Array<{ lat: string; lon: string }> = [];
-          try {
-            const r1 = await fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(q)}`);
-            if (r1.ok) { data = await r1.json(); }
-          } catch { /* fallback below */ }
-          if (!data.length) {
-            try {
-              const r2 = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`);
-              data = await r2.json();
-            } catch { /* ignore */ }
-          }
-          if (!cancelled) setOrderCoords(prev => {
-            const next = new Map(prev);
-            next.set(order.id, data[0] ? { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) } : null);
-            return next;
-          });
-        } catch {
-          if (!cancelled) setOrderCoords(prev => { const next = new Map(prev); next.set(order.id, null); return next; });
-        }
-        await new Promise(r => setTimeout(r, 1100));
-      }
-      running = false;
-    };
-
-    runGeocoding();
-    // Re-check every 2s so geocoding starts promptly after orders load
-    const interval = setInterval(runGeocoding, 2000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [activeTab]);
-
-  // Also kick off geocoding whenever new orders arrive (covers immediate load)
-  const geocodeTriggerRef = useRef(0);
-  useEffect(() => {
-    geocodeTriggerRef.current += 1;
-  }, [availableOrders.length]);
 
   // Android back button: last-declared = highest priority (stack top = closes first)
   useNativeBackClose(showHowItWorks, () => setShowHowItWorks(false));
@@ -451,7 +394,6 @@ export default function ContractorDashboard() {
             { id: 'active' as const, icon: CheckCircle, label: 'Активные заказы' },
             { id: 'home' as const, icon: Home, label: 'Главная' },
             { id: 'find' as const, icon: Search, label: 'Найти заказ' },
-            { id: 'map' as const, icon: MapIcon, label: 'Карта заказов' },
             { id: 'history' as const, icon: Calendar, label: 'История заказов' },
           ].map(({ id, icon: Icon, label }) => (
             <button
@@ -563,7 +505,6 @@ export default function ContractorDashboard() {
                 { id: 'active' as const, icon: CheckCircle, label: 'Активные заказы' },
                 { id: 'home' as const, icon: Home, label: 'Главная' },
                 { id: 'find' as const, icon: Search, label: 'Найти заказ' },
-                { id: 'map' as const, icon: MapIcon, label: 'Карта заказов' },
                 { id: 'history' as const, icon: Calendar, label: 'История заказов' },
               ].map(({ id, icon: Icon, label }) => (
                 <button
@@ -1467,31 +1408,6 @@ export default function ContractorDashboard() {
             );
           })()}
 
-          {/* MAP TAB */}
-          {activeTab === 'map' && (
-            <div className="max-w-4xl mx-auto" style={{ height: 'calc(100vh - 10rem)' }}>
-              <div className="flex items-center justify-between mb-3">
-                <h1 className="text-xl font-semibold" style={{ color: c.text }}>Карта заказов</h1>
-                <span className="text-xs px-2 py-1 rounded-full" style={{ background: `${ACCENT}18`, color: ACCENT }}>
-                  Казань
-                </span>
-              </div>
-              <div style={{ height: 'calc(100% - 2.5rem)' }}>
-                <OrdersMapAll
-                  orders={availableOrders.filter(o => o.customerId !== user?.id)}
-                  orderCoords={orderCoords}
-                  ordersLoading={ordersLoading}
-                  isDark={isDark}
-                  accentColor={ACCENT}
-                  onOrderClick={(orderId) => {
-                    const order = availableOrders.find(o => o.id === orderId);
-                    if (order) setSelectedOrder(order);
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
           {/* FIND ORDERS TAB */}
           {activeTab === 'find' && (() => {
             const hasActiveFilters = !!(filterDateFrom || filterDateTo || filterTimeFrom || filterTimeTo || filterDistrict || (contractorGps && filterDistanceKm < 50));
@@ -1976,10 +1892,6 @@ export default function ContractorDashboard() {
             <button onClick={() => setActiveTab('find')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'find' ? ACCENT : c.muted }}>
               <Search className="w-6 h-6" />
               <span className="text-xs">Найти</span>
-            </button>
-            <button onClick={() => setActiveTab('map')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'map' ? ACCENT : c.muted }}>
-              <MapIcon className="w-6 h-6" />
-              <span className="text-xs">Карта</span>
             </button>
             <button onClick={() => setActiveTab('history')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'history' ? ACCENT : c.muted }}>
               <Calendar className="w-6 h-6" />
