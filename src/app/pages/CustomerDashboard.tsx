@@ -574,13 +574,13 @@ export default function CustomerDashboard() {
           {/* Backdrop */}
           <div
             className="lg:hidden fixed inset-0 z-[60]"
-            style={{ background: 'rgba(0,0,0,0.4)' }}
+            style={{ background: 'rgba(0,0,0,0.65)' }}
             onClick={() => setMobileMenuOpen(false)}
           />
           {/* Drawer */}
           <div
             className="lg:hidden fixed top-0 left-0 h-full z-[70] flex flex-col"
-            style={{ width: '72vw', maxWidth: '300px', background: c.surface, borderRight: `2px solid ${ACCENT}` }}
+            style={{ width: '85vw', maxWidth: '320px', background: c.surface, borderRight: `2px solid ${ACCENT}`, paddingTop: 'env(safe-area-inset-top)' }}
           >
             {/* Drawer header — profile, clickable */}
             <button
