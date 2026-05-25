@@ -1958,12 +1958,18 @@ export default function CustomerDashboard() {
               {/* Адрес */}
               <div style={{ background: c.subtle, borderRadius: '0.75rem', padding: '0.875rem' }}>
                 <div className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: c.muted }}>Адрес</div>
-                <div className="font-medium" style={{ color: c.text }}>
+                <div className="font-medium mb-2" style={{ color: c.text }}>
                   {selectedOrder.address}
                   {selectedOrder.entrance && `, подъезд ${selectedOrder.entrance}`}
                   {selectedOrder.floor && `, этаж ${selectedOrder.floor}`}
                   {selectedOrder.apartment && `, кв. ${selectedOrder.apartment}`}
                 </div>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(selectedOrder.address + ', Казань').catch(() => {}); toast.success('Адрес скопирован'); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: c.surface, color: c.textSub, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  📋 Скопировать адрес
+                </button>
               </div>
 
               {/* Дата и время */}

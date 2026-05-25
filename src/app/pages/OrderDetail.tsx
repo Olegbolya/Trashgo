@@ -268,8 +268,14 @@ export default function OrderDetail() {
             <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: c.muted }} />
             <div className="flex-1 min-w-0">
               <div className="text-xs mb-0.5" style={{ color: c.muted }}>Адрес</div>
-              <div className="text-sm" style={{ color: c.text }}>{order.address}</div>
-              {order.district && <div className="text-xs mt-0.5" style={{ color: c.muted }}>{order.district}</div>}
+              <div className="text-sm mb-1.5" style={{ color: c.text }}>{order.address}</div>
+              {order.district && <div className="text-xs mb-1.5" style={{ color: c.muted }}>{order.district}</div>}
+              <button
+                onClick={() => { navigator.clipboard.writeText(order.address + ', Казань').catch(() => {}); toast.success('Адрес скопирован'); }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.35rem 0.625rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: 'transparent', color: c.muted, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                📋 Скопировать
+              </button>
             </div>
           </div>
 
