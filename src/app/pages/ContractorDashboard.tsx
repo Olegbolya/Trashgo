@@ -309,7 +309,7 @@ export default function ContractorDashboard() {
           } catch { /* fallback below */ }
           if (!data.length) {
             try {
-              const r2 = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=ru`);
+              const r2 = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`);
               data = await r2.json();
             } catch { /* ignore */ }
           }

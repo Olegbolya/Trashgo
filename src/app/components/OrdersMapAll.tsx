@@ -54,13 +54,9 @@ export function OrdersMapAll({
     import('leaflet').then(({ default: L }) => {
       if (!containerRef.current || mapRef.current) return;
 
-      const tileUrl = isDark
-        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-
-      const tileAttribution = isDark
-        ? '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'
-        : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>';
+      // Voyager looks great in both light and dark UI (not overly dark)
+      const tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+      const tileAttribution = '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://openstreetmap.org">OpenStreetMap</a>';
 
       const map = L.map(containerRef.current, { zoomControl: true }).setView(
         [55.7965, 49.108],
@@ -164,17 +160,22 @@ export function OrdersMapAll({
   const badgeBg = isDark ? 'rgba(17,24,39,0.85)' : 'rgba(255,255,255,0.92)';
   const badgeText = isDark ? '#f9fafb' : '#111827';
 
-  // Show overlay only while geocoding is actually in progress
   const pendingGeocode = orders.some(o => orderCoords.get(o.id) === undefined);
   const overlayText =
-    ordersLoading || (orders.length === 0 && pendingGeocode)
+    ordersLoading
       ? 'Загружаем заказы...'
       : orders.length === 0
-      ? null // no overlay — badge shows "0 заказов"
+      ? 'Нет доступных заказов'
       : pendingGeocode
       ? 'Определяем адреса...'
       : null;
   const noCoords = overlayText !== null;
+
+  const badgeLabel = ordersLoading
+    ? 'Загрузка...'
+    : pendingGeocode
+    ? `${orders.length} заказов (определяем...)`
+    : `${resolvedCount} заказов на карте`;
 
   return (
     <div
@@ -210,7 +211,7 @@ export function OrdersMapAll({
           border: `1px solid ${border}`,
         }}
       >
-        {resolvedCount} заказов на карте
+        {badgeLabel}
       </div>
 
       {/* "Loading addresses" overlay shown while no coords are ready */}
