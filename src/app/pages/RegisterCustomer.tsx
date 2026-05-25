@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router';
-import { ArrowLeft, MapPin } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { authApi } from '../../api/auth';
 import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore } from '../../stores/role.store';
 import { useTheme } from '../context/ThemeContext';
 import { toast } from 'sonner';
+import { KazanAddressInput } from '../components/KazanAddressInput';
 
 export default function RegisterCustomer() {
   const navigate = useNavigate();
@@ -102,16 +103,12 @@ export default function RegisterCustomer() {
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: c.label, marginBottom: '0.375rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                 Адрес
               </label>
-              <div style={{ position: 'relative' }}>
-                <MapPin style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', width: '1.1rem', height: '1.1rem', color: c.muted, pointerEvents: 'none' }} />
-                <input
-                  placeholder="ул. Баумана, 58"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  style={{ ...inputStyle(!!formData.address), paddingLeft: '2.5rem' }}
-                  required
-                />
-              </div>
+              <KazanAddressInput
+                value={formData.address}
+                onChange={(val) => setFormData({ ...formData, address: val })}
+                placeholder="ул. Баумана, 58"
+                style={inputStyle(!!formData.address)}
+              />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>

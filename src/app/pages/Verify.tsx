@@ -64,7 +64,11 @@ export default function Verify() {
       const res = await authApi.verify(effectiveKey, code, role, effectiveIsEmail);
       if (res.isNewUser) {
         const target = role === 'contractor' ? '/register-contractor' : '/register-customer';
-        navigate(target, { state: { email, phone, verifiedCode: code, role } });
+        // If user verified via phone (TG fallback), register with phone only — no email,
+        // because the verified OTP is stored under the phone, not the original email.
+        const regEmail = phoneOverride ? undefined : email;
+        const regPhone = phoneOverride ?? phone ?? '';
+        navigate(target, { state: { email: regEmail, phone: regPhone, verifiedCode: code, role } });
         return;
       }
       setAuth(res.user, res.token, res.refreshToken);
