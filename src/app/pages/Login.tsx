@@ -29,7 +29,7 @@ export default function Login() {
 
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [step, setStep] = useState<'email' | 'phone'>('email');
+  const [step, setStep] = useState<'email' | 'phone' | 'tg'>('email');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -96,11 +96,34 @@ export default function Login() {
     }
   };
 
+  // TG phone-only login
+  const handleTgSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phoneValid || loading) return;
+    setLoading(true);
+    try {
+      const res = await authApi.requestTelegram(formattedPhone);
+      navigate('/verify', {
+        state: {
+          phone: formattedPhone,
+          role,
+          isNewUser: false,
+          channel: 'telegram',
+          telegramBotLink: res.telegramBotLink,
+        },
+      });
+    } catch {
+      toast.error('Не удалось отправить код. Проверьте номер и попробуйте снова.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <button
-          onClick={() => step === 'phone' ? setStep('email') : navigate('/')}
+          onClick={() => (step === 'phone' || step === 'tg') ? setStep('email') : navigate('/')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -119,6 +142,8 @@ export default function Login() {
           <p className="text-gray-600 text-sm">
             {step === 'email'
               ? 'Код подтверждения придёт на почту'
+              : step === 'tg'
+              ? 'Введите номер — получите код в Telegram'
               : 'Укажите номер для связи (не публикуется)'}
           </p>
         </div>
@@ -164,9 +189,46 @@ export default function Login() {
               {loading ? 'Проверяем...' : '📧 Продолжить'}
             </Button>
 
-            <p className="text-xs text-gray-500 text-center">
-              Для входа — только email. Для новых — потребуется ещё номер телефона.
-            </p>
+            <div className="text-center pt-1">
+              <button
+                type="button"
+                onClick={() => { setPhone(''); setStep('tg'); }}
+                className="text-sm font-medium underline-offset-2 hover:underline"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2AABEE' }}
+              >
+                🔵 Войти по номеру телефона (Telegram)
+              </button>
+            </div>
+          </form>
+        ) : step === 'tg' ? (
+          <form onSubmit={handleTgSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4 space-y-4">
+            <div>
+              <label className="text-sm text-gray-600 mb-2 block">
+                Номер телефона <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="tel"
+                inputMode="tel"
+                placeholder="+7 (___) ___-__-__"
+                className="h-12 border-gray-200 text-lg"
+                value={phone ? formatPhone(phone) : ''}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                autoFocus={!isNative()}
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1.5">
+                Код придёт в Telegram-бот TrashGo
+              </p>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading || !phoneValid}
+              className="w-full h-12 text-white hover:opacity-90"
+              style={{ background: '#2AABEE', border: 'none' }}
+            >
+              {loading ? 'Отправляем...' : '🔵 Получить код в Telegram'}
+            </Button>
           </form>
         ) : (
           <form onSubmit={handlePhoneSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4 space-y-4">
