@@ -236,6 +236,7 @@ export default function CustomerDashboard() {
   };
 
   useEffect(() => {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     window.scrollTo(0, 0);
     refreshOrders();
     if (!localStorage.getItem('trashgo_welcomed_customer')) {
