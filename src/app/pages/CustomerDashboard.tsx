@@ -30,6 +30,7 @@ import { isNative } from '../../lib/platform';
 import { pickPhotosNative } from '../../hooks/useNativeCamera';
 import { API_BASE_URL } from '../../api/client';
 import { useNativeBackClose } from '../../hooks/useNativeBackClose';
+import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { subscriptionsApi, type Subscription } from '../../api/subscriptions';
 import { ChatScreen } from '../components/ChatScreen';
 
@@ -460,6 +461,8 @@ export default function CustomerDashboard() {
   useNativeBackClose(!!sbpModal, () => setSbpModal(null));
   useNativeBackClose(!!lightboxUrl, () => setLightboxUrl(null)); // innermost — closes first
 
+  const { pullDistance, refreshing: pullRefreshing } = usePullToRefresh(() => refreshOrders(true));
+
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
     surface: isDark ? '#1e2433' : '#ffffff',
@@ -750,6 +753,15 @@ export default function CustomerDashboard() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Pull-to-refresh indicator */}
+      {(pullDistance > 0 || pullRefreshing) && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, display: 'flex', justifyContent: 'center', paddingTop: Math.min(pullDistance, 48) + 'px', pointerEvents: 'none', transition: pullRefreshing ? 'none' : 'padding 0.1s' }}>
+          <div style={{ width: '2rem', height: '2rem', borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', opacity: Math.min(1, pullDistance / 40) }}>
+            <span style={{ fontSize: '0.875rem', animation: pullRefreshing ? 'spin 0.8s linear infinite' : 'none' }}>↓</span>
+          </div>
+        </div>
       )}
 
       {/* Main content */}
