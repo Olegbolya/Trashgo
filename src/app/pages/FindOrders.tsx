@@ -9,6 +9,81 @@ import { useTheme } from '../context/ThemeContext';
 import type { Order } from '../../types/order';
 import { toast } from 'sonner';
 
+function SwipeableCard({
+  children, onAccept, accepting,
+}: {
+  children: React.ReactNode;
+  onAccept: () => void;
+  accepting: boolean;
+}) {
+  const [dx, setDx] = useState(0);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const committed = useRef(false);
+  const scrollBlocked = useRef(false);
+  const THRESHOLD = 80;
+  const MAX_DRAG = 110;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
+    committed.current = false;
+    scrollBlocked.current = false;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (scrollBlocked.current) return;
+    const rawX = e.touches[0].clientX - startX.current;
+    const rawY = e.touches[0].clientY - startY.current;
+    if (!committed.current) {
+      if (Math.abs(rawY) > Math.abs(rawX) + 5) { scrollBlocked.current = true; return; }
+      if (Math.abs(rawX) < 6) return;
+      committed.current = true;
+    }
+    const clamped = Math.max(0, Math.min(MAX_DRAG, rawX));
+    setDx(clamped);
+    if (clamped > 0) e.preventDefault();
+  };
+
+  const onTouchEnd = () => {
+    if (committed.current && dx >= THRESHOLD && !accepting) onAccept();
+    setDx(0);
+    committed.current = false;
+  };
+
+  const progress = Math.min(1, dx / THRESHOLD);
+  const reached = dx >= THRESHOLD;
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '1rem', touchAction: 'pan-y' }}>
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: reached ? '#16a34a' : '#22c55e',
+        display: 'flex', alignItems: 'center', paddingLeft: '1.5rem',
+        opacity: progress,
+        pointerEvents: 'none',
+        transition: 'background 0.15s',
+      }}>
+        <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem', transform: `scale(${0.8 + progress * 0.2})`, display: 'inline-block' }}>
+          {reached ? '🎯 Отпустите!' : '✓ Взять заказ →'}
+        </span>
+      </div>
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{
+          transform: `translateX(${dx}px)`,
+          transition: dx > 0 ? 'none' : 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          willChange: 'transform',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 const ACCENT = '#2196F3';
 
 // Approximate centroids of Kazan districts
@@ -344,7 +419,8 @@ export default function FindOrders() {
               const isAccepting = accepting === order.id;
 
               return (
-                <div key={order.id} style={{ background: cardBg, border: `2px solid ${cardBorder}`, borderRadius: '1rem', overflow: 'hidden' }}>
+                <SwipeableCard key={order.id} onAccept={() => handleAccept(order.id)} accepting={!!accepting}>
+                <div style={{ background: cardBg, border: `2px solid ${cardBorder}`, borderRadius: '1rem', overflow: 'hidden' }}>
                   <div style={{ padding: '1rem' }}>
                     {/* Badges row */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
@@ -413,6 +489,7 @@ export default function FindOrders() {
                     </button>
                   </div>
                 </div>
+                </SwipeableCard>
               );
             })}
           </div>

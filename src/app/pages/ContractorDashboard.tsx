@@ -45,6 +45,77 @@ const TRANSPORT_RADIUS_KM: Record<string, number> = {
   'e-bicycle': 4, moto: 8, car: 15,
 };
 
+function SwipeableJobCard({ children, canCancel, onCancel }: { children: React.ReactNode; canCancel: boolean; onCancel: () => void }) {
+  const [dx, setDx] = useState(0);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const committed = useRef(false);
+  const scrollBlocked = useRef(false);
+  const THRESHOLD = 80;
+  const MAX_DRAG = 110;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
+    committed.current = false;
+    scrollBlocked.current = false;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (scrollBlocked.current || !canCancel) return;
+    const rawX = e.touches[0].clientX - startX.current;
+    const rawY = e.touches[0].clientY - startY.current;
+    if (!committed.current) {
+      if (Math.abs(rawY) > Math.abs(rawX) + 5) { scrollBlocked.current = true; return; }
+      if (Math.abs(rawX) < 6) return;
+      if (rawX > 0) { scrollBlocked.current = true; return; }
+      committed.current = true;
+    }
+    const clamped = Math.max(-MAX_DRAG, Math.min(0, rawX));
+    setDx(clamped);
+    if (clamped < 0) e.preventDefault();
+  };
+
+  const onTouchEnd = () => {
+    if (committed.current && dx <= -THRESHOLD) onCancel();
+    setDx(0);
+    committed.current = false;
+  };
+
+  const progress = Math.min(1, Math.abs(dx) / THRESHOLD);
+  const reached = Math.abs(dx) >= THRESHOLD;
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '0.875rem', touchAction: 'pan-y' }}>
+      {canCancel && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: reached ? '#dc2626' : '#ef4444',
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: '1.5rem',
+          opacity: progress, pointerEvents: 'none',
+          transition: 'background 0.15s',
+        }}>
+          <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem' }}>
+            {reached ? '⚠️ Отпустите' : '← Отказаться'}
+          </span>
+        </div>
+      )}
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{
+          transform: `translateX(${dx}px)`,
+          transition: dx !== 0 ? 'none' : 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          willChange: 'transform',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function ContractorDashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -754,8 +825,16 @@ export default function ContractorDashboard() {
                           const dateStr = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
                           const statusLabel = job.status === 'accepted' ? 'Принят' : job.status === 'en_route' ? 'Выехал' : job.status === 'in_progress' ? 'В работе' : job.status === 'pending_payment' ? 'Ожидание оплаты' : 'Ждёт подтверждения';
                           const statusColor = job.status === 'accepted' ? ACCENT : job.status === 'en_route' ? '#F97316' : job.status === 'in_progress' ? '#FBBF24' : job.status === 'pending_payment' ? '#22c55e' : '#F97316';
+                          const handleSwipeCancel = async () => {
+                            try {
+                              await ordersApi.updateStatus(job.id, 'cancelled');
+                              setMyJobs(prev => prev.filter(j => j.id !== job.id));
+                              toast.info('Вы отказались от заказа');
+                            } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
+                          };
                           return (
-                            <div key={job.id} style={{ ...card, padding: '0.875rem' }}>
+                            <SwipeableJobCard key={job.id} canCancel={job.status === 'accepted'} onCancel={handleSwipeCancel}>
+                            <div style={{ ...card, padding: '0.875rem' }}>
                               <div className="flex items-start justify-between mb-2">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -1025,6 +1104,7 @@ export default function ContractorDashboard() {
                                 </button>
                               </div>
                             </div>
+                            </SwipeableJobCard>
                           );
                         })}
                       </div>

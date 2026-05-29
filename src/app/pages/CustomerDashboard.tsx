@@ -871,16 +871,22 @@ export default function CustomerDashboard() {
                     >Повторить</button>
                   </div>
                 ) : activeOrders.length === 0 ? (
-                  <div className="text-center py-12" style={card}>
-                    <Package className="w-12 h-12 mx-auto mb-4" style={{ color: c.border }} />
-                    <div className="font-medium mb-1" style={{ color: c.text }}>Активных заказов нет</div>
-                    <div className="text-sm mb-4" style={{ color: c.muted }}>Создайте заказ — исполнители увидят его сразу</div>
+                  <div className="text-center py-10" style={card}>
+                    <div style={{ fontSize: '3.5rem', marginBottom: '0.75rem' }}>🗑️</div>
+                    <div className="font-semibold text-base mb-1" style={{ color: c.text }}>
+                      {myOrders.length === 0 ? 'Создайте первый заказ' : 'Активных заказов нет'}
+                    </div>
+                    <div className="text-sm mb-5" style={{ color: c.muted }}>
+                      {myOrders.length === 0
+                        ? 'Исполнители рядом с вами увидят заявку и откликнутся сами'
+                        : 'Создайте заказ — исполнители увидят его сразу'}
+                    </div>
                     <button
-                      className="px-5 py-2.5 rounded-xl font-medium text-sm"
-                      style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                      className="rounded-xl font-semibold text-sm"
+                      style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '0.75rem 1.75rem', fontSize: '0.9rem' }}
                       onClick={() => setActiveTab('create')}
                     >
-                      + Создать заказ
+                      {myOrders.length === 0 ? '+ Создать первый заказ' : '+ Создать заказ'}
                     </button>
                   </div>
                 ) : (
