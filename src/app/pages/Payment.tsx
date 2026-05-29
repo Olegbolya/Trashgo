@@ -32,6 +32,7 @@ export default function Payment() {
   const isContractor = user?.role === 'contractor';
   const [history, setHistory] = useState<PaymentEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState(false);
   const [innModalOpen, setInnModalOpen] = useState(false);
   const [innInput, setInnInput] = useState(user?.inn ?? '');
   const [innSaving, setInnSaving] = useState(false);
@@ -51,12 +52,16 @@ export default function Payment() {
 
   const balance = user?.balance ?? 0;
 
-  useEffect(() => {
+  const loadHistory = () => {
+    setHistoryLoading(true);
+    setHistoryError(false);
     authApi.paymentHistory()
       .then(setHistory)
-      .catch(() => {})
+      .catch(() => setHistoryError(true))
       .finally(() => setHistoryLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadHistory(); }, []);
 
   const totalEarned = history.reduce((s, h) => s + h.amount, 0);
 
@@ -114,7 +119,23 @@ export default function Payment() {
                     <div className="text-xs mt-0.5" style={{ color: c.muted }}>Клиенты переводят деньги на этот номер</div>
                   </div>
                   <button
-                    onClick={() => { if (user?.phone) { navigator.clipboard.writeText(user.phone); toast.success('Номер скопирован'); } }}
+                    onClick={async () => {
+                      if (!user?.phone) return;
+                      try {
+                        await navigator.clipboard.writeText(user.phone);
+                        toast.success('Номер скопирован');
+                      } catch {
+                        try {
+                          const el = document.createElement('input');
+                          el.value = user.phone;
+                          el.style.position = 'fixed'; el.style.opacity = '0';
+                          document.body.appendChild(el); el.focus(); el.select();
+                          document.execCommand('copy');
+                          document.body.removeChild(el);
+                          toast.success('Номер скопирован');
+                        } catch { toast.error('Не удалось скопировать'); }
+                      }
+                    }}
                     style={{ background: `${GREEN}15`, border: 'none', borderRadius: '0.5rem', padding: '0.5rem', cursor: 'pointer', color: GREEN, display: 'flex' }}
                   >
                     <Copy className="w-4 h-4" />
@@ -197,6 +218,11 @@ export default function Payment() {
               </div>
               {historyLoading ? (
                 <div className="px-4 py-6 text-center text-sm" style={{ color: c.muted }}>Загружаем...</div>
+              ) : historyError ? (
+                <div className="px-4 py-6 text-center space-y-2">
+                  <div className="text-sm" style={{ color: c.muted }}>Не удалось загрузить историю</div>
+                  <button onClick={loadHistory} className="text-sm font-semibold" style={{ color: ACCENT, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Повторить</button>
+                </div>
               ) : history.length === 0 ? (
                 <div className="px-4 py-6 text-center text-sm" style={{ color: c.muted }}>Выполненных заказов пока нет</div>
               ) : (
@@ -266,6 +292,11 @@ export default function Payment() {
               </div>
               {historyLoading ? (
                 <div className="px-4 py-6 text-center text-sm" style={{ color: c.muted }}>Загружаем...</div>
+              ) : historyError ? (
+                <div className="px-4 py-6 text-center space-y-2">
+                  <div className="text-sm" style={{ color: c.muted }}>Не удалось загрузить историю</div>
+                  <button onClick={loadHistory} className="text-sm font-semibold" style={{ color: ACCENT, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Повторить</button>
+                </div>
               ) : history.length === 0 ? (
                 <div className="px-4 py-6 text-center text-sm" style={{ color: c.muted }}>Выполненных заказов пока нет</div>
               ) : (

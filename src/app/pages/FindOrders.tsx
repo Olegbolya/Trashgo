@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, MapPin, Clock, Package, Zap, RefreshCw, Sparkles, Map as MapIcon } from 'lucide-react';
+import 'leaflet/dist/leaflet.css';
 import { ordersApi } from '../../api/orders';
 import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore } from '../../stores/role.store';
@@ -83,15 +84,6 @@ export default function FindOrders() {
   useEffect(() => {
     if (!showMap || !mapRef.current) return;
     if (leafletMapRef.current) return; // already initialized
-
-    // Inject Leaflet CSS once
-    if (!document.getElementById('leaflet-css')) {
-      const link = document.createElement('link');
-      link.id = 'leaflet-css';
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
-    }
 
     import('leaflet').then(L => {
       // Fix default marker icons

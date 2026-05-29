@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { API_BASE_URL } from '../../api/client';
+import 'leaflet/dist/leaflet.css';
 
 interface Props {
   address: string;
@@ -38,14 +39,6 @@ export function MapView({ address, isDark }: Props) {
     if (!destCoords || !containerRef.current || mapRef.current) return;
 
     const { lat: destLat, lon: destLon } = destCoords;
-
-    if (!document.querySelector('link[data-leaflet-css]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      link.setAttribute('data-leaflet-css', '1');
-      document.head.appendChild(link);
-    }
 
     import('leaflet').then(({ default: L }) => {
       if (!containerRef.current || mapRef.current) return;

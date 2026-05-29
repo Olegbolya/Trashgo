@@ -3,8 +3,18 @@ import { isNative } from '../../lib/platform';
 
 const APK_URL = 'https://github.com/Olegbolya/Trashgo-API/releases/latest/download/app-release.apk';
 
+async function openApkUrl() {
+  try {
+    const { App } = await import('@capacitor/app');
+    await App.openUrl({ url: APK_URL });
+  } catch {
+    window.open(APK_URL, '_blank');
+  }
+}
+
 export function UpdateBanner() {
   const [show, setShow] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     const handler = () => setShow(true);
@@ -13,6 +23,12 @@ export function UpdateBanner() {
   }, []);
 
   if (!isNative() || !show) return null;
+
+  const handleUpdate = async () => {
+    setDownloading(true);
+    await openApkUrl();
+    setDownloading(false);
+  };
 
   return (
     <div
@@ -36,12 +52,13 @@ export function UpdateBanner() {
         <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>Вышла новая версия!</div>
         <div style={{ fontSize: '0.75rem', opacity: 0.9 }}>Скачайте обновлённый APK</div>
       </div>
-      <a
-        href={APK_URL}
-        style={{ background: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontWeight: 700, fontSize: '0.8rem', textDecoration: 'none', flexShrink: 0 }}
+      <button
+        onClick={handleUpdate}
+        disabled={downloading}
+        style={{ background: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontWeight: 700, fontSize: '0.8rem', cursor: downloading ? 'not-allowed' : 'pointer', flexShrink: 0, fontFamily: 'inherit', opacity: downloading ? 0.7 : 1 }}
       >
-        Скачать
-      </a>
+        {downloading ? '...' : 'Скачать'}
+      </button>
       <button
         onClick={() => setShow(false)}
         style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, padding: '0 0.25rem', flexShrink: 0, fontFamily: 'inherit' }}

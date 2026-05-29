@@ -4,11 +4,16 @@ import { ArrowLeft, HelpCircle, MessageCircle, Mail, ChevronDown, ChevronUp, Ext
 import { useTheme } from '../context/ThemeContext';
 import { api, API_BASE_URL } from '../../api/client';
 import { isNative } from '../../lib/platform';
+import { toast } from 'sonner';
 import { useNativeBackClose } from '../../hooks/useNativeBackClose';
 import PrivacyFooter from '../components/PrivacyFooter';
 
 const ACCENT = '#2196F3';
 const GREEN  = '#4CAF50';
+
+function decodeEntities(str: string): string {
+  return str.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
+}
 
 const SYNC_DB_NAME = 'trashgo-bg-sync';
 const SYNC_STORE_NAME = 'pending-requests';
@@ -191,7 +196,7 @@ export default function Help() {
 
   // Scroll to bottom on new messages
   useEffect(() => {
-    if (chatOpen && messages.length > 0) setTimeout(() => threadEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
+    if (chatOpen && messages.length > 0) setTimeout(() => threadEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 150);
   }, [messages, chatOpen]);
 
   const getToken = (): string | null => {
@@ -224,26 +229,33 @@ export default function Help() {
       setNewMessage('');
       setSelectedCategory(null);
     } catch {
-      // Offline fallback: queue in IDB for background sync
       if (!navigator.onLine && 'serviceWorker' in navigator) {
+        // Offline fallback: queue in IDB for background sync (only if session is still active)
         const token = getToken();
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-        await queueForSync(`${API_BASE_URL}/support`, 'POST', headers, JSON.stringify(payload)).catch(() => {});
-        // Optimistic message
-        setMessages(prev => [...prev, {
-          id: `pending-${Date.now()}`,
-          message: text,
-          reply: null, repliedAt: null,
-          status: 'open',
-          createdAt: new Date().toISOString(),
-          category: selectedCategory,
-          readAt: null,
-          isBotReply: false,
-          escalated: false,
-        }]);
-        setNewMessage('');
-        setSelectedCategory(null);
+        if (!token) {
+          toast.error('Войдите в аккаунт, чтобы отправить сообщение');
+        } else {
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          headers['Authorization'] = `Bearer ${token}`;
+          await queueForSync(`${API_BASE_URL}/support`, 'POST', headers, JSON.stringify(payload)).catch(() => {});
+          setMessages(prev => [...prev, {
+            id: `pending-${Date.now()}`,
+            message: text,
+            reply: null, repliedAt: null,
+            status: 'open',
+            createdAt: new Date().toISOString(),
+            category: selectedCategory,
+            readAt: null,
+            isBotReply: false,
+            escalated: false,
+          }]);
+          setNewMessage('');
+          setSelectedCategory(null);
+        }
+      } else {
+        toast.error('Не удалось отправить сообщение — попробуйте ещё раз');
+        // Restore message text so user can retry
+        setNewMessage(text);
       }
     } finally {
       setSending(false);
@@ -421,7 +433,7 @@ export default function Help() {
                       <div style={{ maxWidth: '80%' }}>
                         {catInfo && <div style={{ fontSize: '0.6875rem', color: c.muted, textAlign: 'right', marginBottom: '0.2rem' }}>{catInfo.icon} {catInfo.label}</div>}
                         <div style={{ background: isPending ? `${ACCENT}80` : ACCENT, color: '#fff', borderRadius: '1rem 1rem 0.25rem 1rem', padding: '0.625rem 0.875rem', fontSize: '0.875rem', lineHeight: 1.5, wordBreak: 'break-word', opacity: isPending ? 0.8 : 1 }}>
-                          {m.message}
+                          {decodeEntities(m.message)}
                         </div>
                         <div style={{ fontSize: '0.6875rem', color: c.muted, textAlign: 'right', marginTop: '0.25rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.375rem' }}>
                           {isPending && <WifiOff style={{ width: '0.7rem', height: '0.7rem' }} />}
@@ -437,7 +449,7 @@ export default function Help() {
                             {m.isBotReply ? '🤖 Бот TrashGo' : '👤 Оператор TrashGo'}
                           </div>
                           <div style={{ background: m.isBotReply ? '#a78bfa12' : c.subtle, border: `1px solid ${m.isBotReply ? '#a78bfa40' : c.border}`, color: c.text, borderRadius: '0.25rem 1rem 1rem 1rem', padding: '0.625rem 0.875rem', fontSize: '0.875rem', lineHeight: 1.5, wordBreak: 'break-word', whiteSpace: 'pre-line' }}>
-                            {m.reply}
+                            {decodeEntities(m.reply)}
                           </div>
                           {m.repliedAt && <div style={{ fontSize: '0.6875rem', color: c.muted, marginTop: '0.25rem' }}>{fmtTime(m.repliedAt)}</div>}
                           {/* Bot action buttons */}

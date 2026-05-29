@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { API_BASE_URL } from '../../api/client';
+import 'leaflet/dist/leaflet.css';
 
 interface Order {
   id: string;
@@ -42,14 +43,6 @@ export function OrdersMapAll({
   // Initialise map once on mount
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
-
-    if (!document.querySelector('link[data-leaflet-css]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      link.setAttribute('data-leaflet-css', '1');
-      document.head.appendChild(link);
-    }
 
     import('leaflet').then(({ default: L }) => {
       if (!containerRef.current || mapRef.current) return;

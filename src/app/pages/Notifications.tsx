@@ -61,12 +61,14 @@ export default function Notifications() {
   const [savingPushToggle, setSavingPushToggle] = useState(false);
   const [savingTgToggle, setSavingTgToggle] = useState(false);
   const [botUsername, setBotUsername] = useState<string | null>(null);
+  const [tgLoading, setTgLoading] = useState(false);
   const emailEnabled = user?.notifEmail ?? settings?.emailEnabled ?? false;
   const tgNotifEnabled = user?.notifTelegram ?? true;
 
   useEffect(() => {
     if (tab === 'settings' && !user?.telegramLinked) {
-      authApi.botInfo().then(({ username }) => setBotUsername(username)).catch(() => {});
+      setTgLoading(true);
+      authApi.botInfo().then(({ username }) => setBotUsername(username)).catch(() => {}).finally(() => setTgLoading(false));
     }
   }, [tab, user?.telegramLinked]);
 
@@ -214,6 +216,10 @@ export default function Notifications() {
                     <button
                       disabled={savingEmail}
                       onClick={async () => {
+                        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) {
+                          toast.error('Введите корректный email');
+                          return;
+                        }
                         setSavingEmail(true);
                         try {
                           const updated = await authApi.updateProfile({ notifEmailAddress: emailInput, email: emailInput });
@@ -241,13 +247,13 @@ export default function Notifications() {
                 </div>
                 {user?.telegramLinked
                   ? <span className="text-xs font-semibold px-2 py-1 rounded-lg" style={{ background: '#d1fae5', color: '#065f46' }}>✓ Привязан</span>
-                  : (
-                    botUsername
+                  : tgLoading
+                    ? <div className="w-4 h-4 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: ACCENT }} />
+                    : botUsername
                       ? <a href={`https://t.me/${botUsername}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#2196F3', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.25rem 0.75rem', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}>
                           Привязать <ExternalLink className="w-3 h-3" />
                         </a>
-                      : <span className="text-xs" style={{ color: c.muted }}>Не привязан</span>
-                  )}
+                      : <span className="text-xs" style={{ color: c.muted }}>Не привязан</span>}
               </div>
               {user?.telegramLinked && (
                 <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${c.border}` }}>

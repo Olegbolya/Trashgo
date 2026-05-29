@@ -16,6 +16,10 @@ const GREEN = '#22c55e';
 const ORANGE = '#FF9800';
 const RED = '#ef4444';
 
+function decodeEntities(str: string): string {
+  return str.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
+}
+
 const STATUS_LABELS: Record<string, string> = {
   new: 'Ищет исполнителя',
   accepted: 'Принят исполнителем',
@@ -112,7 +116,7 @@ export default function OrderDetail() {
       ordersApi.getMessages(id).then(res => {
         const msgs = (res as any)?.data ?? res ?? [];
         setChatMessages(msgs);
-        setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+        setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 150);
       }).catch(() => {});
     };
     load();
@@ -520,8 +524,8 @@ export default function OrderDetail() {
                       color: isMine ? '#fff' : c.text,
                       fontSize: '0.875rem',
                     }}>
-                      {!isMine && <div style={{ fontSize: '0.7rem', fontWeight: 600, marginBottom: 2, opacity: 0.7 }}>{msg.senderName}</div>}
-                      <div style={{ wordBreak: 'break-word' }}>{msg.text}</div>
+                      {!isMine && <div style={{ fontSize: '0.7rem', fontWeight: 600, marginBottom: 2, opacity: 0.7 }}>{decodeEntities(msg.senderName ?? '')}</div>}
+                      <div style={{ wordBreak: 'break-word' }}>{decodeEntities(msg.text)}</div>
                       <div style={{ fontSize: '0.65rem', opacity: 0.6, marginTop: 2, textAlign: 'right' }}>
                         {new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                       </div>
