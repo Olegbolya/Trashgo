@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Star, MapPin, Package, ChevronRight } from 'lucide-react';
-import { contractorsApi, type Contractor } from '../../api/contractors';
+import { ArrowLeft, Star, MapPin, Package, ChevronRight, MessageSquare } from 'lucide-react';
+import { contractorsApi, type Contractor, type ContractorReview } from '../../api/contractors';
 import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore } from '../../stores/role.store';
 import { useTheme } from '../context/ThemeContext';
@@ -38,7 +38,7 @@ function getRankLabel(level: number): string {
   return '🌱';
 }
 
-type FilterType = 'all' | 'top-rated' | 'my-district';
+type FilterType = 'all' | 'top-rated' | 'rated4' | 'my-district';
 type SortType = 'default' | 'rating' | 'orders';
 
 export default function FindContractors() {
@@ -50,6 +50,30 @@ export default function FindContractors() {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [sortType, setSortType] = useState<SortType>('default');
+  const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
+  const [reviewsCache, setReviewsCache] = useState<Record<string, ContractorReview[]>>({});
+  const [reviewsLoading, setReviewsLoading] = useState<Set<string>>(new Set());
+
+  const toggleReviews = async (contractorId: string) => {
+    const next = new Set(expandedReviews);
+    if (next.has(contractorId)) {
+      next.delete(contractorId);
+      setExpandedReviews(next);
+      return;
+    }
+    next.add(contractorId);
+    setExpandedReviews(next);
+    if (reviewsCache[contractorId]) return;
+    setReviewsLoading(prev => new Set(prev).add(contractorId));
+    try {
+      const res = await contractorsApi.getReviews(contractorId);
+      setReviewsCache(prev => ({ ...prev, [contractorId]: (res.data ?? []).slice(0, 3) }));
+    } catch {
+      setReviewsCache(prev => ({ ...prev, [contractorId]: [] }));
+    } finally {
+      setReviewsLoading(prev => { const s = new Set(prev); s.delete(contractorId); return s; });
+    }
+  };
 
   const th = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -70,6 +94,7 @@ export default function FindContractors() {
 
   const filtered = [...contractors.filter(c => {
     if (filterType === 'top-rated') return (c.avgRating ?? 0) >= 4.5;
+    if (filterType === 'rated4') return (c.avgRating ?? 0) >= 4.0;
     if (filterType === 'my-district') return c.district === user?.district;
     return true;
   })].sort((a, b) => {
@@ -80,7 +105,8 @@ export default function FindContractors() {
 
   const filterButtons: { key: FilterType; label: string }[] = [
     { key: 'all', label: `Все (${contractors.length})` },
-    { key: 'top-rated', label: '⭐ Рейтинг 4.5+' },
+    { key: 'rated4', label: '⭐ Рейтинг 4.0+' },
+    { key: 'top-rated', label: '🏅 Рейтинг 4.5+' },
     { key: 'my-district', label: '📍 Мой район' },
   ];
 
@@ -245,6 +271,38 @@ export default function FindContractors() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Reviews toggle */}
+                  {hasRating && (
+                    <button
+                      onClick={() => toggleReviews(con.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', color: th.muted, fontSize: '0.78rem', fontFamily: 'inherit', padding: '0.5rem 0 0', marginTop: 2 }}
+                    >
+                      <MessageSquare style={{ width: 12, height: 12 }} />
+                      {expandedReviews.has(con.id) ? 'Скрыть отзывы' : 'Посмотреть отзывы'}
+                    </button>
+                  )}
+
+                  {/* Reviews list */}
+                  {expandedReviews.has(con.id) && (
+                    <div style={{ marginTop: '0.625rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {reviewsLoading.has(con.id) ? (
+                        <div style={{ fontSize: '0.78rem', color: th.muted }}>Загружаем отзывы...</div>
+                      ) : (reviewsCache[con.id] ?? []).length === 0 ? (
+                        <div style={{ fontSize: '0.78rem', color: th.muted }}>Нет отзывов</div>
+                      ) : (reviewsCache[con.id] ?? []).map((r, i) => (
+                        <div key={i} style={{ background: th.subtle, borderRadius: '0.5rem', padding: '0.5rem 0.75rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+                            {[1,2,3,4,5].map(s => (
+                              <Star key={s} style={{ width: 10, height: 10, color: s <= r.rating ? '#f59e0b' : th.border2, fill: s <= r.rating ? '#f59e0b' : 'none' }} />
+                            ))}
+                            <span style={{ fontSize: '0.7rem', color: th.muted }}>{r.customerName}</span>
+                          </div>
+                          {r.review && <div style={{ fontSize: '0.78rem', color: th.text }}>{r.review}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Action */}
                   <button
