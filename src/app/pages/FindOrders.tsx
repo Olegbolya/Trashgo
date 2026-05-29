@@ -8,6 +8,7 @@ import { useRoleStore } from '../../stores/role.store';
 import { useTheme } from '../context/ThemeContext';
 import type { Order } from '../../types/order';
 import { toast } from 'sonner';
+import { hapticTap, hapticSuccess, hapticError } from '../../lib/haptics';
 
 function SwipeableCard({
   children, onAccept, accepting,
@@ -272,12 +273,15 @@ export default function FindOrders() {
 
   const handleAccept = async (orderId: string) => {
     if (accepting) return;
+    hapticTap();
     setAccepting(orderId);
     try {
       await ordersApi.accept(orderId);
       setOrders(prev => prev.filter(o => o.id !== orderId));
+      hapticSuccess();
       navigate(`/order/${orderId}`);
     } catch (e: any) {
+      hapticError();
       toast.error(e?.message ?? 'Не удалось принять заказ');
       setAccepting(null);
     }

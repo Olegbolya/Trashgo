@@ -87,6 +87,7 @@ export default function CustomerDashboard() {
   const [chatSending, setChatSending] = useState(false);
   const [orderContact, setOrderContact] = useState<{ contractorPhone: string; contractorName: string; contractorSbpBank?: string | null; contractorIsVerified?: boolean; contractorAvgRating?: number | null; contractorRatingCount?: number; contractorCompletedOrders?: number; contractorId?: string | null; contractorReviews?: Array<{ orderId: string; rating: number; review: string; createdAt: string; customerName: string }>; acceptedAt?: string | null; history?: Array<{ status: string; createdAt: string; note: string }> } | null>(null);
   const [cancelSecondsLeft, setCancelSecondsLeft] = useState<number | null>(null);
+  const [confirmCancelAccepted, setConfirmCancelAccepted] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const scrollChatToBottom = () => { if (chatScrollRef.current) chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight; };
@@ -396,7 +397,7 @@ export default function CustomerDashboard() {
       if (!o?.id) { sessionStorage.removeItem('trashgo_pending_edit'); isEditingRef.current = false; return; }
       const mapped = apiOrderToMyOrder(o);
       const parsed = parseAddressParts(mapped.address);
-      setCreateForm({ address: parsed.address, entrance: parsed.entrance, floor: parsed.floor, apartment: parsed.apartment, date: mapped.date, time: mapped.time, asap: mapped.asap, volume: mapped.volume, price: mapped.price, description: mapped.description });
+      setCreateForm({ address: parsed.address, entrance: parsed.entrance, floor: parsed.floor, apartment: parsed.apartment, date: mapped.date, time: mapped.time, asap: mapped.asap, volume: mapped.volume, price: mapped.price, description: mapped.description, wasteType: (mapped as any).wasteType || 'household' });
       setPreloadedPhotoUrls(mapped.photoUrls);
       setCreatePhotos([]);
       setOriginalOrder(mapped);
@@ -1461,13 +1462,14 @@ export default function CustomerDashboard() {
 
             const handlePublish = async () => {
               if (publishingRef.current) return;
+              hapticTap();
               const errors: Record<string, string> = {};
               if (!createForm.address.trim()) errors.address = 'Укажите адрес дома';
               if (!createForm.asap && !createForm.date) errors.date = 'Укажите дату';
               if (!createForm.asap && !createForm.time) errors.time = 'Укажите время';
               if (createForm.price <= 0) errors.price = 'Цена должна быть больше 0';
               setCreateErrors(errors);
-              if (Object.keys(errors).length > 0) return;
+              if (Object.keys(errors).length > 0) { hapticError(); return; }
 
               publishingRef.current = true;
               setIsPublishing(true);
@@ -1497,6 +1499,7 @@ export default function CustomerDashboard() {
                     asap: createForm.asap,
                     scheduledAt,
                     photoUrls,
+                    wasteType: createForm.wasteType,
                   }) as any;
                   resultOrder = {
                     ...originalOrder,
@@ -1510,9 +1513,11 @@ export default function CustomerDashboard() {
                     volume: createForm.volume,
                     price: createForm.price,
                     description: createForm.description,
+                    wasteType: createForm.wasteType,
                     photoUrls,
                   };
                   setMyOrders((prev) => prev.map(o => o.id === originalOrder.id ? resultOrder : o));
+                  hapticSuccess();
                   toast.success('Заказ обновлён!', { description: 'Изменения сохранены', duration: 3000 });
                 } else {
                   // Create new order
@@ -1547,6 +1552,7 @@ export default function CustomerDashboard() {
                     createdAt: new Date().toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }),
                   };
                   setMyOrders((prev) => [resultOrder, ...prev]);
+                  hapticSuccess();
                   toast.success('Заказ создан!', { description: 'Исполнители уже видят ваш заказ', duration: 3000 });
                 }
 
@@ -2106,7 +2112,7 @@ export default function CustomerDashboard() {
         return (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}
-          onClick={() => setSelectedOrder(null)}
+          onClick={() => { setSelectedOrder(null); setConfirmCancelAccepted(false); }}
         >
           <div
             style={{ width: '100%', maxWidth: '600px', background: c.surface, borderRadius: '1.25rem 1.25rem 0 0', padding: '1.5rem', paddingBottom: '5rem', maxHeight: '90vh', overflowY: 'auto' }}
@@ -2465,6 +2471,7 @@ export default function CustomerDashboard() {
                           volume: selectedOrder.volume,
                           price: selectedOrder.price,
                           description: selectedOrder.description,
+                          wasteType: (selectedOrder as any).wasteType || 'household',
                         });
                         setPreloadedPhotoUrls(selectedOrder.photoUrls);
                         setCreatePhotos([]);
@@ -2507,33 +2514,53 @@ export default function CustomerDashboard() {
                       </button>
                     )}
                     {(selectedOrder.status === 'active' || selectedOrder.status === 'en_route') && !selectedOrder.pickedUp && cancelSecondsLeft !== null && cancelSecondsLeft > 0 && (
-                      <button
-                        className="flex-1 py-2.5 rounded-xl text-sm font-medium"
-                        disabled={cancelingId === selectedOrder.id}
-                        style={{ border: `1px solid #fca5a5`, background: 'transparent', color: '#ef4444', cursor: cancelingId === selectedOrder.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: cancelingId === selectedOrder.id ? 0.6 : 1 }}
-                        onClick={async () => {
-                          setCancelingId(selectedOrder.id);
-                          try {
-                            await ordersApi.updateStatus(selectedOrder.id, 'cancelled');
-                            setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
-                            setSelectedOrder(null);
-                            toast.success('Заказ отменён');
-                          } catch (err: any) {
-                            const code = err?.response?.data?.error?.code ?? err?.code;
-                            if (code === 'CANCEL_WINDOW_EXPIRED') {
-                              toast.error('Окно отмены истекло', { description: 'Исполнителя можно отменить только в первые 10 минут' });
-                            } else {
-                              toast.error(err?.message || 'Ошибка отмены');
-                            }
-                          } finally {
-                            setCancelingId(null);
-                          }
-                        }}
-                      >
-                        {cancelingId === selectedOrder.id
-                          ? '⏳ Отмена...'
-                          : `Отменить исполнителя (${Math.floor(cancelSecondsLeft / 60)}:${String(cancelSecondsLeft % 60).padStart(2, '0')})`}
-                      </button>
+                      <>
+                        {confirmCancelAccepted ? (
+                          <div className="flex-1" style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '0.75rem', padding: '0.75rem 1rem' }}>
+                            <div className="text-sm font-medium mb-2" style={{ color: '#ef4444' }}>Исполнитель уже может ехать к вам. Отменить?</div>
+                            <div className="flex gap-2">
+                              <button
+                                className="flex-1 py-2 rounded-lg text-sm font-medium"
+                                disabled={cancelingId === selectedOrder.id}
+                                style={{ background: '#ef4444', color: 'white', border: 'none', cursor: cancelingId === selectedOrder.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: cancelingId === selectedOrder.id ? 0.6 : 1 }}
+                                onClick={async () => {
+                                  setCancelingId(selectedOrder.id);
+                                  try {
+                                    await ordersApi.updateStatus(selectedOrder.id, 'cancelled');
+                                    setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
+                                    setSelectedOrder(null);
+                                    setConfirmCancelAccepted(false);
+                                    toast.success('Заказ отменён');
+                                  } catch (err: any) {
+                                    const code = err?.response?.data?.error?.code ?? err?.code;
+                                    if (code === 'CANCEL_WINDOW_EXPIRED') {
+                                      toast.error('Окно отмены истекло', { description: 'Исполнителя можно отменить только в первые 10 минут' });
+                                    } else {
+                                      toast.error(err?.message || 'Ошибка отмены');
+                                    }
+                                  } finally {
+                                    setCancelingId(null);
+                                  }
+                                }}
+                              >{cancelingId === selectedOrder.id ? '⏳...' : 'Да, отменить'}</button>
+                              <button
+                                className="flex-1 py-2 rounded-lg text-sm font-medium"
+                                style={{ background: 'transparent', color: '#6b7280', border: '1px solid #e5e7eb', cursor: 'pointer', fontFamily: 'inherit' }}
+                                onClick={() => setConfirmCancelAccepted(false)}
+                              >Назад</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+                            disabled={cancelingId === selectedOrder.id}
+                            style={{ border: `1px solid #fca5a5`, background: 'transparent', color: '#ef4444', cursor: cancelingId === selectedOrder.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: cancelingId === selectedOrder.id ? 0.6 : 1 }}
+                            onClick={() => setConfirmCancelAccepted(true)}
+                          >
+                            {`Отменить исполнителя (${Math.floor(cancelSecondsLeft / 60)}:${String(cancelSecondsLeft % 60).padStart(2, '0')})`}
+                          </button>
+                        )}
+                      </>
                     )}
                     {/* Unassign contractor — visible after 10-min cancel window expires and contractor hasn't started */}
                     {(selectedOrder.status === 'active' || selectedOrder.status === 'en_route') && !selectedOrder.pickedUp && (cancelSecondsLeft === null || cancelSecondsLeft === 0) && (
