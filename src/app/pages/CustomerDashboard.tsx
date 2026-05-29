@@ -10,6 +10,7 @@ import { AchievementsPanel, type Achievement } from '../components/AchievementsP
 import { toast } from 'sonner';
 import { getDayLabel } from '../lib/utils';
 import { ordersApi } from '../../api/orders';
+import { contractorsApi } from '../../api/contractors';
 import { referralsApi } from '../../api/referrals';
 import { achievementsApi, type AchievementItem } from '../../api/achievements';
 import type { Order, ChatMessage } from '../../types/order';
@@ -83,7 +84,7 @@ export default function CustomerDashboard() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
-  const [orderContact, setOrderContact] = useState<{ contractorPhone: string; contractorName: string; contractorSbpBank?: string | null; contractorIsVerified?: boolean; contractorAvgRating?: number | null; contractorRatingCount?: number; contractorCompletedOrders?: number; acceptedAt?: string | null; history?: Array<{ status: string; createdAt: string; note: string }> } | null>(null);
+  const [orderContact, setOrderContact] = useState<{ contractorPhone: string; contractorName: string; contractorSbpBank?: string | null; contractorIsVerified?: boolean; contractorAvgRating?: number | null; contractorRatingCount?: number; contractorCompletedOrders?: number; contractorId?: string | null; contractorReviews?: Array<{ orderId: string; rating: number; review: string; createdAt: string; customerName: string }>; acceptedAt?: string | null; history?: Array<{ status: string; createdAt: string; note: string }> } | null>(null);
   const [cancelSecondsLeft, setCancelSecondsLeft] = useState<number | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -348,9 +349,15 @@ export default function CustomerDashboard() {
           contractorAvgRating: d?.contractorAvgRating ?? null,
           contractorRatingCount: d?.contractorRatingCount,
           contractorCompletedOrders: d?.contractorCompletedOrders,
+          contractorId: d?.contractorId ?? null,
           acceptedAt: d?.acceptedAt ?? null,
           history: d?.history ?? [],
         });
+        if (d?.contractorId) {
+          contractorsApi.getReviews(d.contractorId).then(r => {
+            setOrderContact(prev => prev ? { ...prev, contractorReviews: (r as any)?.data ?? [] } : prev);
+          }).catch(() => {});
+        }
       }).catch(() => {});
     }
   }, [selectedOrder?.id]);
@@ -2162,6 +2169,17 @@ export default function CustomerDashboard() {
                       <span>· {orderContact.contractorCompletedOrders} выполнено</span>
                     )}
                   </div>
+                  {orderContact.contractorReviews && orderContact.contractorReviews.length > 0 && (
+                    <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                      {orderContact.contractorReviews.slice(0, 3).map(r => (
+                        <div key={r.orderId} style={{ fontSize: '0.72rem', background: c.surface, border: `1px solid ${c.border}`, borderRadius: '0.5rem', padding: '0.375rem 0.5rem' }}>
+                          <span style={{ color: '#FBBF24', marginRight: '0.25rem' }}>{'★'.repeat(r.rating)}</span>
+                          <span style={{ color: c.muted }}>{r.customerName}: </span>
+                          <span style={{ color: c.text }}>{r.review}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -2576,9 +2594,9 @@ export default function CustomerDashboard() {
           targetName={ratingOrder.contractorName}
           role="customer"
           isDark={isDark}
-          onSubmit={async (rating) => {
+          onSubmit={async (rating, review) => {
             try {
-              await ordersApi.rate(ratingOrder.id, rating);
+              await ordersApi.rate(ratingOrder.id, rating, review);
               setMyOrders(prev => prev.map(o => o.id === ratingOrder.id ? { ...o, ratingByCustomer: rating } : o));
               authApi.me().then(u => updateUser(u)).catch(() => {});
               toast.success('Спасибо за оценку!', { duration: 2000 });

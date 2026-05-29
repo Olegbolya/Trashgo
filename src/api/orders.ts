@@ -66,8 +66,8 @@ export const ordersApi = {
     return api.post<ChatMessage>(`/orders/${id}/messages`, { text });
   },
 
-  rate(id: string, rating: number) {
-    return api.post<{ ok: boolean }>(`/orders/${id}/rate`, { rating });
+  rate(id: string, rating: number, review?: string) {
+    return api.post<{ ok: boolean }>(`/orders/${id}/rate`, { rating, ...(review ? { review } : {}) });
   },
 
   disputeOrder(id: string, reason: string) {

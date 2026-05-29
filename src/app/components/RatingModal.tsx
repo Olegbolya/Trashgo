@@ -5,13 +5,14 @@ interface Props {
   targetName: string;
   role: 'customer' | 'contractor';
   isDark: boolean;
-  onSubmit: (rating: number) => Promise<void>;
+  onSubmit: (rating: number, review?: string) => Promise<void>;
   onSkip: () => void;
 }
 
 export function RatingModal({ orderId, targetName, role, isDark, onSubmit, onSkip }: Props) {
   const [selected, setSelected] = useState(0);
   const [hovered, setHovered] = useState(0);
+  const [review, setReview] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const ACCENT = role === 'customer' ? '#66BB6A' : '#2196F3';
 
@@ -30,7 +31,7 @@ export function RatingModal({ orderId, targetName, role, isDark, onSubmit, onSki
     if (!selected || submitting) return;
     setSubmitting(true);
     try {
-      await onSubmit(selected);
+      await onSubmit(selected, review.trim() || undefined);
     } finally {
       setSubmitting(false);
     }
@@ -76,9 +77,26 @@ export function RatingModal({ orderId, targetName, role, isDark, onSubmit, onSki
             ))}
           </div>
 
-          <div className="text-sm font-medium mb-5" style={{ color: active ? '#FBBF24' : c.muted, minHeight: '1.25rem' }}>
+          <div className="text-sm font-medium mb-4" style={{ color: active ? '#FBBF24' : c.muted, minHeight: '1.25rem' }}>
             {active ? labels[active] : 'Выберите оценку'}
           </div>
+
+          {/* Review text — only for customer rating contractor */}
+          {role === 'customer' && (
+            <textarea
+              value={review}
+              onChange={e => setReview(e.target.value.slice(0, 300))}
+              placeholder="Напишите отзыв (необязательно)..."
+              rows={2}
+              style={{
+                width: '100%', padding: '0.625rem 0.75rem',
+                border: `1px solid ${c.border}`, borderRadius: '0.75rem',
+                background: c.subtle, color: c.text, fontSize: '0.875rem',
+                fontFamily: 'inherit', resize: 'none', outline: 'none',
+                marginBottom: '1rem', boxSizing: 'border-box',
+              }}
+            />
+          )}
 
           <button
             onClick={handleSubmit}
