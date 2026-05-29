@@ -742,8 +742,52 @@ export default function CustomerDashboard() {
           {/* FROZEN BANNER */}
           {user?.frozen && <FrozenBanner reason={user.freezeReason} isDark={isDark} />}
 
+          {/* TRIAL EXPIRY WARNING (≤7 days) */}
+          {(() => {
+            if (user?.subscriptionStatus !== 'trial' || !user?.subscriptionExpiresAt) return null;
+            const days = Math.ceil((new Date(user.subscriptionExpiresAt).getTime() - Date.now()) / 86400000);
+            if (days > 7) return null;
+            return (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
+                padding: '0.75rem 1rem', borderRadius: '0.875rem', marginBottom: '0.75rem',
+                background: isDark ? 'rgba(245,158,11,0.15)' : '#FEF3C7',
+                border: `1px solid ${isDark ? 'rgba(245,158,11,0.35)' : '#FCD34D'}`,
+              }}>
+                <span style={{ fontSize: '0.875rem', color: isDark ? '#FDE68A' : '#92400E' }}>
+                  ⏳ Пробный период заканчивается через <strong>{days}</strong> {days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'}
+                </span>
+                <button onClick={() => navigate('/subscription')} style={{ flexShrink: 0, fontSize: '0.8rem', fontWeight: 600, padding: '0.35rem 0.75rem', borderRadius: '0.5rem', background: '#F59E0B', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Подключить →
+                </button>
+              </div>
+            );
+          })()}
+
+          {/* EXPIRED SUBSCRIPTION BLOCKER */}
+          {user?.subscriptionStatus === 'expired' && activeTab !== 'profile' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '55vh', textAlign: 'center', padding: '2rem 1.5rem' }}>
+              <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🔒</div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: c.text, margin: '0 0 0.5rem' }}>Доступ приостановлен</h2>
+              <p style={{ fontSize: '0.9rem', color: c.muted, marginBottom: '1.5rem', maxWidth: 320, lineHeight: 1.6 }}>
+                Пробный период завершён. Оплатите абонемент чтобы создавать заявки и пользоваться сервисом.
+              </p>
+              <button onClick={() => navigate('/subscription')} style={{ width: '100%', maxWidth: 280, height: '2.875rem', borderRadius: '0.875rem', background: ACCENT, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.9375rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+                Оплатить абонемент — 50₽
+              </button>
+              <button onClick={() => navigate('/invite-neighbor')} style={{ width: '100%', maxWidth: 280, height: '2.75rem', borderRadius: '0.875rem', background: 'transparent', color: c.muted, border: `1px solid ${c.border}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.875rem' }}>
+                Пригласить друзей → бесплатно
+              </button>
+              <div style={{ fontSize: '0.78rem', color: c.muted, marginTop: '1rem' }}>
+                Или перейдите в{' '}
+                <button onClick={() => setActiveTab('profile')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: ACCENT, fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 600 }}>Профиль</button>
+                {' '}для управления абонементом
+              </div>
+            </div>
+          )}
+
           {/* HOME TAB */}
-          {activeTab === 'home' && (
+          {activeTab === 'home' && user?.subscriptionStatus !== 'expired' && (
             <div className="max-w-4xl mx-auto space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -896,7 +940,7 @@ export default function CustomerDashboard() {
           )}
 
           {/* CALENDAR TAB */}
-          {activeTab === 'calendar' && (() => {
+          {activeTab === 'calendar' && user?.subscriptionStatus !== 'expired' && (() => {
             const historyOrders = [...myOrders.filter(o => o.status === 'completed' || o.status === 'cancelled')]
               .sort((a, b) => historySort === 'price' ? b.price - a.price : 0);
             return (
@@ -991,7 +1035,7 @@ export default function CustomerDashboard() {
           })()}
 
           {/* SUBSCRIPTIONS TAB */}
-          {activeTab === 'subscriptions' && (
+          {activeTab === 'subscriptions' && user?.subscriptionStatus !== 'expired' && (
             <div className="max-w-4xl mx-auto space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold" style={{ color: c.text }}>Подписки</h2>
@@ -1344,7 +1388,7 @@ export default function CustomerDashboard() {
           })()}
 
           {/* CREATE TAB */}
-          {activeTab === 'create' && (() => {
+          {activeTab === 'create' && user?.subscriptionStatus !== 'expired' && (() => {
             const inputStyle = (hasError?: boolean): React.CSSProperties => ({
               width: '100%', padding: '0.625rem 0.75rem',
               border: `1px solid ${hasError ? '#ef4444' : c.border}`,

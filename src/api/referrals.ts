@@ -5,7 +5,7 @@ export interface ReferralInfo {
   link: string;
   count: number;
   discount?: number;
-  referrals: { name: string; role?: string; joinedAt: string }[];
+  referrals: { name: string; role?: string; joinedAt: string; isActive: boolean }[];
 }
 
 export const referralsApi = {

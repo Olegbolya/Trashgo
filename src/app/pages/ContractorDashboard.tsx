@@ -607,8 +607,52 @@ export default function ContractorDashboard() {
           {/* FROZEN BANNER */}
           {user?.frozen && <FrozenBanner reason={user.freezeReason ?? null} isDark={isDark} />}
 
+          {/* TRIAL EXPIRY WARNING (≤7 days) */}
+          {(() => {
+            if (user?.subscriptionStatus !== 'trial' || !user?.subscriptionExpiresAt) return null;
+            const days = Math.ceil((new Date(user.subscriptionExpiresAt).getTime() - Date.now()) / 86400000);
+            if (days > 7) return null;
+            return (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
+                padding: '0.75rem 1rem', borderRadius: '0.875rem', marginBottom: '0.75rem',
+                background: isDark ? 'rgba(245,158,11,0.15)' : '#FEF3C7',
+                border: `1px solid ${isDark ? 'rgba(245,158,11,0.35)' : '#FCD34D'}`,
+              }}>
+                <span style={{ fontSize: '0.875rem', color: isDark ? '#FDE68A' : '#92400E' }}>
+                  ⏳ Пробный период заканчивается через <strong>{days}</strong> {days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'}
+                </span>
+                <button onClick={() => navigate('/subscription')} style={{ flexShrink: 0, fontSize: '0.8rem', fontWeight: 600, padding: '0.35rem 0.75rem', borderRadius: '0.5rem', background: '#F59E0B', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Подключить →
+                </button>
+              </div>
+            );
+          })()}
+
+          {/* EXPIRED SUBSCRIPTION BLOCKER */}
+          {user?.subscriptionStatus === 'expired' && activeTab !== 'profile' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '55vh', textAlign: 'center', padding: '2rem 1.5rem' }}>
+              <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🔒</div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: c.text, margin: '0 0 0.5rem' }}>Доступ приостановлен</h2>
+              <p style={{ fontSize: '0.9rem', color: c.muted, marginBottom: '1.5rem', maxWidth: 320, lineHeight: 1.6 }}>
+                Пробный период завершён. Оплатите абонемент чтобы принимать заказы и пользоваться сервисом.
+              </p>
+              <button onClick={() => navigate('/subscription')} style={{ width: '100%', maxWidth: 280, height: '2.875rem', borderRadius: '0.875rem', background: ACCENT, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.9375rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+                Оплатить абонемент — 50₽
+              </button>
+              <button onClick={() => navigate('/invite-neighbor')} style={{ width: '100%', maxWidth: 280, height: '2.75rem', borderRadius: '0.875rem', background: 'transparent', color: c.muted, border: `1px solid ${c.border}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.875rem' }}>
+                Пригласить друзей → бесплатно
+              </button>
+              <div style={{ fontSize: '0.78rem', color: c.muted, marginTop: '1rem' }}>
+                Или перейдите в{' '}
+                <button onClick={() => setActiveTab('profile')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: ACCENT, fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 600 }}>Профиль</button>
+                {' '}для управления абонементом
+              </div>
+            </div>
+          )}
+
           {/* ACTIVE TAB */}
-          {activeTab === 'active' && (
+          {activeTab === 'active' && user?.subscriptionStatus !== 'expired' && (
             <div className="max-w-4xl mx-auto space-y-4">
               <LevelSystem data={levelData} variant="contractor" compact={true} />
 
@@ -903,7 +947,7 @@ export default function ContractorDashboard() {
           )}
 
           {/* HOME TAB — overview */}
-          {activeTab === 'home' && (
+          {activeTab === 'home' && user?.subscriptionStatus !== 'expired' && (
             <div className="max-w-4xl mx-auto space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -946,7 +990,7 @@ export default function ContractorDashboard() {
           )}
 
           {/* HISTORY TAB */}
-          {activeTab === 'history' && (
+          {activeTab === 'history' && user?.subscriptionStatus !== 'expired' && (
             <div className="max-w-4xl mx-auto space-y-3">
               <h1 className="text-xl font-semibold" style={{ color: c.text }}>История заказов</h1>
               {(() => {
@@ -1469,7 +1513,7 @@ export default function ContractorDashboard() {
           })()}
 
           {/* FIND ORDERS TAB */}
-          {activeTab === 'find' && (() => {
+          {activeTab === 'find' && user?.subscriptionStatus !== 'expired' && (() => {
             const hasActiveFilters = !!(filterDateFrom || filterDateTo || filterTimeFrom || filterTimeTo || filterDistrict || (contractorGps && filterDistanceKm < 50));
             const visibleOrders = availableOrders.filter(o => {
               if (hiddenOrderIds.has(o.id)) return false;

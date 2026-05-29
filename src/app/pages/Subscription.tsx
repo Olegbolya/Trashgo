@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useTheme } from '../context/ThemeContext';
 import { accessPlansApi, type AccessPlanStatus, type AccessPlanRecord } from '../../api/access-plans';
-import { referralsApi } from '../../api/referrals';
+import { referralsApi, type ReferralInfo } from '../../api/referrals';
 import { toast } from 'sonner';
 import { Shield, Clock, CheckCircle, AlertCircle, Users, Copy, ChevronLeft, CreditCard, RefreshCw } from 'lucide-react';
 
@@ -14,7 +14,7 @@ export default function SubscriptionPage() {
   const { isDark } = useTheme();
   const [status, setStatus] = useState<AccessPlanStatus | null>(null);
   const [history, setHistory] = useState<AccessPlanRecord[]>([]);
-  const [referralLink, setReferralLink] = useState('');
+  const [referralInfo, setReferralInfo] = useState<ReferralInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentRef, setPaymentRef] = useState('');
@@ -43,7 +43,7 @@ export default function SubscriptionPage() {
     ]).then(([s, h, ref]) => {
       setStatus(s);
       setHistory(h);
-      if (ref?.link) setReferralLink(ref.link);
+      if (ref) setReferralInfo(ref);
     }).catch(() => {
       toast.error('Не удалось загрузить данные абонемента');
     }).finally(() => setLoading(false));
@@ -73,8 +73,9 @@ export default function SubscriptionPage() {
   };
 
   const copyReferralLink = () => {
-    if (!referralLink) { toast.error('Реферальная ссылка недоступна'); return; }
-    navigator.clipboard.writeText(referralLink).then(() => {
+    const link = referralInfo?.link;
+    if (!link) { toast.error('Реферальная ссылка недоступна'); return; }
+    navigator.clipboard.writeText(link).then(() => {
       toast.success('Ссылка скопирована');
     });
   };
@@ -220,28 +221,64 @@ export default function SubscriptionPage() {
 
         {/* Referral program */}
         <div style={{ ...card, marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.875rem' }}>
-            <Users className="w-4 h-4" style={{ color: '#8B5CF6' }} />
-            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: c.text }}>Реферальная программа</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.875rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Users className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+              <span style={{ fontWeight: 600, fontSize: '0.9rem', color: c.text }}>Реферальная программа</span>
+            </div>
+            <div style={{ fontSize: '0.82rem', color: '#22a849', fontWeight: 600 }}>
+              −{status?.discountAmount ?? 0}₽/мес скидка
+            </div>
           </div>
 
-          <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem', marginBottom: '0.875rem',
-          }}>
-            {[
-              { v: status?.activeReferrals ?? 0, l: 'активных друзей', color: '#8B5CF6' },
-              { v: `−${status?.discountAmount ?? 0}₽`, l: 'скидка сейчас', color: '#22a849' },
-            ].map((s, i) => (
-              <div key={i} style={{ borderRadius: '0.75rem', padding: '0.75rem', background: c.subtle, textAlign: 'center' }}>
-                <div style={{ fontSize: '1.375rem', fontWeight: 700, color: s.color }}>{s.v}</div>
-                <div style={{ fontSize: '0.75rem', color: c.muted }}>{s.l}</div>
-              </div>
-            ))}
-          </div>
+          {/* Per-referral list */}
+          {referralInfo && referralInfo.referrals.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.875rem' }}>
+              {referralInfo.referrals.slice(0, 5).map((r, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '0.625rem 0.75rem', borderRadius: '0.75rem', background: c.subtle,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                      background: r.isActive ? 'rgba(34,197,94,0.15)' : (isDark ? 'rgba(255,255,255,0.07)' : '#e5e7eb'),
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '0.7rem', fontWeight: 700,
+                      color: r.isActive ? '#22C55E' : c.muted,
+                    }}>
+                      {r.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span style={{ fontSize: '0.875rem', color: c.textSub }}>{r.name}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: r.isActive ? '#22C55E' : c.muted }}>
+                      {r.isActive ? '● Активен' : '○ Неактивен'}
+                    </span>
+                    {r.isActive && i < 5 && (
+                      <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#22a849' }}>−10₽</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {referralInfo.referrals.length > 5 && (
+                <div style={{ fontSize: '0.78rem', color: c.muted, textAlign: 'center' }}>
+                  +{referralInfo.referrals.length - 5} ещё (только первые 5 дают скидку)
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ fontSize: '0.82rem', color: c.muted, lineHeight: 1.6, marginBottom: '0.875rem' }}>
+              За каждого приглашённого друга с активным абонементом — скидка <strong style={{ color: c.textSub }}>−10₽/мес</strong>.
+              Пригласите 5 друзей — пользуйтесь бесплатно.
+            </div>
+          )}
 
-          <div style={{ fontSize: '0.82rem', color: c.muted, lineHeight: 1.6, marginBottom: '0.875rem' }}>
-            За каждого приглашённого друга с активным абонементом — скидка <strong style={{ color: c.textSub }}>−10₽/мес</strong>.
-            Пригласите 5 друзей — пользуйтесь бесплатно. Скидка действует, пока друг платит.
+          <div style={{ fontSize: '0.78rem', color: c.muted, lineHeight: 1.5, marginBottom: '0.875rem' }}>
+            Скидка действует, пока приглашённый активно пользуется сервисом.
+            {(status?.activeReferrals ?? 0) < 5 && (
+              <> Ещё <strong style={{ color: c.text }}>{5 - (status?.activeReferrals ?? 0)}</strong> активных реферала{5 - (status?.activeReferrals ?? 0) === 1 ? '' : 'ов'} — и абонемент бесплатный.</>
+            )}
           </div>
 
           <button

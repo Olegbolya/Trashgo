@@ -79,7 +79,18 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: '💬 Другое',
 };
 
-type Tab = 'stats' | 'frozen' | 'disputes' | 'payment' | 'users' | 'support';
+type Tab = 'stats' | 'frozen' | 'disputes' | 'payment' | 'users' | 'support' | 'plans';
+
+interface PendingPlan {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhone: string;
+  priceAtPurchase: number;
+  paymentRef: string | null;
+  createdAt: string;
+  userRegisteredAt: string | null;
+}
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -129,6 +140,9 @@ export default function Admin() {
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
   const [deleteModal, setDeleteModal] = useState<{ userId: string; name: string } | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [pendingPlans, setPendingPlans] = useState<PendingPlan[]>([]);
+  const [confirmingPlan, setConfirmingPlan] = useState<string | null>(null);
+  const [rejectingPlan, setRejectingPlan] = useState<string | null>(null);
   const [supportMsgs, setSupportMsgs] = useState<SupportMsg[]>([]);
   const [supportFilter, setSupportFilter] = useState<'open' | 'escalated' | 'all'>('open');
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
@@ -203,6 +217,33 @@ export default function Admin() {
     finally { setLoading(false); }
   }, [apiFetch]);
 
+  const loadPlans = useCallback(async () => {
+    setLoading(true); setError('');
+    try {
+      const r = await apiFetch('/admin/access-plans/pending');
+      setPendingPlans(r.data);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }, [apiFetch]);
+
+  const handleConfirmPlan = async (id: string) => {
+    setConfirmingPlan(id);
+    try {
+      await apiFetch(`/admin/access-plans/${id}/confirm`, { method: 'POST' });
+      setPendingPlans(prev => prev.filter(p => p.id !== id));
+    } catch (e: any) { setError(e.message); }
+    finally { setConfirmingPlan(null); }
+  };
+
+  const handleRejectPlan = async (id: string) => {
+    setRejectingPlan(id);
+    try {
+      await apiFetch(`/admin/access-plans/${id}/reject`, { method: 'POST' });
+      setPendingPlans(prev => prev.filter(p => p.id !== id));
+    } catch (e: any) { setError(e.message); }
+    finally { setRejectingPlan(null); }
+  };
+
   useEffect(() => {
     if (!secret) return;
     if (tab === 'stats') loadStats();
@@ -210,6 +251,7 @@ export default function Admin() {
     else if (tab === 'disputes' || tab === 'payment') loadDisputes();
     else if (tab === 'users') { setUserSearch(''); loadAllUsers(0); }
     else if (tab === 'support') loadSupport(supportFilter);
+    else if (tab === 'plans') loadPlans();
   }, [tab, secret]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUnfreeze = async (id: string) => {
@@ -368,7 +410,7 @@ export default function Admin() {
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '1.5rem' }}>
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-          {([['stats', '📊 Статистика'], ['users', '👤 Пользователи'], ['frozen', '🔒 Замороженные'], ['disputes', '⚠️ Споры'], ['payment', '💸 Платёжные споры'], ['support', '💬 Поддержка']] as [Tab, string][]).map(([id, label]) => (
+          {([['stats', '📊 Статистика'], ['users', '👤 Пользователи'], ['plans', '💳 Абонементы'], ['frozen', '🔒 Замороженные'], ['disputes', '⚠️ Споры'], ['payment', '💸 Платёжные споры'], ['support', '💬 Поддержка']] as [Tab, string][]).map(([id, label]) => (
             <button key={id} style={tabStyle(tab === id)} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
@@ -557,6 +599,60 @@ export default function Admin() {
         {/* PAYMENT DISPUTES TAB */}
         {!loading && tab === 'payment' && (
           <DisputeList rows={paymentDisputes} title="Платёжные споры исполнителей" emptyText="Платёжных споров нет" surface={surface} border={border} text={text} muted={muted} accent="#f87171" isPayment={true} onClose={(id) => handleCloseDispute(id, true)} closingId={closingDispute} />
+        )}
+
+        {/* PLANS TAB */}
+        {!loading && tab === 'plans' && (
+          <div>
+            <div style={{ fontSize: '1rem', fontWeight: 700, color: text, marginBottom: '1rem' }}>
+              💳 Ожидают подтверждения оплаты — {pendingPlans.length}
+            </div>
+            {pendingPlans.length === 0 ? (
+              <div style={{ textAlign: 'center', color: muted, padding: '3rem', background: surface, borderRadius: '0.875rem', border: `1px solid ${border}` }}>
+                Нет ожидающих запросов
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {pendingPlans.map(p => (
+                  <div key={p.id} style={{ background: surface, borderRadius: '0.875rem', padding: '1rem 1.25rem', border: `1px solid ${border}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: text, marginBottom: '0.25rem' }}>
+                          {p.userName} — <span style={{ color: '#60a5fa' }}>{p.userPhone}</span>
+                        </div>
+                        <div style={{ fontSize: '0.8125rem', color: muted, marginBottom: '0.25rem' }}>
+                          Сумма: <strong style={{ color: '#4ade80' }}>{p.priceAtPurchase}₽</strong>
+                          {' · '}Запрос: {fmt(p.createdAt)}
+                          {p.userRegisteredAt && ` · Рег.: ${fmt(p.userRegisteredAt)}`}
+                        </div>
+                        {p.paymentRef && (
+                          <div style={{ fontSize: '0.8125rem', color: '#fbbf24' }}>
+                            Номер операции: <strong>{p.paymentRef}</strong>
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                        <button
+                          disabled={confirmingPlan === p.id}
+                          onClick={() => handleConfirmPlan(p.id)}
+                          style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', background: '#4ade8018', border: '1px solid #4ade8040', color: '#4ade80', cursor: confirmingPlan === p.id ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontFamily: 'inherit', fontWeight: 600 }}
+                        >
+                          {confirmingPlan === p.id ? '...' : '✓ Подтвердить'}
+                        </button>
+                        <button
+                          disabled={rejectingPlan === p.id}
+                          onClick={() => handleRejectPlan(p.id)}
+                          style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', background: '#f871711a', border: '1px solid #f8717140', color: '#f87171', cursor: rejectingPlan === p.id ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontFamily: 'inherit' }}
+                        >
+                          {rejectingPlan === p.id ? '...' : '✕ Отклонить'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* SUPPORT TAB */}
