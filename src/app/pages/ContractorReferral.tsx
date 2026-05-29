@@ -224,7 +224,7 @@ export default function ContractorReferral() {
           {/* Referred contractors list */}
           {info && info.referrals.length > 0 && (
             <div className="rounded-2xl p-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-              <h2 className="text-base font-semibold mb-3" style={{ color: c.text }}>Ваши напарники</h2>
+              <h2 className="text-base font-semibold mb-3" style={{ color: c.text }}>Ваши напарники ({count})</h2>
               <div className="space-y-2">
                 {info.referrals.map((r, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 rounded-lg" style={{ background: c.subtle }}>
@@ -235,7 +235,12 @@ export default function ContractorReferral() {
                       <div className="text-sm font-medium" style={{ color: c.text }}>{r.name}</div>
                       <div className="text-xs" style={{ color: c.muted }}>{timeAgo(r.joinedAt)}</div>
                     </div>
-                    <UserCheck className="w-4 h-4" style={{ color: '#4CAF50' }} />
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ background: r.isActive ? '#4CAF50' : '#9ca3af' }} />
+                      <span className="text-xs font-medium" style={{ color: r.isActive ? '#4CAF50' : c.muted }}>
+                        {r.isActive ? 'активен' : 'неактивен'}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>

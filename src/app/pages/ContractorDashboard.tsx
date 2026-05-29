@@ -120,6 +120,7 @@ export default function ContractorDashboard() {
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     authApi.getStats().then(setContractorStats).catch(() => {});
   }, []);
 

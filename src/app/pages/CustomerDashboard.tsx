@@ -229,6 +229,7 @@ export default function CustomerDashboard() {
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     refreshOrders();
   }, []);
 
