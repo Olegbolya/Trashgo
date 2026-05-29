@@ -26,6 +26,8 @@ import { isNative } from '../../lib/platform';
 import { pickPhotosNative } from '../../hooks/useNativeCamera';
 import { useNativeBackClose } from '../../hooks/useNativeBackClose';
 import { ChatScreen } from '../components/ChatScreen';
+import { OrdersMapAll } from '../components/OrdersMapAll';
+import { API_BASE_URL } from '../../api/client';
 
 const ACCENT = '#2196F3';
 
@@ -48,7 +50,7 @@ export default function ContractorDashboard() {
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuthStore();
   const { addNotification } = useNotificationsStore();
-  const VALID_TABS = ['active', 'home', 'find', 'history', 'profile'] as const;
+  const VALID_TABS = ['active', 'home', 'find', 'map', 'history', 'profile'] as const;
   type TabType = typeof VALID_TABS[number];
   const activeTab: TabType = (VALID_TABS.includes(searchParams.get('tab') as TabType) ? searchParams.get('tab') : 'active') as TabType;
   const setActiveTab = (tab: TabType) => setSearchParams({ tab });
@@ -87,8 +89,7 @@ export default function ContractorDashboard() {
   const [sortOrders, setSortOrders] = useState<'newest' | 'price_asc' | 'price_desc' | 'date_asc' | 'date_desc' | 'distance_asc'>(_lsFilters.sort ?? 'newest');
   const [contractorGps, setContractorGps] = useState<{ lat: number; lon: number } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
-  // orderCoords kept as empty stub — distance filter UI preserved but geocoding removed with map tab
-  const orderCoords = new Map<string, { lat: number; lon: number } | null>();
+  const [orderCoords, setOrderCoords] = useState<Map<string, { lat: number; lon: number } | null>>(new Map());
   const availableOrdersRef = useRef<Order[]>([]);
   const [historyDetailOrder, setHistoryDetailOrder] = useState<Order | null>(null);
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
@@ -203,6 +204,43 @@ export default function ContractorDashboard() {
     load();
     const interval = setInterval(load, 10000);
     return () => clearInterval(interval);
+  }, [activeTab]);
+
+  // Map tab: load available orders and geocode them; refresh every 15s
+  const geocodingRef = useRef(new Set<string>());
+  useEffect(() => {
+    if (activeTab !== 'map') return;
+    let cancelled = false;
+
+    const geocodeOrder = async (order: Order) => {
+      if (geocodingRef.current.has(order.id)) return;
+      geocodingRef.current.add(order.id);
+      try {
+        const res = await fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(order.address + ' Казань')}&limit=1`);
+        const data: any[] = await res.json();
+        if (!cancelled && data?.[0]?.lat) {
+          setOrderCoords(prev => new Map(prev).set(order.id, { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) }));
+        } else if (!cancelled) {
+          setOrderCoords(prev => new Map(prev).set(order.id, null));
+        }
+      } catch {
+        if (!cancelled) setOrderCoords(prev => new Map(prev).set(order.id, null));
+      }
+    };
+
+    const load = async () => {
+      try {
+        const res = await ordersApi.available();
+        const orders: Order[] = (res as any)?.data ?? [];
+        const filtered = orders.filter(o => o.customerId !== user?.id);
+        if (!cancelled) setAvailableOrders(filtered);
+        filtered.forEach(o => { if (!orderCoords.has(o.id)) geocodeOrder(o); });
+      } catch {}
+    };
+
+    load();
+    const interval = setInterval(load, 15000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, [activeTab]);
 
   // Persist filters to localStorage whenever they change
@@ -987,6 +1025,23 @@ export default function ContractorDashboard() {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* MAP TAB */}
+          {activeTab === 'map' && user?.subscriptionStatus !== 'expired' && (
+            <div style={{ height: 'calc(100vh - 8rem)', position: 'relative' }}>
+              <OrdersMapAll
+                orders={availableOrders.map(o => ({ id: o.id, address: o.address, price: o.price, district: o.district, status: o.status }))}
+                orderCoords={orderCoords}
+                ordersLoading={ordersLoading}
+                isDark={isDark}
+                accentColor={ACCENT}
+                onOrderClick={(orderId) => {
+                  const order = availableOrders.find(o => o.id === orderId);
+                  if (order) setSelectedOrder(order);
+                }}
+              />
             </div>
           )}
 
@@ -1999,6 +2054,10 @@ export default function ContractorDashboard() {
             <button onClick={() => setActiveTab('find')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'find' ? ACCENT : c.muted }}>
               <Search className="w-6 h-6" />
               <span className="text-xs">Найти</span>
+            </button>
+            <button onClick={() => setActiveTab('map')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'map' ? ACCENT : c.muted }}>
+              <MapPin className="w-6 h-6" />
+              <span className="text-xs">Карта</span>
             </button>
             <button onClick={() => setActiveTab('history')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'history' ? ACCENT : c.muted }}>
               <Calendar className="w-6 h-6" />
