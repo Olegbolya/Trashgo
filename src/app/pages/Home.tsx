@@ -240,8 +240,7 @@ export default function Home() {
                   onClick={() => {
                     setDropdownOpen(false);
                     if (isAuthenticated) navigate(user?.role === 'contractor' ? '/contractor' : '/customer');
-                    else if (isNative()) navigate('/login');
-                    else authSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+                    else navigate('/login');
                   }}
                 />
                 {isAuthenticated && (
@@ -498,6 +497,88 @@ export default function Home() {
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── PRICING ── */}
+      <section style={{ maxWidth: '760px', margin: '0 auto', padding: '0 1.5rem 5rem' }}>
+        <h2 style={{
+          fontSize: 'clamp(1.375rem, 3.5vw, 1.75rem)',
+          fontWeight: 700, letterSpacing: '-0.025em',
+          marginBottom: '0.375rem', color: c.text, textAlign: 'center',
+        }}>
+          Прозрачные условия
+        </h2>
+        <p style={{ fontSize: '0.9rem', color: c.textMuted, marginBottom: '2rem', textAlign: 'center' }}>
+          Никаких скрытых комиссий — только фиксированный абонемент
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+          {/* Plan card */}
+          <div style={{
+            background: c.surface, border: `2px solid ${accent}`,
+            borderRadius: '1.25rem', padding: '1.75rem', position: 'relative',
+          }}>
+            <div style={{
+              position: 'absolute', top: '-0.75rem', left: '1.5rem',
+              background: accent, color: '#fff',
+              fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em',
+              padding: '0.2rem 0.75rem', borderRadius: '999px',
+            }}>
+              ПЕРВЫЙ МЕСЯЦ БЕСПЛАТНО
+            </div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 800, color: c.text, marginBottom: '0.25rem' }}>
+              50₽
+            </div>
+            <div style={{ fontSize: '0.9rem', color: c.textMuted, marginBottom: '1.25rem' }}>/месяц</div>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+              {[
+                'Доступ для заказчиков и исполнителей',
+                'Оплата за заказы — P2P через СБП, без комиссии',
+                '30 дней бесплатно с момента регистрации',
+                'Скидка за приглашённых друзей',
+              ].map((item, i) => (
+                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.875rem', color: c.textSub }}>
+                  <span style={{ color: accent, fontWeight: 700, flexShrink: 0, marginTop: '0.05rem' }}>✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Referral card */}
+          <div style={{
+            background: c.surface, border: `1px solid ${c.border}`,
+            borderRadius: '1.25rem', padding: '1.75rem',
+          }}>
+            <div style={{ fontSize: '1rem', fontWeight: 700, color: c.text, marginBottom: '0.5rem' }}>
+              Реферальная программа
+            </div>
+            <div style={{ fontSize: '0.875rem', color: c.textMuted, lineHeight: 1.7, marginBottom: '1rem' }}>
+              Приглашайте друзей и снижайте стоимость своего абонемента:
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {[
+                { n: '1 друг', p: '40₽/мес' },
+                { n: '2 друга', p: '30₽/мес' },
+                { n: '3 друга', p: '20₽/мес' },
+                { n: '4 друга', p: '10₽/мес' },
+                { n: '5 друзей', p: 'Бесплатно!' },
+              ].map(({ n, p }) => (
+                <div key={n} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '0.5rem 0.75rem', borderRadius: '0.625rem',
+                  background: p === 'Бесплатно!' ? (isDark ? 'rgba(34,168,73,0.15)' : '#F0FDF4') : (isDark ? 'rgba(255,255,255,0.04)' : '#f9fafb'),
+                }}>
+                  <span style={{ fontSize: '0.85rem', color: c.textSub }}>{n}</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 700, color: p === 'Бесплатно!' ? '#22a849' : c.text }}>{p}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: c.textMuted, marginTop: '0.75rem', lineHeight: 1.5 }}>
+              Скидка действует, пока приглашённый друг активно пользуется сервисом
+            </div>
           </div>
         </div>
       </section>

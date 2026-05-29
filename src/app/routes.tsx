@@ -34,6 +34,7 @@ const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Admin = lazy(() => import("./pages/Admin"));
 const DownloadApp = lazy(() => import("./pages/DownloadApp"));
+const Subscription = lazy(() => import("./pages/Subscription"));
 
 function PageLoader() {
   return (
@@ -191,6 +192,7 @@ export const router = createBrowserRouter([
   { path: "/help", element: guarded(Help) },
   { path: "/notifications", element: guarded(Notifications) },
   { path: "/payment", element: guarded(Payment) },
+  { path: "/subscription", element: guarded(Subscription) },
   { path: "/order-confirmed", element: guardedLayout(OrderConfirmed) },
 
   // Protected + Layout — contractor pages

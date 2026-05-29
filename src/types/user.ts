@@ -25,6 +25,8 @@ export interface User {
   frozen: boolean;
   freezeReason: string | null;
   createdAt: string;
+  subscriptionStatus?: 'trial' | 'active' | 'expired';
+  subscriptionExpiresAt?: string | null;
 }
 
 export interface AuthState {

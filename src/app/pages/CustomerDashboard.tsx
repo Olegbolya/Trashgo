@@ -394,7 +394,7 @@ export default function CustomerDashboard() {
       const msgs = res?.data ?? [];
       setChatMessages(msgs);
       prevChatCountsRef.current[selectedOrder.id] = msgs.length;
-      setTimeout(scrollChatToBottom, 50);
+      setTimeout(scrollChatToBottom, 150);
     }).catch(() => {});
     fetch();
     const interval = setInterval(fetch, 15000);
@@ -1134,6 +1134,44 @@ export default function CustomerDashboard() {
                   </div>
                 );
               })()}
+              {/* Subscription status */}
+              {(() => {
+                const subStatus = user?.subscriptionStatus;
+                const subExpiry = user?.subscriptionExpiresAt;
+                if (!subStatus) return null;
+                const isActive = subStatus === 'trial' || subStatus === 'active';
+                const color = isActive ? (subStatus === 'trial' ? '#F59E0B' : '#22C55E') : '#EF4444';
+                const bg = isDark
+                  ? (isActive ? (subStatus === 'trial' ? 'rgba(245,158,11,0.12)' : 'rgba(34,197,94,0.12)') : 'rgba(239,68,68,0.12)')
+                  : (isActive ? (subStatus === 'trial' ? '#FEF3C7' : '#DCFCE7') : '#FEE2E2');
+                const label = subStatus === 'trial' ? 'Пробный период' : subStatus === 'active' ? 'Абонемент активен' : 'Абонемент истёк';
+                const daysLeft = subExpiry ? Math.max(0, Math.ceil((new Date(subExpiry).getTime() - Date.now()) / 86400000)) : 0;
+                const expText = subExpiry
+                  ? `${subStatus === 'trial' ? 'Бесплатно до' : 'Действует до'} ${new Date(subExpiry).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })} (ещё ${daysLeft} дн.)`
+                  : 'Нет активного абонемента';
+                return (
+                  <div style={{ ...card, borderColor: color + '40' }}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div style={{ width: 34, height: 34, borderRadius: '0.625rem', background: bg, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
+                          {isActive ? '✓' : '!'}
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold" style={{ color }}>{label}</div>
+                          <div className="text-xs mt-0.5" style={{ color: c.muted }}>{expText}</div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => navigate('/subscription')}
+                        style={{ flexShrink: 0, height: '2rem', padding: '0 0.75rem', borderRadius: '0.625rem', border: `1px solid ${c.border}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.78rem', color: c.muted }}
+                      >
+                        Подробнее
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Contact info */}
               <div style={card}>
                 <h2 className="text-sm font-semibold mb-3" style={{ color: c.text }}>Контактные данные</h2>
@@ -1956,7 +1994,7 @@ export default function CustomerDashboard() {
             await ordersApi.sendMessage(selectedOrder.id, text);
             const res = await ordersApi.getMessages(selectedOrder.id) as any;
             setChatMessages(res?.data ?? []);
-            setTimeout(scrollChatToBottom, 50);
+            setTimeout(scrollChatToBottom, 150);
           } catch { setChatInput(text); }
           finally { setChatSending(false); }
         };
