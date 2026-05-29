@@ -370,6 +370,11 @@ export default function FindOrders() {
                             {order.description}
                           </div>
                         )}
+                        {(order as any).customerCancelCount >= 3 && (
+                          <div style={{ marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 600, color: '#f97316', background: '#f9731615', borderRadius: '0.375rem', padding: '0.125rem 0.5rem' }}>
+                            ⚠️ {(order as any).customerCancelCount} отмен
+                          </div>
+                        )}
                       </div>
 
                       {/* Price */}

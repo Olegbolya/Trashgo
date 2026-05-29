@@ -1598,6 +1598,28 @@ export default function ContractorDashboard() {
                 <LogOut className="w-4 h-4 inline mr-2" />
                 Выйти из аккаунта
               </button>
+
+              {/* Delete account */}
+              <button
+                className="w-full py-2 rounded-2xl text-xs font-medium mt-1"
+                style={{ border: 'none', background: 'transparent', color: c.muted, cursor: 'pointer', fontFamily: 'inherit' }}
+                onClick={async () => {
+                  const input = prompt('Для подтверждения удаления введите «УДАЛИТЬ»:');
+                  if (input !== 'УДАЛИТЬ') return;
+                  try {
+                    await fetch(`${import.meta.env.VITE_API_URL ?? ''}/api/v1/users/me`, {
+                      method: 'DELETE',
+                      headers: { Authorization: `Bearer ${useAuthStore.getState().token}` },
+                    });
+                    logout();
+                    navigate('/');
+                  } catch {
+                    toast.error('Ошибка при удалении аккаунта');
+                  }
+                }}
+              >
+                Удалить аккаунт
+              </button>
             </div>
             );
           })()}
