@@ -28,6 +28,7 @@ interface UserRow {
   role: string;
   frozen: boolean;
   freezeReason: string | null;
+  isVerified: boolean;
   balance: number;
   xp: number;
   createdAt: string;
@@ -127,6 +128,7 @@ export default function Admin() {
   const [error, setError] = useState('');
   const [unfreezing, setUnfreezing] = useState<string | null>(null);
   const [freezing, setFreezing] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState('');
   const [userResults, setUserResults] = useState<UserRow[]>([]);
   const [usersHasMore, setUsersHasMore] = useState(false);
@@ -263,6 +265,15 @@ export default function Admin() {
       if (stats) setStats({ ...stats, frozenUsers: stats.frozenUsers - 1 });
     } catch (e: any) { setError(e.message); }
     finally { setUnfreezing(null); }
+  };
+
+  const handleVerify = async (id: string) => {
+    setVerifying(id);
+    try {
+      await apiFetch(`/admin/verify/${id}`, { method: 'POST' });
+      setUserResults(prev => prev.map(u => u.id === id ? { ...u, isVerified: true } : u));
+    } catch (e: any) { setError(e.message); }
+    finally { setVerifying(null); }
   };
 
   const handleFreeze = (id: string, name: string) => {
@@ -522,6 +533,8 @@ export default function Admin() {
                         <span style={{ fontSize: '0.8rem', color: muted }}>{u.phone}</span>
                         <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: u.role === 'contractor' ? '#2563eb20' : '#16a34a20', color: u.role === 'contractor' ? '#60a5fa' : '#4ade80' }}>{u.role === 'contractor' ? 'Исполнитель' : 'Заказчик'}</span>
                         {u.frozen && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#f9731620', color: '#f97316' }}>🔒 Заморожен</span>}
+                        {u.role === 'contractor' && !u.isVerified && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#fbbf2420', color: '#f59e0b' }}>⏳ Не верифицирован</span>}
+                        {u.role === 'contractor' && u.isVerified && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#22c55e20', color: '#22c55e' }}>✓ Верифицирован</span>}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: muted }}>XP: {u.xp} · Баланс: {u.balance}₽ · {fmt(u.createdAt)} · ID: {u.id.slice(-8)}</div>
                       {u.frozen && u.freezeReason && <div style={{ fontSize: '0.75rem', color: '#f97316', marginTop: '0.25rem' }}>Причина: {u.freezeReason}</div>}
@@ -544,6 +557,11 @@ export default function Admin() {
                       ) : (
                         <button disabled={freezing === u.id} onClick={() => handleFreeze(u.id, u.name || u.phone)} style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#f9731615', border: '1px solid #f9731640', color: '#f97316', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}>
                           {freezing === u.id ? '...' : '🔒 Заморозить'}
+                        </button>
+                      )}
+                      {u.role === 'contractor' && !u.isVerified && (
+                        <button disabled={verifying === u.id} onClick={() => handleVerify(u.id)} style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#22c55e15', border: '1px solid #22c55e40', color: '#22c55e', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}>
+                          {verifying === u.id ? '...' : '✓ Верифицировать'}
                         </button>
                       )}
                       <button onClick={() => setDeleteModal({ userId: u.id, name: u.name || u.phone })} style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#ef444415', border: '1px solid #ef444440', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}>

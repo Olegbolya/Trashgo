@@ -83,7 +83,7 @@ export default function CustomerDashboard() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
-  const [orderContact, setOrderContact] = useState<{ contractorPhone: string; contractorName: string; contractorSbpBank?: string | null; contractorAvgRating?: number | null; contractorRatingCount?: number; contractorCompletedOrders?: number; acceptedAt?: string | null; history?: Array<{ status: string; createdAt: string; note: string }> } | null>(null);
+  const [orderContact, setOrderContact] = useState<{ contractorPhone: string; contractorName: string; contractorSbpBank?: string | null; contractorIsVerified?: boolean; contractorAvgRating?: number | null; contractorRatingCount?: number; contractorCompletedOrders?: number; acceptedAt?: string | null; history?: Array<{ status: string; createdAt: string; note: string }> } | null>(null);
   const [cancelSecondsLeft, setCancelSecondsLeft] = useState<number | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -344,6 +344,7 @@ export default function CustomerDashboard() {
           contractorPhone: d?.contractorPhone ?? '',
           contractorName: d?.contractorName ?? '',
           contractorSbpBank: d?.contractorSbpBank ?? null,
+          contractorIsVerified: d?.contractorIsVerified ?? false,
           contractorAvgRating: d?.contractorAvgRating ?? null,
           contractorRatingCount: d?.contractorRatingCount,
           contractorCompletedOrders: d?.contractorCompletedOrders,
@@ -2127,7 +2128,10 @@ export default function CustomerDashboard() {
               <div style={{ background: c.subtle, borderRadius: '0.625rem', padding: '0.625rem 0.875rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${ACCENT}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>👷</div>
                 <div className="flex-1 min-w-0">
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: c.text, marginBottom: '0.125rem' }}>{orderContact.contractorName}</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: c.text, marginBottom: '0.125rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    {orderContact.contractorName}
+                    {orderContact.contractorIsVerified && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.375rem', borderRadius: '0.375rem', background: '#22c55e20', color: '#22c55e', fontWeight: 600 }}>✓ Проверен</span>}
+                  </div>
                   <div style={{ fontSize: '0.72rem', color: c.muted, display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     {orderContact.contractorAvgRating != null ? (
                       <span>⭐ {orderContact.contractorAvgRating.toFixed(1)} ({orderContact.contractorRatingCount} отз.)</span>

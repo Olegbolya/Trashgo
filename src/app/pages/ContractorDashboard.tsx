@@ -650,6 +650,17 @@ export default function ContractorDashboard() {
           {/* FROZEN BANNER */}
           {user?.frozen && <FrozenBanner reason={user.freezeReason ?? null} isDark={isDark} />}
 
+          {/* VERIFICATION PENDING BANNER */}
+          {!(user as any)?.isVerified && !user?.frozen && (
+            <div style={{ background: '#fbbf2415', border: '1px solid #fbbf2450', borderRadius: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontSize: '1.25rem' }}>⏳</span>
+              <div>
+                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: isDark ? '#fde68a' : '#92400e' }}>Аккаунт на проверке</div>
+                <div style={{ fontSize: '0.75rem', color: isDark ? '#fcd34d' : '#b45309', marginTop: '0.125rem' }}>Заказы станут доступны после верификации администратором</div>
+              </div>
+            </div>
+          )}
+
           {/* TRIAL EXPIRY WARNING (≤7 days) */}
           {(() => {
             if (user?.subscriptionStatus !== 'trial' || !user?.subscriptionExpiresAt) return null;
