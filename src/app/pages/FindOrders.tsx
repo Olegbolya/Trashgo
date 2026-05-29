@@ -128,7 +128,7 @@ function formatAge(createdAt: string): string {
 }
 
 type SortType = 'smart' | 'price_asc' | 'price_desc';
-type FilterType = 'all' | 'asap' | 'normal';
+type FilterType = 'all' | 'asap' | 'normal' | 'household' | 'construction' | 'bulky';
 
 export default function FindOrders() {
   const navigate = useNavigate();
@@ -293,10 +293,12 @@ export default function FindOrders() {
       if (sortType === 'price_asc') return a.price - b.price;
       return b.price - a.price;
     })
-    .filter(o =>
-      filterType === 'all' ||
-      (filterType === 'asap' ? o.asap : !o.asap)
-    );
+    .filter(o => {
+      if (filterType === 'all') return true;
+      if (filterType === 'asap') return o.asap;
+      if (filterType === 'normal') return !o.asap;
+      return (o as any).wasteType === filterType || (!((o as any).wasteType) && filterType === 'household');
+    });
 
   const potentialEarnings = sorted.reduce((s, o) => s + o.price, 0);
 
@@ -381,6 +383,9 @@ export default function FindOrders() {
               { key: 'all' as FilterType, label: `Все (${orders.length})` },
               { key: 'asap' as FilterType, label: `⚡ Срочные (${orders.filter(o => o.asap).length})` },
               { key: 'normal' as FilterType, label: `Обычные (${orders.filter(o => !o.asap).length})` },
+              { key: 'household' as FilterType, label: `🗑️ Бытовой (${orders.filter(o => !(o as any).wasteType || (o as any).wasteType === 'household').length})` },
+              { key: 'construction' as FilterType, label: `🧱 Строительный (${orders.filter(o => (o as any).wasteType === 'construction').length})` },
+              { key: 'bulky' as FilterType, label: `🛋️ Крупногабарит (${orders.filter(o => (o as any).wasteType === 'bulky').length})` },
             ] as { key: FilterType; label: string }[]).map(f => (
               <button
                 key={f.key}
