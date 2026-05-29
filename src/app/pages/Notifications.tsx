@@ -62,6 +62,7 @@ export default function Notifications() {
   const [savingTgToggle, setSavingTgToggle] = useState(false);
   const [botUsername, setBotUsername] = useState<string | null>(null);
   const [tgLoading, setTgLoading] = useState(false);
+  const [tgLinkLoading, setTgLinkLoading] = useState(false);
   const emailEnabled = user?.notifEmail ?? settings?.emailEnabled ?? false;
   const tgNotifEnabled = user?.notifTelegram ?? true;
 
@@ -250,9 +251,23 @@ export default function Notifications() {
                   : tgLoading
                     ? <div className="w-4 h-4 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: ACCENT }} />
                     : botUsername
-                      ? <a href={`https://t.me/${botUsername}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#2196F3', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.25rem 0.75rem', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}>
-                          Привязать <ExternalLink className="w-3 h-3" />
-                        </a>
+                      ? <button
+                          disabled={tgLinkLoading}
+                          onClick={async () => {
+                            if (!user?.phone) return;
+                            setTgLinkLoading(true);
+                            try {
+                              const { telegramBotLink } = await authApi.requestTelegram(user.phone, true);
+                              window.open(telegramBotLink, '_blank', 'noopener,noreferrer');
+                            } catch {
+                              toast.error('Не удалось получить ссылку для привязки');
+                            } finally {
+                              setTgLinkLoading(false);
+                            }
+                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#2196F3', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.25rem 0.75rem', fontSize: '0.8rem', fontWeight: 600, cursor: tgLinkLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: tgLinkLoading ? 0.7 : 1 }}>
+                          {tgLinkLoading ? '...' : <>Привязать <ExternalLink className="w-3 h-3" /></>}
+                        </button>
                       : <span className="text-xs" style={{ color: c.muted }}>Не привязан</span>}
               </div>
               {user?.telegramLinked && (

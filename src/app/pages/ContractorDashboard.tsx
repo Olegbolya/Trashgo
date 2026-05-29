@@ -123,6 +123,10 @@ export default function ContractorDashboard() {
   useEffect(() => {
     window.scrollTo(0, 0);
     authApi.getStats().then(setContractorStats).catch(() => {});
+    if (!localStorage.getItem('trashgo_welcomed_contractor')) {
+      localStorage.setItem('trashgo_welcomed_contractor', '1');
+      setTimeout(() => toast.success('Добро пожаловать в TrashGo!', { description: 'Первый месяц бесплатно — заходите в «Найти» и берите заказы', duration: 5000 }), 1500);
+    }
   }, []);
 
   const prevJobStatusesRef = useRef<Record<string, string>>({});
@@ -312,7 +316,7 @@ export default function ContractorDashboard() {
 
   // Detect new chat messages on active jobs when chat is closed
   useEffect(() => {
-    const activeJobs = myJobs.filter(j => j.status === 'accepted' || j.status === 'in_progress' || j.status === 'pending_confirmation');
+    const activeJobs = myJobs.filter(j => j.status === 'accepted' || j.status === 'en_route' || j.status === 'in_progress' || j.status === 'pending_confirmation');
     if (!activeJobs.length || chatJobId) return;
     const poll = () => {
       activeJobs.forEach(job => {
@@ -697,7 +701,7 @@ export default function ContractorDashboard() {
 
               {/* Active jobs */}
               {(() => {
-                const activeJobs = myJobs.filter(j => j.status === 'accepted' || j.status === 'in_progress' || j.status === 'pending_confirmation' || j.status === 'pending_payment');
+                const activeJobs = myJobs.filter(j => j.status === 'accepted' || j.status === 'en_route' || j.status === 'in_progress' || j.status === 'pending_confirmation' || j.status === 'pending_payment');
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -720,8 +724,8 @@ export default function ContractorDashboard() {
                           const dt = job.scheduledAt ? new Date(job.scheduledAt) : null;
                           const timeStr = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
                           const dateStr = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
-                          const statusLabel = job.status === 'accepted' ? 'Принят' : job.status === 'in_progress' ? 'В работе' : job.status === 'pending_payment' ? 'Ожидание оплаты' : 'Ждёт подтверждения';
-                          const statusColor = job.status === 'accepted' ? ACCENT : job.status === 'in_progress' ? '#FBBF24' : job.status === 'pending_payment' ? '#22c55e' : '#F97316';
+                          const statusLabel = job.status === 'accepted' ? 'Принят' : job.status === 'en_route' ? 'Выехал' : job.status === 'in_progress' ? 'В работе' : job.status === 'pending_payment' ? 'Ожидание оплаты' : 'Ждёт подтверждения';
+                          const statusColor = job.status === 'accepted' ? ACCENT : job.status === 'en_route' ? '#F97316' : job.status === 'in_progress' ? '#FBBF24' : job.status === 'pending_payment' ? '#22c55e' : '#F97316';
                           return (
                             <div key={job.id} style={{ ...card, padding: '0.875rem' }}>
                               <div className="flex items-start justify-between mb-2">
@@ -784,6 +788,25 @@ export default function ContractorDashboard() {
                                     className="w-full text-xs font-semibold h-9 rounded-lg"
                                     disabled={startingId === job.id}
                                     style={{ background: ACCENT, color: 'white', border: 'none', cursor: startingId === job.id ? 'not-allowed' : 'pointer', opacity: startingId === job.id ? 0.6 : 1, fontFamily: 'inherit' }}
+                                    onClick={async () => {
+                                      setStartingId(job.id);
+                                      try {
+                                        await ordersApi.updateStatus(job.id, 'en_route');
+                                        setMyJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'en_route' as const } : j));
+                                        hapticSuccess();
+                                        toast.success('Заказчик уведомлён — вы едете!');
+                                      } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
+                                      finally { setStartingId(null); }
+                                    }}
+                                  >
+                                    {startingId === job.id ? 'Отмечаем...' : '🚗 Выехал к клиенту'}
+                                  </button>
+                                )}
+                                {(job.status === 'accepted' || job.status === 'en_route') && (
+                                  <button
+                                    className="w-full text-xs font-semibold h-9 rounded-lg"
+                                    disabled={startingId === job.id}
+                                    style={{ background: job.status === 'en_route' ? ACCENT : 'transparent', color: job.status === 'en_route' ? 'white' : ACCENT, border: `1px solid ${ACCENT}`, cursor: startingId === job.id ? 'not-allowed' : 'pointer', opacity: startingId === job.id ? 0.6 : 1, fontFamily: 'inherit' }}
                                     onClick={async () => {
                                       setStartingId(job.id);
                                       try {
@@ -1008,7 +1031,7 @@ export default function ContractorDashboard() {
                 <div className="text-base font-semibold mb-3" style={{ color: c.text }}>Добро пожаловать, {user?.name?.split(' ')[0] || 'Исполнитель'}!</div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl p-3 text-center" style={{ background: `${ACCENT}12`, border: `1px solid ${ACCENT}20` }}>
-                    <div className="text-2xl font-bold" style={{ color: ACCENT }}>{myJobs.filter(j => j.status === 'accepted' || j.status === 'in_progress' || j.status === 'pending_confirmation').length}</div>
+                    <div className="text-2xl font-bold" style={{ color: ACCENT }}>{myJobs.filter(j => j.status === 'accepted' || j.status === 'en_route' || j.status === 'in_progress' || j.status === 'pending_confirmation').length}</div>
                     <div className="text-xs mt-0.5" style={{ color: c.muted }}>активных заказов</div>
                   </div>
                   <div className="rounded-xl p-3 text-center" style={{ background: c.subtle, border: `1px solid ${c.border}` }}>

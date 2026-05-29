@@ -120,7 +120,7 @@ export default function CustomerDashboard() {
     id: string; address: string; entrance: string; floor: string; apartment: string;
     date: string; time: string; asap: boolean; volume: number; price: number;
     description: string; photoUrls: string[]; completionPhotoUrls: string[];
-    status: 'waiting' | 'active' | 'pending' | 'payment' | 'cancelled' | 'completed';
+    status: 'waiting' | 'active' | 'en_route' | 'pending' | 'payment' | 'cancelled' | 'completed';
     responses: number; createdAt: string; ratingByCustomer: number | null;
     contractorName?: string;
     pickedUp?: boolean;
@@ -133,6 +133,7 @@ export default function CustomerDashboard() {
       : o.status === 'completed' ? 'completed'
       : o.status === 'pending_confirmation' ? 'pending'
       : o.status === 'pending_payment' ? 'payment'
+      : o.status === 'en_route' ? 'en_route'
       : 'active';
     return {
       id: o.id,
@@ -172,6 +173,7 @@ export default function CustomerDashboard() {
   const geocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshOrders = (silent = false) => {
+    if (isEditingRef.current) return;
     if (!silent) setOrdersLoading(true);
     ordersApi.list().then((res: any) => {
       const orders: Order[] = res?.data ?? [];
@@ -185,7 +187,10 @@ export default function CustomerDashboard() {
           if (prev === 'waiting' && order.status === 'active') {
             toast.success('🎉 Вашу заявку взяли!', { description: 'Исполнитель уже в пути', duration: 5000 });
             addNotification({ type: 'order_status', title: 'Заявку взяли!', message: `Исполнитель уже в пути: ${order.address}`, orderId: order.id });
-          } else if ((prev === 'waiting' || prev === 'active') && order.status === 'pending') {
+          } else if ((prev === 'active' || prev === 'waiting') && order.status === 'en_route') {
+            toast.info('🚗 Исполнитель выехал к вам!', { description: 'Будьте готовы передать мусор', duration: 5000 });
+            addNotification({ type: 'order_status', title: 'Исполнитель выехал!', message: `Будьте готовы: ${order.address}`, orderId: order.id });
+          } else if ((prev === 'waiting' || prev === 'active' || prev === 'en_route') && order.status === 'pending') {
             toast.info('📸 Исполнитель выполнил заявку', { description: 'Нажмите «Подтвердить», чтобы завершить', duration: 8000 });
             addNotification({ type: 'order_status', title: 'Заявка выполнена', message: `Нажмите «Подтвердить» для завершения: ${order.address}`, orderId: order.id });
           } else if (order.status === 'cancelled') {
@@ -231,6 +236,10 @@ export default function CustomerDashboard() {
   useEffect(() => {
     window.scrollTo(0, 0);
     refreshOrders();
+    if (!localStorage.getItem('trashgo_welcomed_customer')) {
+      localStorage.setItem('trashgo_welcomed_customer', '1');
+      setTimeout(() => toast.success('Первый месяц бесплатно!', { description: 'Создайте первую заявку — исполнители уже ждут', duration: 5000 }), 1500);
+    }
   }, []);
 
   const doConfirmOrder = async (orderId: string) => {
@@ -382,7 +391,6 @@ export default function CustomerDashboard() {
       setCreatePhotos([]);
       setOriginalOrder(mapped);
       setIsEditing(true);
-      setMyOrders((prev) => prev.filter((o) => o.id !== pendingEditId));
       setActiveTab('create');
     }).catch(() => { sessionStorage.removeItem('trashgo_pending_edit'); isEditingRef.current = false; });
   }, []);
@@ -414,7 +422,7 @@ export default function CustomerDashboard() {
 
   // Detect new chat messages on active orders when chat is closed
   useEffect(() => {
-    const activeOrders = myOrders.filter(o => o.status === 'active' || o.status === 'pending' || o.status === 'payment');
+    const activeOrders = myOrders.filter(o => o.status === 'active' || o.status === 'en_route' || o.status === 'pending' || o.status === 'payment');
     if (!activeOrders.length || chatOpen) return;
     const poll = () => {
       activeOrders.forEach(order => {
@@ -483,7 +491,7 @@ export default function CustomerDashboard() {
 
   const stats = {
     totalOrders: myOrders.length,
-    activeOrders: myOrders.filter(o => o.status === 'waiting' || o.status === 'active' || o.status === 'pending' || o.status === 'payment').length,
+    activeOrders: myOrders.filter(o => o.status === 'waiting' || o.status === 'active' || o.status === 'en_route' || o.status === 'pending' || o.status === 'payment').length,
     completedOrders: myOrders.filter(o => o.status === 'completed').length,
     referrals: referralCount,
   };
@@ -809,7 +817,7 @@ export default function CustomerDashboard() {
 
               {/* My orders */}
               {(() => {
-                const activeOrders = myOrders.filter(o => o.status === 'waiting' || o.status === 'active' || o.status === 'pending' || o.status === 'payment');
+                const activeOrders = myOrders.filter(o => o.status === 'waiting' || o.status === 'active' || o.status === 'en_route' || o.status === 'pending' || o.status === 'payment');
                 return (
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -888,6 +896,10 @@ export default function CustomerDashboard() {
                             ) : order.status === 'payment' ? (
                               <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #86efac' }}>
                                 <span>💳 Ожидание оплаты СБП</span>
+                              </div>
+                            ) : order.status === 'en_route' ? (
+                              <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#F9731618', color: '#F97316' }}>
+                                <span>🚗 Исполнитель едет</span>
                               </div>
                             ) : order.status === 'active' ? (
                               <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: `${ACCENT}18`, color: ACCENT }}>
@@ -1451,7 +1463,7 @@ export default function CustomerDashboard() {
                     description: createForm.description,
                     photoUrls,
                   };
-                  setMyOrders((prev) => [resultOrder, ...prev.filter(o => o.id !== originalOrder.id)]);
+                  setMyOrders((prev) => prev.map(o => o.id === originalOrder.id ? resultOrder : o));
                   toast.success('Заказ обновлён!', { description: 'Изменения сохранены', duration: 3000 });
                 } else {
                   // Create new order
@@ -1830,22 +1842,26 @@ export default function CustomerDashboard() {
                         Фото мусора <span style={{ color: c.muted, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(необязательно)</span>
                       </label>
                       {isNative() ? (
-                        <button
-                          style={{
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                            gap: '0.5rem', padding: '1.25rem', width: '100%',
-                            border: `2px dashed #2196F3`, borderRadius: '0.75rem',
-                            cursor: 'pointer', background: '#2196F308', fontFamily: 'inherit',
-                          }}
-                          onClick={async () => {
-                            const files = await pickPhotosNative(5, 'prompt');
-                            if (files) setCreatePhotos((prev) => [...prev, ...files].slice(0, 5));
-                          }}
-                        >
-                          <div style={{ fontSize: '1.5rem' }}>📷</div>
-                          <div className="text-sm font-medium" style={{ color: '#2196F3' }}>Нажмите, чтобы добавить фото</div>
-                          <div className="text-xs" style={{ color: c.muted }}>Помогает исполнителю оценить объём. До 5 фото.</div>
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.875rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '0.75rem', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600, boxShadow: '0 1px 4px rgba(16,185,129,0.3)' }}
+                            onClick={async () => {
+                              const files = await pickPhotosNative(1, 'camera');
+                              if (files) setCreatePhotos((prev) => [...prev, ...files].slice(0, 5));
+                            }}
+                          >
+                            📷 Камера
+                          </button>
+                          <button
+                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.875rem', background: c.subtle, color: c.text, border: `1px solid ${c.border}`, borderRadius: '0.75rem', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600 }}
+                            onClick={async () => {
+                              const files = await pickPhotosNative(5, 'gallery');
+                              if (files) setCreatePhotos((prev) => [...prev, ...files].slice(0, 5));
+                            }}
+                          >
+                            🖼️ Галерея
+                          </button>
+                        </div>
                       ) : (
                         <label
                           style={{
@@ -1928,11 +1944,6 @@ export default function CustomerDashboard() {
                         className="flex-1 h-11 rounded-xl text-sm font-medium"
                         style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textSub, cursor: 'pointer', fontFamily: 'inherit' }}
                         onClick={() => {
-                          if (originalOrder) {
-                            setMyOrders((prev) => {
-                              return [originalOrder, ...prev];
-                            });
-                          }
                           setCreateErrors({});
                           setPreloadedPhotoUrls([]);
                           setCreatePhotos([]);
@@ -2083,15 +2094,15 @@ export default function CustomerDashboard() {
             <div className="flex items-start justify-between gap-2 mb-4 flex-wrap">
               <h2 className="text-base font-bold" style={{ color: c.text }}>Заказ #{selectedOrder.id.slice(-6)}</h2>
               <span className="text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap" style={{
-                background: selectedOrder.status === 'waiting' ? '#F97316' + '18' : selectedOrder.status === 'pending' ? '#FBBF2420' : selectedOrder.status === 'payment' ? '#dcfce7' : `${ACCENT}18`,
-                color: selectedOrder.status === 'waiting' ? '#F97316' : selectedOrder.status === 'pending' ? '#92400e' : selectedOrder.status === 'payment' ? '#166534' : ACCENT,
+                background: selectedOrder.status === 'waiting' ? '#F97316' + '18' : selectedOrder.status === 'pending' ? '#FBBF2420' : selectedOrder.status === 'payment' ? '#dcfce7' : selectedOrder.status === 'en_route' ? '#F9731618' : `${ACCENT}18`,
+                color: selectedOrder.status === 'waiting' ? '#F97316' : selectedOrder.status === 'pending' ? '#92400e' : selectedOrder.status === 'payment' ? '#166534' : selectedOrder.status === 'en_route' ? '#F97316' : ACCENT,
               }}>
-                {selectedOrder.status === 'waiting' ? `${selectedOrder.responses} откл.` : selectedOrder.status === 'pending' ? '⏳ Подтверждение' : selectedOrder.status === 'payment' ? '💳 Ожидание оплаты' : 'Принят'}
+                {selectedOrder.status === 'waiting' ? `${selectedOrder.responses} откл.` : selectedOrder.status === 'pending' ? '⏳ Подтверждение' : selectedOrder.status === 'payment' ? '💳 Ожидание оплаты' : selectedOrder.status === 'en_route' ? '🚗 Едет к вам' : 'Принят'}
               </span>
             </div>
 
             {/* Call + Chat bar — shown when contractor is assigned */}
-            {(selectedOrder.status === 'active' || selectedOrder.status === 'pending' || selectedOrder.status === 'payment') && (
+            {(selectedOrder.status === 'active' || selectedOrder.status === 'en_route' || selectedOrder.status === 'pending' || selectedOrder.status === 'payment') && (
               <div className="flex gap-2 mb-4">
                 <a
                   href={orderContact?.contractorPhone ? `tel:${orderContact.contractorPhone}` : undefined}
@@ -2112,7 +2123,7 @@ export default function CustomerDashboard() {
             )}
 
             {/* Contractor profile card — shown when order is accepted */}
-            {selectedOrder.status === 'active' && orderContact?.contractorName && (
+            {(selectedOrder.status === 'active' || selectedOrder.status === 'en_route') && orderContact?.contractorName && (
               <div style={{ background: c.subtle, borderRadius: '0.625rem', padding: '0.625rem 0.875rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${ACCENT}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>👷</div>
                 <div className="flex-1 min-w-0">
@@ -2398,7 +2409,6 @@ export default function CustomerDashboard() {
                         setIsEditing(true);
                         isEditingRef.current = true;
                         sessionStorage.setItem('trashgo_pending_edit', selectedOrder.id);
-                        setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
                         setSelectedOrder(null);
                         setActiveTab('create');
                       }}
@@ -2433,7 +2443,7 @@ export default function CustomerDashboard() {
                         {cancelingId === selectedOrder.id ? '⏳ Отмена...' : 'Отменить заказ'}
                       </button>
                     )}
-                    {selectedOrder.status === 'active' && !selectedOrder.pickedUp && cancelSecondsLeft !== null && cancelSecondsLeft > 0 && (
+                    {(selectedOrder.status === 'active' || selectedOrder.status === 'en_route') && !selectedOrder.pickedUp && cancelSecondsLeft !== null && cancelSecondsLeft > 0 && (
                       <button
                         className="flex-1 py-2.5 rounded-xl text-sm font-medium"
                         disabled={cancelingId === selectedOrder.id}
@@ -2463,7 +2473,7 @@ export default function CustomerDashboard() {
                       </button>
                     )}
                     {/* Unassign contractor — visible after 10-min cancel window expires and contractor hasn't started */}
-                    {selectedOrder.status === 'active' && !selectedOrder.pickedUp && (cancelSecondsLeft === null || cancelSecondsLeft === 0) && (
+                    {(selectedOrder.status === 'active' || selectedOrder.status === 'en_route') && !selectedOrder.pickedUp && (cancelSecondsLeft === null || cancelSecondsLeft === 0) && (
                       <button
                         className="flex-1 py-2.5 rounded-xl text-sm font-medium"
                         disabled={unassigningId === selectedOrder.id}

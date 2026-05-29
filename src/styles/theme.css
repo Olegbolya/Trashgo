@@ -255,3 +255,17 @@ button:not(:disabled):active {
 /* Scrollbar */
 .dark ::-webkit-scrollbar-track { background: #111827; }
 .dark ::-webkit-scrollbar-thumb { background: #374151; }
+
+/* ─── iOS Safari auto-zoom prevention ─── */
+/* iOS zooms in when input font-size < 16px — force minimum on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  input, textarea, select {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
+/* ─── Modal / sheet scroll fix for mobile ─── */
+.modal-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
