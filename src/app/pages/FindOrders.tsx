@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { ordersApi } from '../../api/orders';
 import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore } from '../../stores/role.store';
+import { useTheme } from '../context/ThemeContext';
 import type { Order } from '../../types/order';
 import { toast } from 'sonner';
 
@@ -55,8 +56,20 @@ type FilterType = 'all' | 'asap' | 'normal';
 
 export default function FindOrders() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const user = useAuthStore(s => s.user);
   const accentColor = useRoleStore(s => s.accentColor);
+
+  const c = {
+    bg:      isDark ? '#111827' : '#f9fafb',
+    surface: isDark ? '#1e2433' : '#ffffff',
+    border:  isDark ? '#374151' : '#e5e7eb',
+    text:    isDark ? '#f9fafb' : '#111827',
+    text2:   isDark ? '#d1d5db' : '#374151',
+    muted:   isDark ? '#9ca3af' : '#6b7280',
+    subtle:  isDark ? '#1f2937' : '#f3f4f6',
+    border2: isDark ? '#4b5563' : '#d1d5db',
+  };
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -209,19 +222,19 @@ export default function FindOrders() {
   const potentialEarnings = sorted.reduce((s, o) => s + o.price, 0);
 
   return (
-    <div className="min-h-screen" style={{ background: '#f9fafb', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen" style={{ background: c.bg, fontFamily: "'Inter', system-ui, sans-serif" }}>
       {/* Header */}
-      <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 50 }}>
+      <header style={{ background: c.surface, borderBottom: `1px solid ${c.border}`, position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 52 }}>
-          <button onClick={() => navigate(-1)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontSize: '0.9rem', fontFamily: 'inherit' }}>
+          <button onClick={() => navigate(-1)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: c.text2, fontSize: '0.9rem', fontFamily: 'inherit' }}>
             <ArrowLeft style={{ width: 18, height: 18 }} />
             Назад
           </button>
-          <span style={{ fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Найти заказы</span>
+          <span style={{ fontWeight: 700, fontSize: '1rem', color: c.text }}>Найти заказы</span>
           <div style={{ display: 'flex', gap: 4 }}>
             <button
               onClick={() => setShowMap(v => !v)}
-              style={{ background: showMap ? ACCENT : 'none', border: showMap ? 'none' : `1px solid #e5e7eb`, borderRadius: 8, cursor: 'pointer', color: showMap ? '#fff' : ACCENT, padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}
+              style={{ background: showMap ? ACCENT : 'none', border: showMap ? 'none' : `1px solid ${c.border}`, borderRadius: 8, cursor: 'pointer', color: showMap ? '#fff' : ACCENT, padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}
             >
               <MapIcon style={{ width: 16, height: 16 }} />
             </button>
@@ -255,15 +268,15 @@ export default function FindOrders() {
 
         {/* Map */}
         {showMap && (
-          <div style={{ borderRadius: '1rem', overflow: 'hidden', marginBottom: '1rem', border: '1px solid #e5e7eb' }}>
+          <div style={{ borderRadius: '1rem', overflow: 'hidden', marginBottom: '1rem', border: `1px solid ${c.border}` }}>
             <div ref={mapRef} style={{ height: 260, width: '100%' }} />
           </div>
         )}
 
         {/* Sort + Filter tabs */}
-        <div style={{ background: '#fff', borderRadius: '0.875rem', border: '1px solid #e5e7eb', padding: '0.75rem', marginBottom: '1rem' }}>
+        <div style={{ background: c.surface, borderRadius: '0.875rem', border: `1px solid ${c.border}`, padding: '0.75rem', marginBottom: '1rem' }}>
           <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.8rem', color: '#9ca3af', alignSelf: 'center' }}>Сортировка:</span>
+            <span style={{ fontSize: '0.8rem', color: c.muted, alignSelf: 'center' }}>Сортировка:</span>
             {([
               { key: 'smart' as SortType, label: '✨ Умный' },
               { key: 'price_desc' as SortType, label: '↓ Цена' },
@@ -274,8 +287,8 @@ export default function FindOrders() {
                 onClick={() => updateSort(s.key)}
                 style={{
                   padding: '4px 10px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-                  background: sortType === s.key ? accentColor : '#f3f4f6',
-                  color: sortType === s.key ? '#fff' : '#6b7280',
+                  background: sortType === s.key ? accentColor : c.subtle,
+                  color: sortType === s.key ? '#fff' : c.muted,
                   border: 'none', fontFamily: 'inherit',
                 }}
               >
@@ -284,7 +297,7 @@ export default function FindOrders() {
             ))}
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.8rem', color: '#9ca3af', alignSelf: 'center' }}>Фильтр:</span>
+            <span style={{ fontSize: '0.8rem', color: c.muted, alignSelf: 'center' }}>Фильтр:</span>
             {([
               { key: 'all' as FilterType, label: `Все (${orders.length})` },
               { key: 'asap' as FilterType, label: `⚡ Срочные (${orders.filter(o => o.asap).length})` },
@@ -295,8 +308,8 @@ export default function FindOrders() {
                 onClick={() => updateFilter(f.key)}
                 style={{
                   padding: '4px 10px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-                  background: filterType === f.key ? '#111827' : '#f3f4f6',
-                  color: filterType === f.key ? '#fff' : '#6b7280',
+                  background: filterType === f.key ? c.text : c.subtle,
+                  color: filterType === f.key ? (isDark ? '#111827' : '#fff') : c.muted,
                   border: 'none', fontFamily: 'inherit',
                 }}
               >
@@ -309,13 +322,13 @@ export default function FindOrders() {
         {/* Orders */}
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0' }}>
-            <div style={{ width: 32, height: 32, border: `3px solid #e5e7eb`, borderTop: `3px solid ${accentColor}`, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ width: 32, height: 32, border: `3px solid ${c.border}`, borderTop: `3px solid ${accentColor}`, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
           </div>
         ) : sorted.length === 0 ? (
-          <div style={{ background: '#fff', borderRadius: '1rem', border: '2px dashed #e5e7eb', padding: '3rem 1.5rem', textAlign: 'center' }}>
-            <Package style={{ width: 48, height: 48, color: '#d1d5db', margin: '0 auto 0.75rem' }} />
-            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#111827', marginBottom: 4 }}>Нет доступных заказов</div>
-            <div style={{ fontSize: '0.85rem', color: '#9ca3af' }}>
+          <div style={{ background: c.surface, borderRadius: '1rem', border: `2px dashed ${c.border}`, padding: '3rem 1.5rem', textAlign: 'center' }}>
+            <Package style={{ width: 48, height: 48, color: c.border2, margin: '0 auto 0.75rem' }} />
+            <div style={{ fontSize: '1rem', fontWeight: 600, color: c.text, marginBottom: 4 }}>Нет доступных заказов</div>
+            <div style={{ fontSize: '0.85rem', color: c.muted }}>
               {filterType !== 'all' ? 'Попробуйте убрать фильтр' : 'Новые заказы появляются регулярно'}
             </div>
           </div>
@@ -325,8 +338,8 @@ export default function FindOrders() {
               const isTop = sortType === 'smart' && idx === 0 && sorted.length > 1;
               const isSameDistrict = order.district === userDistrict && !!userDistrict;
               const isAsap = order.asap;
-              const cardBorder = isAsap ? '#fb923c' : isTop ? accentColor : '#e5e7eb';
-              const cardBg = isAsap ? '#fff7ed' : isTop ? `${accentColor}08` : '#fff';
+              const cardBorder = isAsap ? '#fb923c' : isTop ? accentColor : c.border;
+              const cardBg = isAsap ? (isDark ? '#431407' : '#fff7ed') : isTop ? `${accentColor}08` : c.surface;
               const priceColor = isAsap ? '#ea580c' : accentColor;
               const isAccepting = accepting === order.id;
 
@@ -336,24 +349,24 @@ export default function FindOrders() {
                     {/* Badges row */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: isAsap ? '#f97316' : '#22c55e', flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{formatAge(order.createdAt)}</span>
+                      <span style={{ fontSize: '0.72rem', color: c.muted }}>{formatAge(order.createdAt)}</span>
                       {isAsap && <span style={{ background: '#f97316', color: '#fff', fontSize: '0.8rem', padding: '2px 8px', borderRadius: 99, fontWeight: 700 }}>⚡ Срочно</span>}
                       {isTop && !isAsap && <span style={{ background: accentColor, color: '#fff', fontSize: '0.8rem', padding: '2px 8px', borderRadius: 99, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}><Sparkles style={{ width: 10, height: 10 }} />Лучшее</span>}
-                      {isSameDistrict && !isTop && <span style={{ background: '#dcfce7', color: '#15803d', fontSize: '0.8rem', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>Ваш район</span>}
+                      {isSameDistrict && !isTop && <span style={{ background: isDark ? '#14532d' : '#dcfce7', color: isDark ? '#86efac' : '#15803d', fontSize: '0.8rem', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>Ваш район</span>}
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         {/* Address */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                          <MapPin style={{ width: 14, height: 14, color: '#9ca3af', flexShrink: 0 }} />
-                          <span style={{ fontWeight: 600, color: '#111827', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <MapPin style={{ width: 14, height: 14, color: c.muted, flexShrink: 0 }} />
+                          <span style={{ fontWeight: 600, color: c.text, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {order.address}
                           </span>
                         </div>
 
                         {/* Meta row */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '0.8rem', color: '#6b7280', marginBottom: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '0.8rem', color: c.muted, marginBottom: 6 }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                             <Clock style={{ width: 12, height: 12 }} />
                             {formatTime(order)}
@@ -366,7 +379,7 @@ export default function FindOrders() {
                         </div>
 
                         {order.description && (
-                          <div style={{ fontSize: '0.75rem', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontSize: '0.75rem', color: c.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {order.description}
                           </div>
                         )}
@@ -389,7 +402,7 @@ export default function FindOrders() {
                       disabled={!!accepting}
                       style={{
                         display: 'block', width: '100%', marginTop: 12, height: 42,
-                        background: isAccepting ? '#9ca3af' : (isAsap ? '#f97316' : '#111827'),
+                        background: isAccepting ? c.muted : (isAsap ? '#f97316' : accentColor),
                         color: '#fff', borderRadius: '0.625rem', border: 'none',
                         fontWeight: 700, fontSize: '0.875rem', cursor: accepting ? 'not-allowed' : 'pointer',
                         fontFamily: 'inherit', opacity: accepting && !isAccepting ? 0.5 : 1,
@@ -412,7 +425,7 @@ export default function FindOrders() {
             disabled={loadingMore}
             style={{
               display: 'block', width: '100%', marginTop: '0.75rem', padding: '0.75rem',
-              background: '#fff', border: `2px solid ${accentColor}`, borderRadius: '0.875rem',
+              background: c.surface, border: `2px solid ${accentColor}`, borderRadius: '0.875rem',
               color: accentColor, fontWeight: 700, fontSize: '0.875rem',
               cursor: loadingMore ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
               opacity: loadingMore ? 0.6 : 1,
@@ -422,7 +435,7 @@ export default function FindOrders() {
           </button>
         )}
 
-        <div style={{ textAlign: 'center', fontSize: '0.72rem', color: '#d1d5db', padding: '1.5rem 0 0.5rem' }}>
+        <div style={{ textAlign: 'center', fontSize: '0.72rem', color: c.border2, padding: '1.5rem 0 0.5rem' }}>
           {hasMore ? `Показано ${orders.length} заказов` : 'Обновляется каждые 15 секунд'}
         </div>
       </div>

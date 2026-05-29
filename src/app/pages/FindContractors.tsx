@@ -4,6 +4,7 @@ import { ArrowLeft, Star, MapPin, Package, ChevronRight } from 'lucide-react';
 import { contractorsApi, type Contractor } from '../../api/contractors';
 import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore } from '../../stores/role.store';
+import { useTheme } from '../context/ThemeContext';
 import { toast } from 'sonner';
 
 const TRANSPORT: Record<string, string> = {
@@ -42,12 +43,23 @@ type SortType = 'default' | 'rating' | 'orders';
 
 export default function FindContractors() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const user = useAuthStore(s => s.user);
   const accent = useRoleStore(s => s.accentColor);
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [sortType, setSortType] = useState<SortType>('default');
+
+  const th = {
+    bg:      isDark ? '#111827' : '#f9fafb',
+    surface: isDark ? '#1e2433' : '#ffffff',
+    border:  isDark ? '#374151' : '#e5e7eb',
+    text:    isDark ? '#f9fafb' : '#111827',
+    muted:   isDark ? '#9ca3af' : '#6b7280',
+    subtle:  isDark ? '#1f2937' : '#f3f4f6',
+    border2: isDark ? '#4b5563' : '#d1d5db',
+  };
 
   useEffect(() => {
     contractorsApi.list()
@@ -79,18 +91,18 @@ export default function FindContractors() {
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: '#f9fafb', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen" style={{ background: th.bg, fontFamily: "'Inter', system-ui, sans-serif" }}>
       {/* Header */}
-      <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 50 }}>
+      <header style={{ background: th.surface, borderBottom: `1px solid ${th.border}`, position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 1rem', display: 'flex', alignItems: 'center', height: 52 }}>
           <button
             onClick={() => navigate(-1)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontSize: '0.9rem', fontFamily: 'inherit', marginRight: 'auto' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: th.muted, fontSize: '0.9rem', fontFamily: 'inherit', marginRight: 'auto' }}
           >
             <ArrowLeft style={{ width: 18, height: 18 }} />
             Назад
           </button>
-          <span style={{ fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Исполнители</span>
+          <span style={{ fontWeight: 700, fontSize: '1rem', color: th.text }}>Исполнители</span>
           <div style={{ width: 80 }} />
         </div>
       </header>
@@ -106,7 +118,7 @@ export default function FindContractors() {
       </div>
 
       {/* Filter + sort tabs */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 52, zIndex: 40 }}>
+      <div style={{ background: th.surface, borderBottom: `1px solid ${th.border}`, position: 'sticky', top: 52, zIndex: 40 }}>
         <div style={{ maxWidth: 600, margin: '0 auto', padding: '0.5rem 1rem 0', display: 'flex', gap: 6, overflowX: 'auto' }}>
           {filterButtons.map(f => (
             <button
@@ -116,8 +128,8 @@ export default function FindContractors() {
                 padding: '6px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
                 whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: 'inherit',
                 border: 'none',
-                background: filterType === f.key ? '#111827' : '#f3f4f6',
-                color: filterType === f.key ? '#fff' : '#6b7280',
+                background: filterType === f.key ? th.text : th.subtle,
+                color: filterType === f.key ? (isDark ? '#111827' : '#fff') : th.muted,
                 transition: 'all 0.15s',
               }}
             >
@@ -126,7 +138,7 @@ export default function FindContractors() {
           ))}
         </div>
         <div style={{ maxWidth: 600, margin: '0 auto', padding: '0.375rem 1rem 0.5rem', display: 'flex', gap: 6, overflowX: 'auto' }}>
-          <span style={{ fontSize: '0.72rem', color: '#9ca3af', display: 'flex', alignItems: 'center', marginRight: 2 }}>Сортировка:</span>
+          <span style={{ fontSize: '0.72rem', color: th.muted, display: 'flex', alignItems: 'center', marginRight: 2 }}>Сортировка:</span>
           {sortButtons.map(s => (
             <button
               key={s.key}
@@ -134,9 +146,9 @@ export default function FindContractors() {
               style={{
                 padding: '4px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600,
                 whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: 'inherit',
-                border: `1px solid ${sortType === s.key ? accent : '#e5e7eb'}`,
+                border: `1px solid ${sortType === s.key ? accent : th.border}`,
                 background: sortType === s.key ? `${accent}15` : 'transparent',
-                color: sortType === s.key ? accent : '#9ca3af',
+                color: sortType === s.key ? accent : th.muted,
                 transition: 'all 0.15s',
               }}
             >
@@ -150,33 +162,33 @@ export default function FindContractors() {
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '1rem' }}>
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 0' }}>
-            <div style={{ width: 32, height: 32, border: `3px solid #e5e7eb`, borderTop: `3px solid ${accent}`, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ width: 32, height: 32, border: `3px solid ${th.border}`, borderTop: `3px solid ${accent}`, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ background: '#fff', borderRadius: '1rem', border: '2px dashed #e5e7eb', padding: '3rem 1.5rem', textAlign: 'center' }}>
+          <div style={{ background: th.surface, borderRadius: '1rem', border: `2px dashed ${th.border}`, padding: '3rem 1.5rem', textAlign: 'center' }}>
             <div style={{ fontSize: '2rem', marginBottom: 8 }}>👷</div>
-            <div style={{ fontWeight: 600, color: '#111827', marginBottom: 4 }}>
+            <div style={{ fontWeight: 600, color: th.text, marginBottom: 4 }}>
               {filterType === 'my-district' ? 'Исполнителей в вашем районе пока нет' : 'Нет исполнителей'}
             </div>
-            <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
+            <div style={{ fontSize: '0.8rem', color: th.muted }}>
               {filterType !== 'all' ? 'Попробуйте убрать фильтр' : 'Исполнители появятся по мере регистрации'}
             </div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {filtered.map(c => {
-              const transport = TRANSPORT[c.transportMode] ?? '🚶';
-              const transportLabel = TRANSPORT_LABEL[c.transportMode] ?? c.transportMode;
-              const hasRating = c.avgRating !== null && c.ratingCount > 0;
-              const isTopRated = (c.avgRating ?? 0) >= 4.5;
-              const isMyDistrict = c.district === user?.district;
+            {filtered.map(con => {
+              const transport = TRANSPORT[con.transportMode] ?? '🚶';
+              const transportLabel = TRANSPORT_LABEL[con.transportMode] ?? con.transportMode;
+              const hasRating = con.avgRating !== null && con.ratingCount > 0;
+              const isTopRated = (con.avgRating ?? 0) >= 4.5;
+              const isMyDistrict = con.district === user?.district;
 
               return (
                 <div
-                  key={c.id}
+                  key={con.id}
                   style={{
-                    background: '#fff',
-                    border: `2px solid ${isMyDistrict ? accent + '40' : '#e5e7eb'}`,
+                    background: th.surface,
+                    border: `2px solid ${isMyDistrict ? accent + '40' : th.border}`,
                     borderRadius: '1rem',
                     padding: '1rem',
                     transition: 'border-color 0.15s',
@@ -190,15 +202,15 @@ export default function FindContractors() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '1rem', fontWeight: 700, color: accent,
                     }}>
-                      {getInitials(c.name)}
+                      {getInitials(con.name)}
                     </div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       {/* Name row */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}>{c.name}</span>
+                        <span style={{ fontWeight: 700, fontSize: '0.95rem', color: th.text }}>{con.name}</span>
                         {isTopRated && (
-                          <span style={{ background: '#fef3c7', color: '#b45309', fontSize: '0.68rem', padding: '1px 6px', borderRadius: 99, fontWeight: 700 }}>⭐ Топ</span>
+                          <span style={{ background: isDark ? '#451a03' : '#fef3c7', color: isDark ? '#fbbf24' : '#b45309', fontSize: '0.68rem', padding: '1px 6px', borderRadius: 99, fontWeight: 700 }}>⭐ Топ</span>
                         )}
                         {isMyDistrict && (
                           <span style={{ background: `${accent}15`, color: accent, fontSize: '0.68rem', padding: '1px 6px', borderRadius: 99, fontWeight: 700 }}>📍 Ваш район</span>
@@ -206,41 +218,41 @@ export default function FindContractors() {
                       </div>
 
                       {/* Rating + orders */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '0.8rem', color: '#6b7280', marginBottom: 6, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '0.8rem', color: th.muted, marginBottom: 6, flexWrap: 'wrap' }}>
                         {hasRating ? (
                           <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                             <Star style={{ width: 12, height: 12, color: '#f59e0b', fill: '#f59e0b' }} />
-                            <span style={{ fontWeight: 700, color: '#111827' }}>{c.avgRating?.toFixed(1)}</span>
-                            <span>({c.ratingCount})</span>
+                            <span style={{ fontWeight: 700, color: th.text }}>{con.avgRating?.toFixed(1)}</span>
+                            <span>({con.ratingCount})</span>
                           </span>
                         ) : (
-                          <span style={{ color: '#d1d5db' }}>Нет оценок</span>
+                          <span style={{ color: th.border2 }}>Нет оценок</span>
                         )}
                         <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                           <Package style={{ width: 12, height: 12 }} />
-                          {c.completedOrders} выполнено
+                          {con.completedOrders} выполнено
                         </span>
                       </div>
 
                       {/* District + transport */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', color: '#9ca3af', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', color: th.muted, flexWrap: 'wrap' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                           <MapPin style={{ width: 11, height: 11 }} />
-                          {c.district || 'Район не указан'}
+                          {con.district || 'Район не указан'}
                         </span>
                         <span>{transport} {transportLabel}</span>
-                        <span>{getRankLabel(c.level)}</span>
+                        <span>{getRankLabel(con.level)}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Action */}
                   <button
-                    onClick={() => navigate('/create-order', { state: { suggestedDistrict: c.district } })}
+                    onClick={() => navigate('/create-order', { state: { suggestedDistrict: con.district } })}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                       width: '100%', marginTop: '0.875rem', height: 40,
-                      background: '#111827', color: '#fff',
+                      background: accent, color: '#fff',
                       border: 'none', borderRadius: '0.625rem', cursor: 'pointer',
                       fontWeight: 600, fontSize: '0.85rem', fontFamily: 'inherit',
                     }}
@@ -255,9 +267,9 @@ export default function FindContractors() {
         )}
 
         {/* Info block */}
-        <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '0.875rem', padding: '1rem', marginTop: '1rem' }}>
-          <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0369a1', marginBottom: 6 }}>ℹ️ Как работает P2P-сервис</div>
-          <ul style={{ fontSize: '0.8rem', color: '#0c4a6e', lineHeight: 1.7, margin: 0, paddingLeft: '1rem' }}>
+        <div style={{ background: isDark ? '#1e3a4c' : '#f0f9ff', border: `1px solid ${isDark ? '#164e63' : '#bae6fd'}`, borderRadius: '0.875rem', padding: '1rem', marginTop: '1rem' }}>
+          <div style={{ fontWeight: 600, fontSize: '0.85rem', color: isDark ? '#7dd3fc' : '#0369a1', marginBottom: 6 }}>ℹ️ Как работает P2P-сервис</div>
+          <ul style={{ fontSize: '0.8rem', color: isDark ? '#bae6fd' : '#0c4a6e', lineHeight: 1.7, margin: 0, paddingLeft: '1rem' }}>
             <li>Создайте заявку с адресом и ценой</li>
             <li>Исполнитель из вашего района принимает её сам</li>
             <li>После выполнения подтвердите и оставьте оценку</li>

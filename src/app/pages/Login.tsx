@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { authApi } from '../../api/auth';
 import { useRoleStore } from '../../stores/role.store';
+import { useTheme } from '../context/ThemeContext';
 import { toast } from 'sonner';
 import { isNative } from '../../lib/platform';
 
@@ -21,11 +22,22 @@ function formatPhone(raw: string) {
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDark } = useTheme();
   const pendingRefRole = sessionStorage.getItem('pendingRefRole') as 'customer' | 'contractor' | null;
   const pendingRefCode = sessionStorage.getItem('pendingRefCode');
   const role = (location.state?.role || pendingRefRole || 'customer') as 'customer' | 'contractor';
   const { accentColor, setRole } = useRoleStore();
   const accent = accentColor;
+
+  const c = {
+    bg:      isDark ? '#111827' : '#f9fafb',
+    surface: isDark ? '#1e2433' : '#ffffff',
+    border:  isDark ? '#374151' : '#e5e7eb',
+    text:    isDark ? '#f9fafb' : '#111827',
+    muted:   isDark ? '#9ca3af' : '#6b7280',
+    subtle:  isDark ? '#1f2937' : '#f3f4f6',
+    input:   isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
+  };
 
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -120,11 +132,12 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: c.bg, fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="w-full max-w-md">
         <button
           onClick={() => (step === 'phone' || step === 'tg') ? setStep('email') : navigate('/')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8"
+          className="flex items-center gap-2 mb-8"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontFamily: 'inherit' }}
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Назад</span>
@@ -134,12 +147,12 @@ export default function Login() {
           <div className="flex items-center justify-center gap-3 mb-4">
             <img src="/icon-192.png" alt="TrashGo" style={{ width: 56, height: 56, borderRadius: '1rem', objectFit: 'cover', flexShrink: 0 }} />
             <div>
-              <div className="text-2xl font-semibold text-gray-900">TrashGo</div>
-              <div className="text-sm text-gray-600">Вынос мусора, Казань</div>
+              <div className="text-2xl font-semibold" style={{ color: c.text }}>TrashGo</div>
+              <div className="text-sm" style={{ color: c.muted }}>Вынос мусора, Казань</div>
             </div>
           </div>
-          <h1 className="text-2xl text-gray-900 mb-2">Вход или регистрация</h1>
-          <p className="text-gray-600 text-sm">
+          <h1 className="text-2xl mb-2" style={{ color: c.text }}>Вход или регистрация</h1>
+          <p className="text-sm" style={{ color: c.muted }}>
             {step === 'email'
               ? 'Код подтверждения придёт на почту'
               : step === 'tg'
@@ -155,7 +168,7 @@ export default function Login() {
               <div className="text-sm font-semibold" style={{ color: accent }}>
                 {pendingRefRole === 'contractor' ? 'Вас приглашают как исполнителя' : 'Вас пригласили в TrashGo'}
               </div>
-              <div className="text-xs mt-0.5 text-gray-600">
+              <div className="text-xs mt-0.5" style={{ color: c.muted }}>
                 {pendingRefRole === 'contractor'
                   ? 'Зарегистрируйтесь — выполняйте заказы и зарабатывайте рядом с домом'
                   : 'Зарегистрируйтесь и воспользуйтесь реферальной скидкой'}
@@ -165,14 +178,15 @@ export default function Login() {
         )}
 
         {step === 'email' ? (
-          <form onSubmit={handleEmailSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4 space-y-4">
+          <form onSubmit={handleEmailSubmit} className="rounded-2xl p-6 mb-4 space-y-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
             <div>
-              <label className="text-sm text-gray-600 mb-2 block">Email <span className="text-red-500">*</span></label>
+              <label className="text-sm mb-2 block" style={{ color: c.muted }}>Email <span style={{ color: '#ef4444' }}>*</span></label>
               <Input
                 type="email"
                 inputMode="email"
                 placeholder="your@email.com"
-                className="h-12 border-gray-200"
+                className="h-12"
+                style={{ background: c.input, color: c.text, borderColor: c.border }}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoFocus={!isNative()}
@@ -193,30 +207,31 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => { setPhone(''); setStep('tg'); }}
-                className="text-sm font-medium underline-offset-2 hover:underline"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2AABEE' }}
+                className="text-sm font-medium"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2AABEE', fontFamily: 'inherit' }}
               >
                 🔵 Войти по номеру телефона (Telegram)
               </button>
             </div>
           </form>
         ) : step === 'tg' ? (
-          <form onSubmit={handleTgSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4 space-y-4">
+          <form onSubmit={handleTgSubmit} className="rounded-2xl p-6 mb-4 space-y-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
             <div>
-              <label className="text-sm text-gray-600 mb-2 block">
-                Номер телефона <span className="text-red-500">*</span>
+              <label className="text-sm mb-2 block" style={{ color: c.muted }}>
+                Номер телефона <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <Input
                 type="tel"
                 inputMode="tel"
                 placeholder="+7 (___) ___-__-__"
-                className="h-12 border-gray-200 text-lg"
+                className="h-12 text-lg"
+                style={{ background: c.input, color: c.text, borderColor: c.border }}
                 value={phone ? formatPhone(phone) : ''}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                 autoFocus={!isNative()}
                 required
               />
-              <p className="text-xs text-gray-500 mt-1.5">
+              <p className="text-xs mt-1.5" style={{ color: c.muted }}>
                 Код придёт в Telegram-бот TrashGo
               </p>
             </div>
@@ -231,27 +246,28 @@ export default function Login() {
             </Button>
           </form>
         ) : (
-          <form onSubmit={handlePhoneSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 mb-4 space-y-4">
-            <div className="rounded-xl p-3 bg-gray-50 text-sm text-gray-600 flex items-center gap-2">
+          <form onSubmit={handlePhoneSubmit} className="rounded-2xl p-6 mb-4 space-y-4" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+            <div className="rounded-xl p-3 text-sm flex items-center gap-2" style={{ background: c.subtle, color: c.muted }}>
               <span>📧</span>
-              <span className="font-medium text-gray-900">{email}</span>
+              <span className="font-medium" style={{ color: c.text }}>{email}</span>
             </div>
 
             <div>
-              <label className="text-sm text-gray-600 mb-2 block">
-                Номер телефона <span className="text-red-500">*</span>
+              <label className="text-sm mb-2 block" style={{ color: c.muted }}>
+                Номер телефона <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <Input
                 type="tel"
                 inputMode="tel"
                 placeholder="+7 (___) ___-__-__"
-                className="h-12 border-gray-200 text-lg"
+                className="h-12 text-lg"
+                style={{ background: c.input, color: c.text, borderColor: c.border }}
                 value={phone ? formatPhone(phone) : ''}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                 autoFocus={!isNative()}
                 required
               />
-              <p className="text-xs text-gray-500 mt-1.5">
+              <p className="text-xs mt-1.5" style={{ color: c.muted }}>
                 Нужен заказчику / исполнителю для связи. Не передаётся третьим лицам.
               </p>
             </div>
@@ -267,9 +283,9 @@ export default function Login() {
           </form>
         )}
 
-        <p className="text-xs text-gray-500 text-center">
+        <p className="text-xs text-center" style={{ color: c.muted }}>
           Нажимая "Продолжить", вы принимаете{' '}
-          <a href="/privacy" className="underline">политику конфиденциальности</a>
+          <a href="/privacy" className="underline" style={{ color: c.muted }}>политику конфиденциальности</a>
         </p>
       </div>
     </div>
