@@ -26,6 +26,7 @@ export default function CreateSubscription() {
 
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [time, setTime] = useState('18:00');
+  const [interval, setInterval] = useState<'weekly' | 'biweekly' | 'monthly'>('weekly');
   const [address, setAddress] = useState('');
   const [entrance, setEntrance] = useState('');
   const [apartment, setApartment] = useState('');
@@ -52,7 +53,7 @@ export default function CreateSubscription() {
     background: c.input,
     color: c.text,
     fontFamily: 'inherit',
-    fontSize: '0.9375rem',
+    fontSize: '1rem',
     outline: 'none',
     boxSizing: 'border-box',
   };
@@ -83,6 +84,7 @@ export default function CreateSubscription() {
         address,
         days: selectedDays,
         time,
+        interval,
         price: Number(price),
         description: buildDescription(),
       });
@@ -215,6 +217,35 @@ export default function CreateSubscription() {
                 ))}
               </div>
             </div>
+            <div style={card}>
+              <p className="text-xs font-medium mb-3" style={{ color: c.muted }}>Периодичность</p>
+              <div className="flex flex-col gap-2">
+                {([
+                  { value: 'weekly', label: 'Еженедельно', sub: 'Каждую неделю' },
+                  { value: 'biweekly', label: 'Раз в 2 недели', sub: 'Через неделю' },
+                  { value: 'monthly', label: 'Ежемесячно', sub: 'Раз в месяц' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setInterval(opt.value)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '0.75rem',
+                      border: `1.5px solid ${interval === opt.value ? ACCENT : c.border}`,
+                      background: interval === opt.value ? `${ACCENT}18` : c.subtle,
+                      cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                    }}
+                  >
+                    <div>
+                      <div className="text-sm font-semibold" style={{ color: interval === opt.value ? ACCENT : c.text }}>{opt.label}</div>
+                      <div className="text-xs mt-0.5" style={{ color: c.muted }}>{opt.sub}</div>
+                    </div>
+                    {interval === opt.value && <Check className="w-4 h-4 flex-shrink-0" style={{ color: ACCENT }} />}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
@@ -340,6 +371,12 @@ export default function CreateSubscription() {
                   <span style={{ color: c.muted }}>Время:</span>
                   <span className="font-medium" style={{ color: c.text }}>{time}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span style={{ color: c.muted }}>Периодичность:</span>
+                  <span className="font-medium" style={{ color: c.text }}>
+                    {interval === 'weekly' ? 'Еженедельно' : interval === 'biweekly' ? 'Раз в 2 нед.' : 'Ежемесячно'}
+                  </span>
+                </div>
                 <div className="flex justify-between gap-3">
                   <span style={{ color: c.muted, flexShrink: 0 }}>Адрес:</span>
                   <span className="font-medium text-right" style={{ color: c.text }}>
@@ -351,14 +388,32 @@ export default function CreateSubscription() {
                   <span className="font-medium" style={{ color: c.text }}>{price}₽</span>
                 </div>
                 <div className="pt-2 mt-1 border-t" style={{ borderColor: `${ACCENT}30` }}>
-                  <div className="flex justify-between items-center">
-                    <span style={{ color: c.muted }}>В неделю:</span>
-                    <span className="text-lg font-bold" style={{ color: ACCENT }}>{selectedDays.length * Number(price)}₽</span>
-                  </div>
-                  <div className="flex justify-between items-center mt-1">
-                    <span style={{ color: c.muted }}>В месяц (~4 нед.):</span>
-                    <span className="font-semibold" style={{ color: c.textSub }}>{selectedDays.length * Number(price) * 4}₽</span>
-                  </div>
+                  {interval === 'weekly' && <>
+                    <div className="flex justify-between items-center">
+                      <span style={{ color: c.muted }}>В неделю:</span>
+                      <span className="text-lg font-bold" style={{ color: ACCENT }}>{selectedDays.length * Number(price)}₽</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-1">
+                      <span style={{ color: c.muted }}>В месяц (~4 нед.):</span>
+                      <span className="font-semibold" style={{ color: c.textSub }}>{selectedDays.length * Number(price) * 4}₽</span>
+                    </div>
+                  </>}
+                  {interval === 'biweekly' && <>
+                    <div className="flex justify-between items-center">
+                      <span style={{ color: c.muted }}>За 2 недели:</span>
+                      <span className="text-lg font-bold" style={{ color: ACCENT }}>{selectedDays.length * Number(price)}₽</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-1">
+                      <span style={{ color: c.muted }}>В месяц (~2 раза):</span>
+                      <span className="font-semibold" style={{ color: c.textSub }}>{selectedDays.length * Number(price) * 2}₽</span>
+                    </div>
+                  </>}
+                  {interval === 'monthly' && (
+                    <div className="flex justify-between items-center">
+                      <span style={{ color: c.muted }}>В месяц:</span>
+                      <span className="text-lg font-bold" style={{ color: ACCENT }}>{selectedDays.length * Number(price)}₽</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

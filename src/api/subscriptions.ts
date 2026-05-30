@@ -13,6 +13,7 @@ export interface Subscription {
   price: number;
   description: string;
   active: boolean;
+  interval: 'weekly' | 'biweekly' | 'monthly';
   createdAt: string;
 }
 
@@ -25,6 +26,7 @@ export interface CreateSubscriptionInput {
   price: number;
   description?: string;
   contractorId?: string | null;
+  interval?: 'weekly' | 'biweekly' | 'monthly';
 }
 
 export const subscriptionsApi = {
