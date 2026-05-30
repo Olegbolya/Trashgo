@@ -970,11 +970,16 @@ export default function CustomerDashboard() {
                       <SwipeableCancelCard key={order.id} canCancel={order.status === 'waiting'} cancelling={cancelingId === order.id} onCancel={async () => {
                         hapticTap();
                         setCancelingId(order.id);
-                        try { await ordersApi.updateStatus(order.id, 'cancelled'); } catch {}
-                        setMyOrders(prev => prev.filter(o => o.id !== order.id));
-                        setCancelingId(null);
-                        hapticSuccess();
-                        toast.success('Заказ отменён');
+                        try {
+                          await ordersApi.updateStatus(order.id, 'cancelled');
+                          setMyOrders(prev => prev.filter(o => o.id !== order.id));
+                          hapticSuccess();
+                          toast.success('Заказ отменён');
+                        } catch (err: any) {
+                          toast.error(err?.message || 'Не удалось отменить заказ');
+                        } finally {
+                          setCancelingId(null);
+                        }
                       }}>
                       <div style={{ ...card2, borderColor: c.border, cursor: 'pointer' }} onClick={() => setSelectedOrder(order)}>
                         <div className="flex items-start justify-between mb-2">
@@ -2107,8 +2112,14 @@ export default function CustomerDashboard() {
                         onClick={async () => {
                           if (originalOrder) {
                             setCancelingId(originalOrder.id);
-                            try { await ordersApi.updateStatus(originalOrder.id, 'cancelled'); } catch {}
-                            setMyOrders((prev) => prev.filter((o) => o.id !== originalOrder.id));
+                            try {
+                              await ordersApi.updateStatus(originalOrder.id, 'cancelled');
+                              setMyOrders((prev) => prev.filter((o) => o.id !== originalOrder.id));
+                            } catch (err: any) {
+                              toast.error(err?.message || 'Не удалось отменить заказ');
+                              setCancelingId(null);
+                              return;
+                            }
                             setCancelingId(null);
                           }
                           setCreateErrors({});
@@ -2591,12 +2602,17 @@ export default function CustomerDashboard() {
                         onClick={async () => {
                           hapticTap();
                           setCancelingId(selectedOrder.id);
-                          try { await ordersApi.updateStatus(selectedOrder.id, 'cancelled'); } catch {}
-                          setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
-                          setSelectedOrder(null);
-                          setCancelingId(null);
-                          hapticSuccess();
-                          toast.success('Заказ отменён');
+                          try {
+                            await ordersApi.updateStatus(selectedOrder.id, 'cancelled');
+                            setMyOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
+                            setSelectedOrder(null);
+                            hapticSuccess();
+                            toast.success('Заказ отменён');
+                          } catch (err: any) {
+                            toast.error(err?.message || 'Не удалось отменить заказ');
+                          } finally {
+                            setCancelingId(null);
+                          }
                         }}
                       >
                         {cancelingId === selectedOrder.id ? '⏳ Отмена...' : 'Отменить заказ'}
