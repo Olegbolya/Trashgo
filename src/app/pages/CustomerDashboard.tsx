@@ -2514,16 +2514,16 @@ export default function CustomerDashboard() {
                 </>
               ) : selectedOrder.status === 'payment' ? (
                 <>
-                  <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: '0.875rem', padding: '0.875rem 1rem', marginBottom: '0.5rem' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#166534', marginBottom: '0.25rem' }}>💳 Ожидание подтверждения оплаты</div>
-                    <div style={{ fontSize: '0.8rem', color: '#15803d' }}>
+                  <div style={{ background: isDark ? 'rgba(34,197,94,0.12)' : '#dcfce7', border: `1px solid ${isDark ? 'rgba(34,197,94,0.3)' : '#86efac'}`, borderRadius: '0.875rem', padding: '0.875rem 1rem', marginBottom: '0.5rem' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.875rem', color: isDark ? '#86efac' : '#166534', marginBottom: '0.25rem' }}>💳 Ожидание подтверждения оплаты</div>
+                    <div style={{ fontSize: '0.8rem', color: isDark ? '#4ade80' : '#15803d' }}>
                       Исполнитель получит уведомление и подтвердит получение {selectedOrder.price}₽ по СБП.
                       После этого заказ завершится.
                     </div>
                   </div>
                   <button
                     className="w-full py-2.5 rounded-xl text-sm font-medium"
-                    style={{ border: '1px solid #86efac', background: '#f0fdf4', color: '#166534', cursor: 'pointer', fontFamily: 'inherit' }}
+                    style={{ border: `1px solid ${isDark ? 'rgba(34,197,94,0.3)' : '#86efac'}`, background: isDark ? 'rgba(34,197,94,0.1)' : '#f0fdf4', color: isDark ? '#86efac' : '#166534', cursor: 'pointer', fontFamily: 'inherit' }}
                     onClick={() => setSbpModal({
                       orderId: selectedOrder.id,
                       phone: orderContact?.contractorPhone || '',
