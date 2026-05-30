@@ -27,6 +27,7 @@ import { pickPhotosNative } from '../../hooks/useNativeCamera';
 import { useNativeBackClose } from '../../hooks/useNativeBackClose';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { ChatScreen } from '../components/ChatScreen';
+import { OrdersMapAll } from '../components/OrdersMapAll';
 import { API_BASE_URL } from '../../api/client';
 
 const ACCENT = '#2196F3';
@@ -218,6 +219,7 @@ export default function ContractorDashboard() {
   const [showMap, setShowMap] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [findViewMode, setFindViewMode] = useState<'list' | 'map'>('list');
 
   // Persistent filters — survive page close / week-long absence
   const _lsFilters = (() => { try { return JSON.parse(localStorage.getItem('cdb_find_filters') ?? 'null') ?? {}; } catch { return {}; } })();
@@ -1850,13 +1852,26 @@ export default function ContractorDashboard() {
             <div className="max-w-2xl mx-auto space-y-3">
               <div className="flex items-center justify-between">
                 <h1 className="text-xl font-semibold" style={{ color: c.text }}>Заказы рядом</h1>
-                <button
-                  onClick={() => setShowFilters(v => !v)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
-                  style={{ background: hasActiveFilters ? `${ACCENT}18` : c.subtle, color: hasActiveFilters ? ACCENT : c.textSub, border: `1px solid ${hasActiveFilters ? ACCENT + '40' : c.border}`, cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  <span>⚙</span> Фильтры{hasActiveFilters ? ' ●' : ''}
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* List / Map toggle */}
+                  <div style={{ display: 'flex', borderRadius: '0.5rem', border: `1px solid ${c.border}`, overflow: 'hidden' }}>
+                    <button
+                      onClick={() => setFindViewMode('list')}
+                      style={{ padding: '0.375rem 0.625rem', background: findViewMode === 'list' ? `${ACCENT}18` : c.subtle, color: findViewMode === 'list' ? ACCENT : c.textSub, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 600 }}
+                    >☰ Список</button>
+                    <button
+                      onClick={() => setFindViewMode('map')}
+                      style={{ padding: '0.375rem 0.625rem', background: findViewMode === 'map' ? `${ACCENT}18` : c.subtle, color: findViewMode === 'map' ? ACCENT : c.textSub, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 600, borderLeft: `1px solid ${c.border}` }}
+                    >🗺 Карта</button>
+                  </div>
+                  <button
+                    onClick={() => setShowFilters(v => !v)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+                    style={{ background: hasActiveFilters ? `${ACCENT}18` : c.subtle, color: hasActiveFilters ? ACCENT : c.textSub, border: `1px solid ${hasActiveFilters ? ACCENT + '40' : c.border}`, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    <span>⚙</span>{hasActiveFilters ? ' ●' : ''}
+                  </button>
+                </div>
               </div>
 
               {showFilters && (
@@ -1959,7 +1974,21 @@ export default function ContractorDashboard() {
                 </div>
               )}
 
-              {ordersLoading ? (
+              {findViewMode === 'map' ? (
+                <div style={{ height: 'calc(100vh - 260px)', minHeight: 400 }}>
+                  <OrdersMapAll
+                    orders={visibleOrders}
+                    orderCoords={orderCoords}
+                    ordersLoading={ordersLoading}
+                    isDark={isDark}
+                    accentColor={ACCENT}
+                    onOrderClick={(orderId) => {
+                      const order = availableOrders.find(o => o.id === orderId);
+                      if (order) setSelectedOrder(order);
+                    }}
+                  />
+                </div>
+              ) : ordersLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map(i => (
                     <div key={i} style={{ ...card, padding: '1rem' }}>
@@ -2065,6 +2094,11 @@ export default function ContractorDashboard() {
                                 )}
                                 {(order.photoUrls?.length ?? 0) > 0 && (
                                   <span className="text-xs" style={{ color: c.muted }}>📷 {order.photoUrls.length}</span>
+                                )}
+                                {((order as any).customerCancelCount ?? 0) >= 3 && (
+                                  <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}>
+                                    ⚠️ {(order as any).customerCancelCount} отмен
+                                  </span>
                                 )}
                               </div>
                             </div>
