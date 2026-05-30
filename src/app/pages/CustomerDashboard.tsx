@@ -37,7 +37,7 @@ import { ChatScreen } from '../components/ChatScreen';
 const ACCENT = '#66BB6A';
 const DAY_LABELS: Record<number, string> = { 1: 'ПН', 2: 'ВТ', 3: 'СР', 4: 'ЧТ', 5: 'ПТ', 6: 'СБ', 7: 'ВС' };
 
-function SwipeableCancelCard({ children, onCancel, cancelling }: { children: React.ReactNode; onCancel: () => void; cancelling: boolean }) {
+function SwipeableCancelCard({ children, onCancel, cancelling, canCancel = true }: { children: React.ReactNode; onCancel: () => void; cancelling: boolean; canCancel?: boolean }) {
   const [dx, setDx] = useState(0);
   const startX = useRef(0);
   const startY = useRef(0);
@@ -54,7 +54,7 @@ function SwipeableCancelCard({ children, onCancel, cancelling }: { children: Rea
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    if (scrollBlocked.current || cancelling) return;
+    if (scrollBlocked.current || cancelling || !canCancel) return;
     const rawX = e.touches[0].clientX - startX.current;
     const rawY = e.touches[0].clientY - startY.current;
     if (!committed.current) {
@@ -967,8 +967,7 @@ export default function CustomerDashboard() {
                 ) : (
                   <div className="space-y-3">
                     {activeOrders.map((order) => (
-                      <SwipeableCancelCard key={order.id} cancelling={cancelingId === order.id} onCancel={async () => {
-                        if (order.status !== 'waiting') return;
+                      <SwipeableCancelCard key={order.id} canCancel={order.status === 'waiting'} cancelling={cancelingId === order.id} onCancel={async () => {
                         hapticTap();
                         setCancelingId(order.id);
                         try { await ordersApi.updateStatus(order.id, 'cancelled'); } catch {}

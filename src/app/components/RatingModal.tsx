@@ -91,7 +91,7 @@ export function RatingModal({ orderId, targetName, role, isDark, onSubmit, onSki
               style={{
                 width: '100%', padding: '0.625rem 0.75rem',
                 border: `1px solid ${c.border}`, borderRadius: '0.75rem',
-                background: c.subtle, color: c.text, fontSize: '0.875rem',
+                background: c.subtle, color: c.text, fontSize: '1rem',
                 fontFamily: 'inherit', resize: 'none', outline: 'none',
                 marginBottom: '1rem', boxSizing: 'border-box',
               }}
