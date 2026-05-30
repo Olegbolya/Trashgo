@@ -11,6 +11,9 @@ interface Stats {
   disputes: number;
   paymentDisputes: number;
   recentOrders: number;
+  activeSubscribers?: number;
+  trialUsers?: number;
+  subscriptionRevenue?: number;
 }
 
 interface FrozenUser {
@@ -443,10 +446,13 @@ export default function Admin() {
               <StatCard label="Пользователей" value={stats.users} />
               <StatCard label="Заморожено" value={stats.frozenUsers} accent={stats.frozenUsers > 0 ? '#f97316' : undefined} />
               <StatCard label="Всего заказов" value={totalOrders} />
-              <StatCard label="Выручка (₽)" value={`${stats.revenue.toLocaleString('ru-RU')}₽`} accent="#4ade80" />
+              <StatCard label="Выручка заказы" value={`${stats.revenue.toLocaleString('ru-RU')}₽`} accent="#4ade80" />
               <StatCard label="Споры" value={stats.disputes} accent={stats.disputes > 0 ? '#facc15' : undefined} />
               <StatCard label="Платёж. споры" value={stats.paymentDisputes} accent={stats.paymentDisputes > 0 ? '#f87171' : undefined} />
               <StatCard label="За 7 дней" value={stats.recentOrders} />
+              {stats.activeSubscribers !== undefined && <StatCard label="Активных абонем." value={stats.activeSubscribers} accent="#22c55e" />}
+              {stats.trialUsers !== undefined && <StatCard label="На пробном пер." value={stats.trialUsers} accent="#f59e0b" />}
+              {stats.subscriptionRevenue !== undefined && <StatCard label="Абонем. (месяц)" value={`${stats.subscriptionRevenue}₽`} accent="#60a5fa" />}
             </div>
 
             <div style={{ background: surface, borderRadius: '0.875rem', padding: '1.25rem', border: `1px solid ${border}` }}>
@@ -535,6 +541,9 @@ export default function Admin() {
                         {u.frozen && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#f9731620', color: '#f97316' }}>🔒 Заморожен</span>}
                         {u.role === 'contractor' && !u.isVerified && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#fbbf2420', color: '#f59e0b' }}>⏳ Не верифицирован</span>}
                         {u.role === 'contractor' && u.isVerified && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#22c55e20', color: '#22c55e' }}>✓ Верифицирован</span>}
+                        {(u as any).subscriptionStatus === 'trial' && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#fbbf2415', color: '#f59e0b' }}>🟡 Пробный</span>}
+                        {(u as any).subscriptionStatus === 'active' && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#22c55e15', color: '#22c55e' }}>🟢 Активен</span>}
+                        {(u as any).subscriptionStatus === 'expired' && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', background: '#ef444415', color: '#ef4444' }}>🔴 Истёк</span>}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: muted }}>XP: {u.xp} · Баланс: {u.balance}₽ · {fmt(u.createdAt)} · ID: {u.id.slice(-8)}</div>
                       {u.frozen && u.freezeReason && <div style={{ fontSize: '0.75rem', color: '#f97316', marginTop: '0.25rem' }}>Причина: {u.freezeReason}</div>}
