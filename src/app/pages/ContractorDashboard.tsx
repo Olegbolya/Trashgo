@@ -1444,7 +1444,12 @@ export default function ContractorDashboard() {
                           </div>
                         </div>
                         <div className="min-w-0">
-                          <h1 className="text-lg font-semibold truncate" style={{ color: c.text }}>{user?.name || '—'}</h1>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h1 className="text-lg font-semibold truncate" style={{ color: c.text }}>{user?.name || '—'}</h1>
+                            {user?.isVerified && (
+                              <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '0.375rem', background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)', flexShrink: 0 }}>✓ Проверен</span>
+                            )}
+                          </div>
                           <div className="text-xs font-medium" style={{ color: ACCENT }}>{statusLabel}</div>
                           <div className="text-sm mt-0.5" style={{ color: c.muted }}>{user?.phone || '—'}</div>
                         </div>
@@ -1850,6 +1855,15 @@ export default function ContractorDashboard() {
             });
             return (
             <div className="max-w-2xl mx-auto space-y-3">
+              {user?.isVerified === false && (
+                <div style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', background: isDark ? 'rgba(245,158,11,0.12)' : '#FEF3C7', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'flex-start', gap: '0.625rem' }}>
+                  <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>⏳</span>
+                  <div>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: isDark ? '#FCD34D' : '#92400E', marginBottom: '0.125rem' }}>Аккаунт на проверке</div>
+                    <div style={{ fontSize: '0.8rem', color: isDark ? '#FDE68A' : '#92400E', lineHeight: 1.5 }}>После верификации администратором вы получите статус «✓ Проверен» и сможете принимать заказы.</div>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <h1 className="text-xl font-semibold" style={{ color: c.text }}>Заказы рядом</h1>
                 <div className="flex items-center gap-2">

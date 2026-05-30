@@ -24,6 +24,7 @@ export interface User {
   innVerified: boolean;
   frozen: boolean;
   freezeReason: string | null;
+  isVerified?: boolean;
   createdAt: string;
   subscriptionStatus?: 'trial' | 'active' | 'expired';
   subscriptionExpiresAt?: string | null;
