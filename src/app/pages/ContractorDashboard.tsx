@@ -2054,10 +2054,15 @@ export default function ContractorDashboard() {
                                   ><Copy className="w-3 h-3" /></button>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: `${ACCENT}18`, border: `1px solid ${ACCENT}20`, color: ACCENT }}>
                                   <Package className="w-3 h-3" />{order.volume} мешк.
                                 </span>
+                                {(order as any).wasteType && (order as any).wasteType !== 'household' && (
+                                  <span className="text-xs font-medium" style={{ color: c.muted }}>
+                                    {(order as any).wasteType === 'construction' ? '🧱 Строит.' : '🛋️ Крупногаб.'}
+                                  </span>
+                                )}
                                 {(order.photoUrls?.length ?? 0) > 0 && (
                                   <span className="text-xs" style={{ color: c.muted }}>📷 {order.photoUrls.length}</span>
                                 )}
