@@ -1082,13 +1082,13 @@ export default function ContractorDashboard() {
                                   </div>
                                 )}
                                 {job.status === 'pending_confirmation' && (
-                                  <div className="w-full h-8 rounded-lg flex items-center justify-center text-xs font-semibold" style={{ background: '#FFF3CD', color: '#856404', border: '1px solid #ffc107' }}>
+                                  <div className="w-full h-8 rounded-lg flex items-center justify-center text-xs font-semibold" style={{ background: isDark ? 'rgba(251,191,36,0.15)' : '#FFF3CD', color: isDark ? '#FCD34D' : '#856404', border: `1px solid ${isDark ? 'rgba(251,191,36,0.3)' : '#ffc107'}` }}>
                                     ⏳ Ждёт подтверждения заказчика
                                   </div>
                                 )}
                                 {job.status === 'pending_payment' && (
                                   <div className="space-y-2">
-                                    <div className="w-full rounded-lg px-3 py-2 text-xs" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #86efac' }}>
+                                    <div className="w-full rounded-lg px-3 py-2 text-xs" style={{ background: isDark ? 'rgba(34,197,94,0.15)' : '#dcfce7', color: isDark ? '#86efac' : '#166534', border: `1px solid ${isDark ? 'rgba(34,197,94,0.3)' : '#86efac'}` }}>
                                       💳 Заказчик подтвердил работу — ожидайте перевод <strong>{job.price}₽</strong> по СБП
                                     </div>
                                     <button
