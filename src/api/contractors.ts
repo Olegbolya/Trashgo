@@ -8,6 +8,7 @@ export interface Contractor {
   transportMode: string;
   level: number;
   xp: number;
+  isVerified: boolean;
   completedOrders: number;
   avgRating: number | null;
   ratingCount: number;

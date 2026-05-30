@@ -235,6 +235,9 @@ export default function FindContractors() {
                       {/* Name row */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 700, fontSize: '0.95rem', color: th.text }}>{con.name}</span>
+                        {con.isVerified && (
+                          <span style={{ background: isDark ? 'rgba(34,197,94,0.15)' : '#dcfce7', color: '#22c55e', fontSize: '0.68rem', padding: '1px 6px', borderRadius: 99, fontWeight: 700 }}>✓ Проверен</span>
+                        )}
                         {isTopRated && (
                           <span style={{ background: isDark ? '#451a03' : '#fef3c7', color: isDark ? '#fbbf24' : '#b45309', fontSize: '0.68rem', padding: '1px 6px', borderRadius: 99, fontWeight: 700 }}>⭐ Топ</span>
                         )}
