@@ -1000,11 +1000,11 @@ export default function CustomerDashboard() {
                                 <span>Ждёт исполнителя</span>
                               </div>
                             ) : order.status === 'pending' ? (
-                              <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#FBBF2418', color: '#92400e', border: '1px solid #fbbf2450' }}>
+                              <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: isDark ? 'rgba(251,191,36,0.15)' : '#FBBF2418', color: isDark ? '#FCD34D' : '#92400e', border: `1px solid ${isDark ? 'rgba(251,191,36,0.3)' : '#fbbf2450'}` }}>
                                 <span>⏳ Ждёт подтверждения</span>
                               </div>
                             ) : order.status === 'payment' ? (
-                              <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #86efac' }}>
+                              <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: isDark ? 'rgba(34,197,94,0.15)' : '#dcfce7', color: isDark ? '#86efac' : '#166534', border: `1px solid ${isDark ? 'rgba(34,197,94,0.3)' : '#86efac'}` }}>
                                 <span>💳 Ожидание оплаты СБП</span>
                               </div>
                             ) : order.status === 'en_route' ? (
@@ -2238,8 +2238,8 @@ export default function CustomerDashboard() {
             <div className="flex items-start justify-between gap-2 mb-4 flex-wrap">
               <h2 className="text-base font-bold" style={{ color: c.text }}>Заказ #{selectedOrder.id.slice(-6)}</h2>
               <span className="text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap" style={{
-                background: selectedOrder.status === 'waiting' ? '#F97316' + '18' : selectedOrder.status === 'pending' ? '#FBBF2420' : selectedOrder.status === 'payment' ? '#dcfce7' : selectedOrder.status === 'en_route' ? '#F9731618' : `${ACCENT}18`,
-                color: selectedOrder.status === 'waiting' ? '#F97316' : selectedOrder.status === 'pending' ? '#92400e' : selectedOrder.status === 'payment' ? '#166534' : selectedOrder.status === 'en_route' ? '#F97316' : ACCENT,
+                background: selectedOrder.status === 'waiting' ? '#F9731618' : selectedOrder.status === 'pending' ? (isDark ? 'rgba(251,191,36,0.15)' : '#FBBF2420') : selectedOrder.status === 'payment' ? (isDark ? 'rgba(34,197,94,0.15)' : '#dcfce7') : selectedOrder.status === 'en_route' ? '#F9731618' : `${ACCENT}18`,
+                color: selectedOrder.status === 'waiting' ? '#F97316' : selectedOrder.status === 'pending' ? (isDark ? '#FCD34D' : '#92400e') : selectedOrder.status === 'payment' ? (isDark ? '#86efac' : '#166534') : selectedOrder.status === 'en_route' ? '#F97316' : ACCENT,
               }}>
                 {selectedOrder.status === 'waiting' ? `${selectedOrder.responses} откл.` : selectedOrder.status === 'pending' ? '⏳ Подтверждение' : selectedOrder.status === 'payment' ? '💳 Ожидание оплаты' : selectedOrder.status === 'en_route' ? '🚗 Едет к вам' : 'Принят'}
               </span>
@@ -2400,8 +2400,8 @@ export default function CustomerDashboard() {
 
               {/* Фото выполнения (от исполнителя) */}
               {selectedOrder.status === 'pending' && selectedOrder.completionPhotoUrls.length > 0 && (
-                <div style={{ padding: '0.875rem', borderRadius: '0.75rem', background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-                  <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#92400e' }}>📷 Фото выполнения от исполнителя</div>
+                <div style={{ padding: '0.875rem', borderRadius: '0.75rem', background: isDark ? 'rgba(245,158,11,0.1)' : '#FFFBEB', border: `1px solid ${isDark ? 'rgba(245,158,11,0.3)' : '#FDE68A'}` }}>
+                  <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: isDark ? '#FCD34D' : '#92400e' }}>📷 Фото выполнения от исполнителя</div>
                   <div className="flex gap-2 flex-wrap mb-2">
                     {selectedOrder.completionPhotoUrls.map((url, i) => (
                       <button
@@ -2409,11 +2409,11 @@ export default function CustomerDashboard() {
                         onClick={() => setLightboxUrl(url)}
                         style={{ position: 'relative', flexShrink: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                       >
-                        <img src={url} alt="" style={{ width: '5rem', height: '5rem', objectFit: 'cover', borderRadius: '0.625rem', border: '2px solid #FDE68A', display: 'block' }} />
+                        <img src={url} alt="" style={{ width: '5rem', height: '5rem', objectFit: 'cover', borderRadius: '0.625rem', border: `2px solid ${isDark ? 'rgba(245,158,11,0.4)' : '#FDE68A'}`, display: 'block' }} />
                       </button>
                     ))}
                   </div>
-                  <div className="text-xs" style={{ color: '#92400e' }}>Исполнитель выбросил мусор и ждёт вашего подтверждения</div>
+                  <div className="text-xs" style={{ color: isDark ? '#FDE68A' : '#92400e' }}>Исполнитель выбросил мусор и ждёт вашего подтверждения</div>
                 </div>
               )}
 
@@ -2992,7 +2992,7 @@ export default function CustomerDashboard() {
                 </div>
               </div>
             ) : (
-              <div style={{ background: '#fefce8', border: '1px solid #fde68a', borderRadius: '1rem', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.8rem', color: '#92400e' }}>
+              <div style={{ background: isDark ? 'rgba(245,158,11,0.1)' : '#fefce8', border: `1px solid ${isDark ? 'rgba(245,158,11,0.3)' : '#fde68a'}`, borderRadius: '1rem', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.8rem', color: isDark ? '#FCD34D' : '#92400e' }}>
                 Контакт исполнителя загружается…
               </div>
             )}
