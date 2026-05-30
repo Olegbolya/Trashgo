@@ -1120,6 +1120,11 @@ export default function CustomerDashboard() {
                               </span>
                             ))}
                             {sub.time && <span className="text-xs px-1.5 py-0.5 rounded-md" style={{ background: c.subtle, color: c.muted }}><Clock className="w-3 h-3 inline mr-0.5" />{sub.time}</span>}
+                            {(sub as any).interval && (sub as any).interval !== 'weekly' && (
+                              <span className="text-xs px-1.5 py-0.5 rounded-md" style={{ background: c.subtle, color: c.muted }}>
+                                {(sub as any).interval === 'biweekly' ? 'Раз в 2 нед.' : 'Ежемесячно'}
+                              </span>
+                            )}
                           </div>
                           <div className="text-base font-bold" style={{ color: c.text }}>{sub.price}₽</div>
                           {sub.contractorName && <div className="text-xs mt-1" style={{ color: c.muted }}>👤 {sub.contractorName}</div>}
