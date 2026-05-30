@@ -738,16 +738,6 @@ export default function ContractorDashboard() {
           {/* FROZEN BANNER */}
           {user?.frozen && <FrozenBanner reason={user.freezeReason ?? null} isDark={isDark} />}
 
-          {/* VERIFICATION PENDING BANNER */}
-          {!(user as any)?.isVerified && !user?.frozen && (
-            <div style={{ background: '#fbbf2415', border: '1px solid #fbbf2450', borderRadius: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ fontSize: '1.25rem' }}>⏳</span>
-              <div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: isDark ? '#fde68a' : '#92400e' }}>Аккаунт на проверке</div>
-                <div style={{ fontSize: '0.75rem', color: isDark ? '#fcd34d' : '#b45309', marginTop: '0.125rem' }}>Заказы станут доступны после верификации администратором</div>
-              </div>
-            </div>
-          )}
 
           {/* TRIAL EXPIRY WARNING (≤7 days) */}
           {(() => {
@@ -1481,14 +1471,14 @@ export default function ContractorDashboard() {
               {(!user?.ratingCount || user.ratingCount === 0) && (() => {
                 const steps = [
                   { done: !!(user?.name && user.name.trim()), label: 'Заполни профиль', action: () => { setEditProfileForm({ name: user?.name || '', district: user?.district || '', inn: user?.inn || '', email: user?.email || '', sbpBank: (user as any)?.sbpBank || '' }); setEditProfileOpen(true); } },
-                  { done: !!(user as any)?.telegramLinked, label: 'Привяжи Telegram', action: () => navigate('/notifications') },
-                  { done: !!(user?.isAvailable ?? true), label: 'Включи доступность', action: undefined },
+                  { done: !!(user as any)?.telegramLinked, label: 'Привяжи Telegram для уведомлений', action: () => navigate('/notifications') },
                 ];
                 const allDone = steps.every(s => s.done);
                 if (allDone) return null;
                 return (
                   <div style={{ ...card, borderColor: `${ACCENT}30` }}>
-                    <div className="text-sm font-semibold mb-3" style={{ color: c.text }}>🚀 Начало работы</div>
+                    <div className="text-sm font-semibold mb-1" style={{ color: c.text }}>💡 Рекомендации</div>
+                    <div className="text-xs mb-3" style={{ color: c.muted }}>Заказы уже доступны — эти шаги необязательны</div>
                     <div className="space-y-2">
                       {steps.map((step, i) => (
                         <div key={i} className="flex items-center gap-3">
