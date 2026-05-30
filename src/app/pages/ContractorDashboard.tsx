@@ -27,7 +27,6 @@ import { pickPhotosNative } from '../../hooks/useNativeCamera';
 import { useNativeBackClose } from '../../hooks/useNativeBackClose';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { ChatScreen } from '../components/ChatScreen';
-import { OrdersMapAll } from '../components/OrdersMapAll';
 import { API_BASE_URL } from '../../api/client';
 
 const ACCENT = '#2196F3';
@@ -122,7 +121,7 @@ export default function ContractorDashboard() {
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuthStore();
   const { addNotification } = useNotificationsStore();
-  const VALID_TABS = ['active', 'home', 'find', 'map', 'history', 'profile'] as const;
+  const VALID_TABS = ['active', 'home', 'find', 'history', 'profile'] as const;
   type TabType = typeof VALID_TABS[number];
   const activeTab: TabType = (VALID_TABS.includes(searchParams.get('tab') as TabType) ? searchParams.get('tab') : 'active') as TabType;
   const setActiveTab = (tab: TabType) => setSearchParams({ tab });
@@ -282,10 +281,10 @@ export default function ContractorDashboard() {
     return () => clearInterval(interval);
   }, [activeTab]);
 
-  // Map tab: load available orders and geocode them; refresh every 15s
+  // Find tab: geocode available orders for distance filter/sort
   const geocodingRef = useRef(new Set<string>());
   useEffect(() => {
-    if (activeTab !== 'map') return;
+    if (activeTab !== 'find') return;
     let cancelled = false;
 
     const geocodeOrder = async (order: Order) => {
@@ -1146,23 +1145,6 @@ export default function ContractorDashboard() {
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* MAP TAB */}
-          {activeTab === 'map' && user?.subscriptionStatus !== 'expired' && (
-            <div style={{ height: 'calc(100vh - 8rem)', position: 'relative' }}>
-              <OrdersMapAll
-                orders={availableOrders.map(o => ({ id: o.id, address: o.address, price: o.price, district: o.district, status: o.status }))}
-                orderCoords={orderCoords}
-                ordersLoading={ordersLoading}
-                isDark={isDark}
-                accentColor={ACCENT}
-                onOrderClick={(orderId) => {
-                  const order = availableOrders.find(o => o.id === orderId);
-                  if (order) setSelectedOrder(order);
-                }}
-              />
             </div>
           )}
 
@@ -2228,10 +2210,6 @@ export default function ContractorDashboard() {
             <button onClick={() => setActiveTab('find')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'find' ? ACCENT : c.muted }}>
               <Search className="w-6 h-6" />
               <span className="text-xs">Найти</span>
-            </button>
-            <button onClick={() => setActiveTab('map')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'map' ? ACCENT : c.muted }}>
-              <MapPin className="w-6 h-6" />
-              <span className="text-xs">Карта</span>
             </button>
             <button onClick={() => setActiveTab('history')} className="flex flex-col items-center gap-1" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: activeTab === 'history' ? ACCENT : c.muted }}>
               <Calendar className="w-6 h-6" />

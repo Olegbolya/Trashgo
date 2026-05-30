@@ -152,6 +152,7 @@ export default function Admin() {
   const [supportFilter, setSupportFilter] = useState<'open' | 'escalated' | 'all'>('open');
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
   const [sendingReply, setSendingReply] = useState<string | null>(null);
+  const [extendingSubscription, setExtendingSubscription] = useState<string | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const apiFetch = useCallback(async (path: string, opts?: RequestInit) => {
@@ -360,6 +361,15 @@ export default function Admin() {
   const handleSupportFilterChange = (f: 'open' | 'escalated' | 'all') => {
     setSupportFilter(f);
     loadSupport(f);
+  };
+
+  const handleExtendSubscription = async (userId: string) => {
+    setExtendingSubscription(userId);
+    try {
+      await apiFetch(`/admin/users/${userId}/extend-subscription`, { method: 'POST' });
+      setUserResults(prev => prev.map(u => u.id === userId ? { ...u, subscriptionStatus: 'active' } as any : u));
+    } catch (e: any) { setError(e.message); }
+    finally { setExtendingSubscription(null); }
   };
 
   const bg = '#0f172a';
@@ -571,6 +581,11 @@ export default function Admin() {
                       {u.role === 'contractor' && !u.isVerified && (
                         <button disabled={verifying === u.id} onClick={() => handleVerify(u.id)} style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#22c55e15', border: '1px solid #22c55e40', color: '#22c55e', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}>
                           {verifying === u.id ? '...' : '✓ Верифицировать'}
+                        </button>
+                      )}
+                      {u.role === 'contractor' && (
+                        <button disabled={extendingSubscription === u.id} onClick={() => handleExtendSubscription(u.id)} style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#a855f715', border: '1px solid #a855f740', color: '#a855f7', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}>
+                          {extendingSubscription === u.id ? '...' : '🔄 +30 дней'}
                         </button>
                       )}
                       <button onClick={() => setDeleteModal({ userId: u.id, name: u.name || u.phone })} style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#ef444415', border: '1px solid #ef444440', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}>
