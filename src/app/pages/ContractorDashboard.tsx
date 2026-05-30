@@ -1477,6 +1477,37 @@ export default function ContractorDashboard() {
                 );
               })()}
 
+              {/* Onboarding checklist — only for new contractors with no ratings */}
+              {(!user?.ratingCount || user.ratingCount === 0) && (() => {
+                const steps = [
+                  { done: !!(user?.name && user.name.trim()), label: 'Заполни профиль', action: () => { setEditProfileForm({ name: user?.name || '', district: user?.district || '', inn: user?.inn || '', email: user?.email || '', sbpBank: (user as any)?.sbpBank || '' }); setEditProfileOpen(true); } },
+                  { done: !!(user as any)?.telegramLinked, label: 'Привяжи Telegram', action: () => navigate('/notifications') },
+                  { done: !!(user?.isAvailable ?? true), label: 'Включи доступность', action: undefined },
+                ];
+                const allDone = steps.every(s => s.done);
+                if (allDone) return null;
+                return (
+                  <div style={{ ...card, borderColor: `${ACCENT}30` }}>
+                    <div className="text-sm font-semibold mb-3" style={{ color: c.text }}>🚀 Начало работы</div>
+                    <div className="space-y-2">
+                      {steps.map((step, i) => (
+                        <div key={i} className="flex items-center gap-3">
+                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: step.done ? '#22c55e' : c.subtle, border: `2px solid ${step.done ? '#22c55e' : c.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {step.done && <span style={{ color: 'white', fontSize: '0.7rem', fontWeight: 700 }}>✓</span>}
+                          </div>
+                          <div className="flex-1 text-sm" style={{ color: step.done ? c.muted : c.text, textDecoration: step.done ? 'line-through' : 'none' }}>
+                            {i + 1}. {step.label}
+                          </div>
+                          {!step.done && step.action && (
+                            <button onClick={step.action} style={{ flexShrink: 0, fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: `1px solid ${ACCENT}`, background: 'transparent', color: ACCENT, cursor: 'pointer', fontFamily: 'inherit' }}>→</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Contact info */}
               <div style={card}>
                 <h2 className="text-sm font-semibold mb-3" style={{ color: c.text }}>Контактные данные</h2>
