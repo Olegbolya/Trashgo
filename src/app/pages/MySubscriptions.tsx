@@ -211,6 +211,14 @@ function SubCard({ sub, isDark, cardClass, text, muted, subtext, toggling, delet
               <span>{sub.time}</span>
             </div>
           </div>
+          {(sub as any).interval && (sub as any).interval !== 'weekly' && (
+            <div>
+              <div className={`text-xs ${muted} mb-1`}>Периодичность</div>
+              <div className={`text-xs font-medium ${subtext}`}>
+                {(sub as any).interval === 'biweekly' ? 'Раз в 2 нед.' : 'Ежемесячно'}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
