@@ -32,11 +32,16 @@ export const accessPlansApi = {
     return res.data;
   },
 
-  requestPlan: async (paymentRef?: string): Promise<{ id: string; priceAtPurchase: number; status: string }> => {
-    const res = await api.post<{ data: { id: string; priceAtPurchase: number; status: string } }>(
+  requestPlan: async (paymentRef?: string, promoCode?: string): Promise<{ id: string; priceAtPurchase: number; discountApplied?: number; promoCode?: string | null; status: string }> => {
+    const res = await api.post<{ data: { id: string; priceAtPurchase: number; discountApplied?: number; promoCode?: string | null; status: string } }>(
       '/access-plans/request',
-      { paymentRef: paymentRef || null },
+      { paymentRef: paymentRef || null, promoCode: promoCode || null },
     );
+    return res.data;
+  },
+
+  checkPromo: async (code: string): Promise<{ code: string; discountAmount: number }> => {
+    const res = await api.get<{ data: { code: string; discountAmount: number } }>(`/access-plans/promo-check/${encodeURIComponent(code)}`);
     return res.data;
   },
 };

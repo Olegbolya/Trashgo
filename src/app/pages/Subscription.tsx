@@ -18,6 +18,10 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentRef, setPaymentRef] = useState('');
+  const [promoCode, setPromoCode] = useState('');
+  const [promoChecked, setPromoChecked] = useState<{ code: string; discountAmount: number } | null>(null);
+  const [promoError, setPromoError] = useState('');
+  const [promoChecking, setPromoChecking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const c = {
@@ -49,13 +53,33 @@ export default function SubscriptionPage() {
     }).finally(() => setLoading(false));
   }, []);
 
+  const handleCheckPromo = async () => {
+    const code = promoCode.trim().toUpperCase();
+    if (!code) return;
+    setPromoChecking(true);
+    setPromoError('');
+    setPromoChecked(null);
+    try {
+      const result = await accessPlansApi.checkPromo(code);
+      setPromoChecked(result);
+    } catch (e: any) {
+      const msgMap: Record<string, string> = { INVALID_PROMO: 'Промокод не найден', PROMO_EXPIRED: 'Промокод истёк', PROMO_EXHAUSTED: 'Промокод исчерпан' };
+      setPromoError(msgMap[e?.code] || 'Ошибка проверки промокода');
+    } finally {
+      setPromoChecking(false);
+    }
+  };
+
   const handleRequestPlan = async () => {
     setSubmitting(true);
     try {
-      await accessPlansApi.requestPlan(paymentRef.trim() || undefined);
+      await accessPlansApi.requestPlan(paymentRef.trim() || undefined, promoChecked?.code);
       toast.success('Запрос отправлен — администратор активирует абонемент в течение 24 часов');
       setPaymentModalOpen(false);
       setPaymentRef('');
+      setPromoCode('');
+      setPromoChecked(null);
+      setPromoError('');
       // Refresh status
       const s = await accessPlansApi.getStatus();
       setStatus(s);
@@ -64,6 +88,8 @@ export default function SubscriptionPage() {
     } catch (e: any) {
       if (e?.code === 'ALREADY_PENDING') {
         toast.error('У вас уже есть ожидающий запрос');
+      } else if (e?.code === 'INVALID_PROMO') {
+        toast.error('Промокод недействителен');
       } else {
         toast.error(e?.message || 'Ошибка при отправке запроса');
       }
@@ -354,7 +380,8 @@ export default function SubscriptionPage() {
             }}>
               <div style={{ fontSize: '0.875rem', color: c.text, lineHeight: 1.7 }}>
                 <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>
-                  Переведите <strong style={{ color: '#22a849' }}>{status.nextPrice}₽</strong> через СБП:
+                  Переведите <strong style={{ color: '#22a849' }}>{Math.max(0, status.nextPrice - (promoChecked?.discountAmount ?? 0))}₽</strong> через СБП:
+                  {promoChecked && <span style={{ fontSize: '0.8rem', color: c.muted, fontWeight: 400 }}> (со скидкой {promoChecked.discountAmount}₽)</span>}
                 </div>
                 <div style={{ fontFamily: 'monospace', fontSize: '1rem', fontWeight: 700, color: c.text, marginBottom: '0.375rem' }}>
                   {SBP_PHONE}
@@ -384,6 +411,49 @@ export default function SubscriptionPage() {
                   fontFamily: 'inherit', boxSizing: 'border-box',
                 }}
               />
+            </div>
+
+            {/* Promo code input */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', color: c.muted, marginBottom: '0.375rem' }}>
+                Промокод (если есть)
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  placeholder="PROMO2026"
+                  value={promoCode}
+                  onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoChecked(null); setPromoError(''); }}
+                  maxLength={50}
+                  style={{
+                    flex: 1, height: '2.75rem',
+                    padding: '0 0.875rem', borderRadius: '0.75rem',
+                    border: `1.5px solid ${promoChecked ? '#22a849' : promoError ? '#ef4444' : c.border}`, background: c.subtle,
+                    color: c.text, fontSize: '0.9rem', outline: 'none',
+                    fontFamily: 'inherit', boxSizing: 'border-box',
+                  }}
+                />
+                <button
+                  onClick={handleCheckPromo}
+                  disabled={!promoCode.trim() || promoChecking}
+                  style={{
+                    height: '2.75rem', padding: '0 1rem', borderRadius: '0.75rem',
+                    background: c.subtle, color: c.text,
+                    border: `1.5px solid ${c.border}`, cursor: 'pointer',
+                    fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 500, whiteSpace: 'nowrap',
+                  }}
+                >
+                  {promoChecking ? '...' : 'Применить'}
+                </button>
+              </div>
+              {promoChecked && (
+                <div style={{ marginTop: '0.375rem', fontSize: '0.8rem', color: '#22a849' }}>
+                  ✓ Скидка {promoChecked.discountAmount}₽ применена
+                </div>
+              )}
+              {promoError && (
+                <div style={{ marginTop: '0.375rem', fontSize: '0.8rem', color: '#ef4444' }}>{promoError}</div>
+              )}
             </div>
 
             <button

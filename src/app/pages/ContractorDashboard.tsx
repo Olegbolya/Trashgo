@@ -207,6 +207,7 @@ export default function ContractorDashboard() {
   const [completionPhotos, setCompletionPhotos] = useState<Record<string, File[]>>({});
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [startingId, setStartingId] = useState<string | null>(null);
+  const [etaPickerJobId, setEtaPickerJobId] = useState<string | null>(null);
   const [chatJobId, setChatJobId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -956,16 +957,7 @@ export default function ContractorDashboard() {
                                     className="w-full text-xs font-semibold h-9 rounded-lg"
                                     disabled={startingId === job.id}
                                     style={{ background: ACCENT, color: 'white', border: 'none', cursor: startingId === job.id ? 'not-allowed' : 'pointer', opacity: startingId === job.id ? 0.6 : 1, fontFamily: 'inherit' }}
-                                    onClick={async () => {
-                                      setStartingId(job.id);
-                                      try {
-                                        await ordersApi.updateStatus(job.id, 'en_route');
-                                        setMyJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'en_route' as const } : j));
-                                        hapticSuccess();
-                                        toast.success('Заказчик уведомлён — вы едете!');
-                                      } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
-                                      finally { setStartingId(null); }
-                                    }}
+                                    onClick={() => setEtaPickerJobId(job.id)}
                                   >
                                     {startingId === job.id ? 'Отмечаем...' : '🚗 Выехал к клиенту'}
                                   </button>
@@ -2368,6 +2360,56 @@ export default function ContractorDashboard() {
 
       {showHowItWorks && (
         <HowItWorksModal variant="contractor" isDark={isDark} onClose={() => setShowHowItWorks(false)} />
+      )}
+
+      {etaPickerJobId && (
+        <div className="fixed inset-0 z-[95] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setEtaPickerJobId(null)}>
+          <div className="w-full lg:max-w-xs rounded-t-2xl lg:rounded-2xl p-5" style={{ background: c.surface }} onClick={e => e.stopPropagation()}>
+            <div className="text-base font-bold mb-1" style={{ color: c.text }}>Когда будете у клиента?</div>
+            <div className="text-xs mb-4" style={{ color: c.muted }}>Клиент увидит примерное время прибытия</div>
+            <div className="grid grid-cols-5 gap-2 mb-4">
+              {[5, 10, 15, 20, 30].map(mins => (
+                <button
+                  key={mins}
+                  disabled={startingId === etaPickerJobId}
+                  className="rounded-xl py-3 text-sm font-bold"
+                  style={{ background: ACCENT, color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                  onClick={async () => {
+                    const jobId = etaPickerJobId;
+                    setEtaPickerJobId(null);
+                    setStartingId(jobId);
+                    try {
+                      await ordersApi.updateStatus(jobId, 'en_route', { etaMinutes: mins });
+                      setMyJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'en_route' as const, etaMinutes: mins, enRouteAt: new Date().toISOString() } : j));
+                      hapticSuccess();
+                      toast.success(`Заказчик уведомлён — вы едете (~${mins} мин)!`);
+                    } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
+                    finally { setStartingId(null); }
+                  }}
+                >
+                  {mins}<span className="text-xs font-normal"> м</span>
+                </button>
+              ))}
+            </div>
+            <button
+              disabled={startingId === etaPickerJobId}
+              className="w-full rounded-xl py-2 text-sm"
+              style={{ background: 'transparent', color: c.muted, border: `1px solid ${c.border}`, cursor: 'pointer', fontFamily: 'inherit' }}
+              onClick={async () => {
+                const jobId = etaPickerJobId;
+                setEtaPickerJobId(null);
+                setStartingId(jobId);
+                try {
+                  await ordersApi.updateStatus(jobId, 'en_route');
+                  setMyJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'en_route' as const } : j));
+                  hapticSuccess();
+                  toast.success('Заказчик уведомлён — вы едете!');
+                } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
+                finally { setStartingId(null); }
+              }}
+            >Не указывать время</button>
+          </div>
+        </div>
       )}
 
       {ratingOrder && (

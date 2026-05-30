@@ -31,8 +31,8 @@ export const ordersApi = {
     return api.patch<Order>(`/orders/${id}`, data);
   },
 
-  updateStatus(id: string, status: OrderStatus) {
-    return api.patch<Order>(`/orders/${id}/status`, { status });
+  updateStatus(id: string, status: OrderStatus, extra?: { etaMinutes?: number }) {
+    return api.patch<Order>(`/orders/${id}/status`, { status, ...extra });
   },
 
   accept(id: string) {

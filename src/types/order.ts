@@ -1,4 +1,4 @@
-export type OrderStatus = 'new' | 'accepted' | 'in_progress' | 'pending_confirmation' | 'pending_payment' | 'completed' | 'cancelled';
+export type OrderStatus = 'new' | 'accepted' | 'en_route' | 'in_progress' | 'pending_confirmation' | 'pending_payment' | 'completed' | 'cancelled';
 
 export interface ChatMessage {
   id: string;
@@ -36,7 +36,10 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   ratingByCustomer: number | null;
+  reviewByCustomer?: string | null;
   ratingByContractor: number | null;
+  etaMinutes: number | null;
+  enRouteAt: string | null;
   wasteType?: 'household' | 'construction' | 'bulky';
   history?: Array<{ status: OrderStatus; createdAt: string; note: string }>;
 }

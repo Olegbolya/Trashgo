@@ -83,7 +83,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: '💬 Другое',
 };
 
-type Tab = 'stats' | 'frozen' | 'disputes' | 'payment' | 'users' | 'support' | 'plans';
+type Tab = 'stats' | 'frozen' | 'disputes' | 'payment' | 'users' | 'support' | 'plans' | 'promos';
 
 interface PendingPlan {
   id: string;
@@ -148,6 +148,9 @@ export default function Admin() {
   const [pendingPlans, setPendingPlans] = useState<PendingPlan[]>([]);
   const [confirmingPlan, setConfirmingPlan] = useState<string | null>(null);
   const [rejectingPlan, setRejectingPlan] = useState<string | null>(null);
+  const [promoCodes, setPromoCodes] = useState<{ id: string; code: string; discountAmount: number; maxUses: number; usedCount: number; expiresAt: string | null; createdAt: string }[]>([]);
+  const [promoForm, setPromoForm] = useState({ code: '', discountAmount: 10, maxUses: 0, expiresAt: '' });
+  const [promoSubmitting, setPromoSubmitting] = useState(false);
   const [supportMsgs, setSupportMsgs] = useState<SupportMsg[]>([]);
   const [supportFilter, setSupportFilter] = useState<'open' | 'escalated' | 'all'>('open');
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
@@ -234,6 +237,33 @@ export default function Admin() {
     finally { setLoading(false); }
   }, [apiFetch]);
 
+  const loadPromos = useCallback(async () => {
+    setLoading(true); setError('');
+    try {
+      const r = await apiFetch('/admin/promo-codes');
+      setPromoCodes(r.data);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }, [apiFetch]);
+
+  const handleCreatePromo = async () => {
+    if (!promoForm.code.trim()) return;
+    setPromoSubmitting(true);
+    try {
+      await apiFetch('/admin/promo-codes', { method: 'POST', body: JSON.stringify({ code: promoForm.code.trim().toUpperCase(), discountAmount: promoForm.discountAmount, maxUses: promoForm.maxUses, expiresAt: promoForm.expiresAt || null }) });
+      setPromoForm({ code: '', discountAmount: 10, maxUses: 0, expiresAt: '' });
+      loadPromos();
+    } catch (e: any) { setError(e.message); }
+    finally { setPromoSubmitting(false); }
+  };
+
+  const handleDeletePromo = async (id: string) => {
+    try {
+      await apiFetch(`/admin/promo-codes/${id}`, { method: 'DELETE' });
+      setPromoCodes(prev => prev.filter(p => p.id !== id));
+    } catch (e: any) { setError(e.message); }
+  };
+
   const handleConfirmPlan = async (id: string) => {
     setConfirmingPlan(id);
     try {
@@ -260,6 +290,7 @@ export default function Admin() {
     else if (tab === 'users') { setUserSearch(''); loadAllUsers(0); }
     else if (tab === 'support') loadSupport(supportFilter);
     else if (tab === 'plans') loadPlans();
+    else if (tab === 'promos') loadPromos();
   }, [tab, secret]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUnfreeze = async (id: string) => {
@@ -447,7 +478,7 @@ export default function Admin() {
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '1.5rem' }}>
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-          {([['stats', '📊 Статистика'], ['users', '👤 Пользователи'], ['plans', '💳 Абонементы'], ['frozen', '🔒 Замороженные'], ['disputes', '⚠️ Споры'], ['payment', '💸 Платёжные споры'], ['support', '💬 Поддержка']] as [Tab, string][]).map(([id, label]) => (
+          {([['stats', '📊 Статистика'], ['users', '👤 Пользователи'], ['plans', '💳 Абонементы'], ['promos', '🎟 Промокоды'], ['frozen', '🔒 Замороженные'], ['disputes', '⚠️ Споры'], ['payment', '💸 Платёжные споры'], ['support', '💬 Поддержка']] as [Tab, string][]).map(([id, label]) => (
             <button key={id} style={tabStyle(tab === id)} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
@@ -723,6 +754,56 @@ export default function Admin() {
                         </button>
                       </div>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* PROMOS TAB */}
+        {!loading && tab === 'promos' && (
+          <div>
+            <div style={{ fontSize: '1rem', fontWeight: 700, color: text, marginBottom: '1rem' }}>🎟 Промокоды</div>
+            {/* Create form */}
+            <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: '0.875rem', padding: '1rem 1.25rem', marginBottom: '1.25rem' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: text, marginBottom: '0.75rem' }}>Создать промокод</div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div style={{ flex: '1 1 160px' }}>
+                  <div style={{ fontSize: '0.75rem', color: muted, marginBottom: '0.25rem' }}>Код</div>
+                  <input value={promoForm.code} onChange={e => setPromoForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="PROMO2026" maxLength={50} style={{ width: '100%', height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.5rem', border: `1px solid ${border}`, background: '#1a2035', color: text, fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: '0 0 120px' }}>
+                  <div style={{ fontSize: '0.75rem', color: muted, marginBottom: '0.25rem' }}>Скидка (₽)</div>
+                  <input type="number" value={promoForm.discountAmount} onChange={e => setPromoForm(f => ({ ...f, discountAmount: Number(e.target.value) }))} min={0} style={{ width: '100%', height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.5rem', border: `1px solid ${border}`, background: '#1a2035', color: text, fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: '0 0 120px' }}>
+                  <div style={{ fontSize: '0.75rem', color: muted, marginBottom: '0.25rem' }}>Макс. использований (0 = ∞)</div>
+                  <input type="number" value={promoForm.maxUses} onChange={e => setPromoForm(f => ({ ...f, maxUses: Number(e.target.value) }))} min={0} style={{ width: '100%', height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.5rem', border: `1px solid ${border}`, background: '#1a2035', color: text, fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: '0 0 160px' }}>
+                  <div style={{ fontSize: '0.75rem', color: muted, marginBottom: '0.25rem' }}>Истекает (не обязательно)</div>
+                  <input type="date" value={promoForm.expiresAt} onChange={e => setPromoForm(f => ({ ...f, expiresAt: e.target.value }))} style={{ width: '100%', height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.5rem', border: `1px solid ${border}`, background: '#1a2035', color: text, fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                </div>
+                <button disabled={!promoForm.code.trim() || promoSubmitting} onClick={handleCreatePromo} style={{ height: '2.25rem', padding: '0 1rem', borderRadius: '0.5rem', background: promoSubmitting ? muted : accent, color: '#fff', border: 'none', cursor: promoSubmitting ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600, flexShrink: 0 }}>
+                  {promoSubmitting ? '...' : '+ Создать'}
+                </button>
+              </div>
+            </div>
+            {/* List */}
+            {promoCodes.length === 0 ? (
+              <div style={{ textAlign: 'center', color: muted, padding: '3rem', background: surface, borderRadius: '0.875rem', border: `1px solid ${border}` }}>Нет промокодов</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {promoCodes.map(p => (
+                  <div key={p.id} style={{ background: surface, border: `1px solid ${border}`, borderRadius: '0.75rem', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div>
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.9375rem', fontWeight: 700, color: accent }}>{p.code}</span>
+                      <span style={{ marginLeft: '0.75rem', fontSize: '0.8125rem', color: '#4ade80' }}>−{p.discountAmount}₽</span>
+                      <span style={{ marginLeft: '0.75rem', fontSize: '0.8125rem', color: muted }}>{p.usedCount}{p.maxUses > 0 ? `/${p.maxUses}` : ''} использований</span>
+                      {p.expiresAt && <span style={{ marginLeft: '0.75rem', fontSize: '0.8125rem', color: '#fbbf24' }}>до {new Date(p.expiresAt).toLocaleDateString('ru-RU')}</span>}
+                    </div>
+                    <button onClick={() => handleDeletePromo(p.id)} style={{ padding: '0.375rem 0.75rem', borderRadius: '0.375rem', background: '#f871711a', border: '1px solid #f8717140', color: '#f87171', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit' }}>Удалить</button>
                   </div>
                 ))}
               </div>

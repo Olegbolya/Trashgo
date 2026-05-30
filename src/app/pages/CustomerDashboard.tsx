@@ -198,6 +198,8 @@ export default function CustomerDashboard() {
     contractorName?: string;
     pickedUp?: boolean;
     wasteType?: 'household' | 'construction' | 'bulky';
+    etaMinutes?: number | null;
+    enRouteAt?: string | null;
   };
 
   function apiOrderToMyOrder(o: Order, inMemoryPhotos?: string[]): MyOrder {
@@ -229,6 +231,8 @@ export default function CustomerDashboard() {
       contractorName: o.contractorName ?? '',
       pickedUp: o.status === 'in_progress' || o.status === 'pending_confirmation' || o.status === 'pending_payment',
       wasteType: (o.wasteType as 'household' | 'construction' | 'bulky') ?? 'household',
+      etaMinutes: o.etaMinutes ?? null,
+      enRouteAt: o.enRouteAt ?? null,
     };
   }
 
@@ -244,6 +248,29 @@ export default function CustomerDashboard() {
   const [geocodeSuggestions, setGeocodeSuggestions] = useState<{ label: string; full: string }[]>([]);
   const [geocodeNoResults, setGeocodeNoResults] = useState(false);
   const geocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [geoLocating, setGeoLocating] = useState(false);
+
+  const handleGeoLocate = () => {
+    if (!navigator.geolocation) { toast.error('Геолокация не поддерживается'); return; }
+    setGeoLocating(true);
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&accept-language=ru`, { headers: { 'User-Agent': 'TrashGo/1.0' } });
+        const data = await res.json();
+        const a = data.address ?? {};
+        const road = a.road || a.pedestrian || a.footway || '';
+        const house = a.house_number || '';
+        const addr = [road, house].filter(Boolean).join(', ');
+        if (addr) {
+          setCreateForm(f => ({ ...f, address: addr }));
+          setShowAddressSuggestions(false);
+        } else {
+          toast.error('Не удалось определить адрес');
+        }
+      } catch { toast.error('Ошибка геолокации'); }
+      finally { setGeoLocating(false); }
+    }, () => { toast.error('Нет доступа к геолокации'); setGeoLocating(false); }, { timeout: 10000 });
+  };
 
   const refreshOrders = (silent = false) => {
     if (isEditingRef.current) return;
@@ -1014,7 +1041,11 @@ export default function CustomerDashboard() {
                               </div>
                             ) : order.status === 'en_route' ? (
                               <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#F9731618', color: '#F97316' }}>
-                                <span>🚗 Исполнитель едет</span>
+                                <span>🚗 Едет{order.etaMinutes && order.enRouteAt ? (() => {
+                                  const elapsed = Math.floor((Date.now() - new Date(order.enRouteAt!).getTime()) / 60000);
+                                  const remaining = Math.max(0, order.etaMinutes! - elapsed);
+                                  return remaining > 0 ? ` ~${remaining} мин` : ' — уже рядом!';
+                                })() : order.etaMinutes ? ` ~${order.etaMinutes} мин` : ''}</span>
                               </div>
                             ) : order.status === 'active' ? (
                               <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: `${ACCENT}18`, color: ACCENT }}>
@@ -1143,6 +1174,19 @@ export default function CustomerDashboard() {
                           <div className="mt-2 text-xs text-center" style={{ color: c.muted }}>
                             {'★'.repeat(order.ratingByCustomer)}{'☆'.repeat(5 - order.ratingByCustomer)} Вы оценили
                           </div>
+                        )}
+                        {order.status === 'completed' && (
+                          <button
+                            className="w-full mt-2 h-8 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5"
+                            style={{ background: c.subtle, border: `1px solid ${c.border}`, color: c.text, cursor: 'pointer', fontFamily: 'inherit' }}
+                            onClick={() => {
+                              setCreateForm(f => ({ ...f, address: order.address, volume: order.volume, price: order.price, description: order.description, wasteType: order.wasteType ?? 'household', asap: true, date: '', time: '' }));
+                              setActiveTab('create');
+                              window.scrollTo(0, 0);
+                            }}
+                          >
+                            🔄 Повторить заказ
+                          </button>
                         )}
                       </div>
                     ))}
@@ -1676,7 +1720,12 @@ export default function CustomerDashboard() {
 
                     {/* Адрес дома — обязательное */}
                     <div>
-                      <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: c.muted }}>Адрес <span style={{ color: '#ef4444' }}>*</span></label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: c.muted }}>Адрес <span style={{ color: '#ef4444' }}>*</span></label>
+                        <button type="button" onClick={handleGeoLocate} disabled={geoLocating} style={{ background: 'none', border: 'none', cursor: geoLocating ? 'not-allowed' : 'pointer', color: ACCENT, fontSize: '0.75rem', padding: 0, fontFamily: 'inherit', opacity: geoLocating ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          {geoLocating ? '⏳ Определяем...' : '📍 Моё место'}
+                        </button>
+                      </div>
                       <div style={{ position: 'relative' }}>
                       <input
                         value={createForm.address}
@@ -2252,7 +2301,14 @@ export default function CustomerDashboard() {
                 background: selectedOrder.status === 'waiting' ? '#F9731618' : selectedOrder.status === 'pending' ? (isDark ? 'rgba(251,191,36,0.15)' : '#FBBF2420') : selectedOrder.status === 'payment' ? (isDark ? 'rgba(34,197,94,0.15)' : '#dcfce7') : selectedOrder.status === 'en_route' ? '#F9731618' : `${ACCENT}18`,
                 color: selectedOrder.status === 'waiting' ? '#F97316' : selectedOrder.status === 'pending' ? (isDark ? '#FCD34D' : '#92400e') : selectedOrder.status === 'payment' ? (isDark ? '#86efac' : '#166534') : selectedOrder.status === 'en_route' ? '#F97316' : ACCENT,
               }}>
-                {selectedOrder.status === 'waiting' ? `${selectedOrder.responses} откл.` : selectedOrder.status === 'pending' ? '⏳ Подтверждение' : selectedOrder.status === 'payment' ? '💳 Ожидание оплаты' : selectedOrder.status === 'en_route' ? '🚗 Едет к вам' : 'Принят'}
+                {selectedOrder.status === 'waiting' ? `${selectedOrder.responses} откл.` : selectedOrder.status === 'pending' ? '⏳ Подтверждение' : selectedOrder.status === 'payment' ? '💳 Ожидание оплаты' : selectedOrder.status === 'en_route' ? (() => {
+                  if (selectedOrder.etaMinutes && selectedOrder.enRouteAt) {
+                    const elapsed = Math.floor((Date.now() - new Date(selectedOrder.enRouteAt!).getTime()) / 60000);
+                    const remaining = Math.max(0, selectedOrder.etaMinutes! - elapsed);
+                    return `🚗 Едет к вам${remaining > 0 ? ` (~${remaining} мин)` : ' — уже рядом!'}`;
+                  }
+                  return `🚗 Едет к вам${selectedOrder.etaMinutes ? ` (~${selectedOrder.etaMinutes} мин)` : ''}`;
+                })() : 'Принят'}
               </span>
             </div>
 
