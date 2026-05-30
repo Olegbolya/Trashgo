@@ -2365,7 +2365,7 @@ export default function CustomerDashboard() {
                         onChange={(e) => setDisputeReason(e.target.value)}
                         placeholder="Что именно пошло не так?"
                         rows={3}
-                        style={{ width: '100%', borderRadius: '0.5rem', border: '1px solid #fca5a5', padding: '0.5rem', fontSize: '1rem', fontFamily: 'inherit', resize: 'none', outline: 'none', background: 'white' }}
+                        style={{ width: '100%', borderRadius: '0.5rem', border: '1px solid #fca5a5', padding: '0.5rem', fontSize: '1rem', fontFamily: 'inherit', resize: 'none', outline: 'none', background: c.input, color: c.text }}
                       />
                       <div className="flex gap-2 mt-2">
                         <button
@@ -2852,7 +2852,7 @@ export default function CustomerDashboard() {
           <div
             style={{
               width: '100%', maxWidth: '480px',
-              background: '#fff', borderRadius: '1.25rem 1.25rem 0 0',
+              background: c.surface, borderRadius: '1.25rem 1.25rem 0 0',
               padding: '1.5rem 1.25rem 2rem',
               fontFamily: "'Inter', system-ui, sans-serif",
             }}
