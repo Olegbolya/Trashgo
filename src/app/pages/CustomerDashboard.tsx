@@ -1455,7 +1455,7 @@ export default function CustomerDashboard() {
             const inputStyle = (hasError?: boolean): React.CSSProperties => ({
               width: '100%', padding: '0.625rem 0.75rem',
               border: `1px solid ${hasError ? '#ef4444' : c.border}`,
-              borderRadius: '0.75rem', fontSize: '0.875rem',
+              borderRadius: '0.75rem', fontSize: '1rem',
               outline: 'none', background: c.input, color: c.text,
               boxSizing: 'border-box', fontFamily: 'inherit',
             });
@@ -2365,7 +2365,7 @@ export default function CustomerDashboard() {
                         onChange={(e) => setDisputeReason(e.target.value)}
                         placeholder="Что именно пошло не так?"
                         rows={3}
-                        style={{ width: '100%', borderRadius: '0.5rem', border: '1px solid #fca5a5', padding: '0.5rem', fontSize: '0.875rem', fontFamily: 'inherit', resize: 'none', outline: 'none', background: 'white' }}
+                        style={{ width: '100%', borderRadius: '0.5rem', border: '1px solid #fca5a5', padding: '0.5rem', fontSize: '1rem', fontFamily: 'inherit', resize: 'none', outline: 'none', background: 'white' }}
                       />
                       <div className="flex gap-2 mt-2">
                         <button
@@ -2657,7 +2657,7 @@ export default function CustomerDashboard() {
 
       {editProfileOpen && (
         <div className="fixed inset-0 z-[90] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => { setEditProfileOpen(false); setEmailChangeStep('idle'); setEmailChangeCode(''); setEmailChangeError(''); }}>
-          <div className="w-full lg:max-w-sm rounded-t-2xl lg:rounded-2xl" style={{ background: c.surface }} onClick={e => e.stopPropagation()}>
+          <div className="w-full lg:max-w-sm rounded-t-2xl lg:rounded-2xl" style={{ background: c.surface, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="text-base font-bold" style={{ color: c.text }}>Редактирование профиля</div>
@@ -2669,7 +2669,7 @@ export default function CustomerDashboard() {
                   value={editProfileForm.name}
                   onChange={e => setEditProfileForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="Ваше имя"
-                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '1rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                 />
               </div>
               <div className="mb-4">
@@ -2678,7 +2678,7 @@ export default function CustomerDashboard() {
                   value={editProfileForm.district}
                   onChange={val => setEditProfileForm(f => ({ ...f, district: val }))}
                   placeholder="ул. Баумана, 58"
-                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '1rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                 />
               </div>
               {emailChangeStep === 'verify' ? (
@@ -2695,7 +2695,7 @@ export default function CustomerDashboard() {
                       value={emailChangeCode}
                       onChange={e => { setEmailChangeCode(e.target.value.replace(/\D/g, '')); setEmailChangeError(''); }}
                       placeholder="Код из письма"
-                      style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${emailChangeError ? '#ef4444' : c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit', letterSpacing: '0.15em' }}
+                      style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${emailChangeError ? '#ef4444' : c.border}`, borderRadius: '0.75rem', fontSize: '1rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit', letterSpacing: '0.15em' }}
                     />
                     {emailChangeError && <div className="text-xs mt-1" style={{ color: '#ef4444' }}>{emailChangeError}</div>}
                   </div>
@@ -2739,7 +2739,7 @@ export default function CustomerDashboard() {
                       onChange={e => setEditProfileForm(f => ({ ...f, email: e.target.value }))}
                       onBlur={e => { if (!e.target.value.trim() && user?.email) setEditProfileForm(f => ({ ...f, email: user.email! })); }}
                       placeholder="your@email.com"
-                      style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${!editProfileForm.email.trim() && user?.email ? '#ef4444' : c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                      style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${!editProfileForm.email.trim() && user?.email ? '#ef4444' : c.border}`, borderRadius: '0.75rem', fontSize: '1rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                     />
                     {!editProfileForm.email.trim() && user?.email
                       ? <div className="text-xs mt-1" style={{ color: '#ef4444' }}>Email обязателен — используется для входа</div>
@@ -2798,7 +2798,7 @@ export default function CustomerDashboard() {
                   onChange={setNewAddress}
                   placeholder="ул. Ленина, 45"
                   autoFocus
-                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '1rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                 />
               </div>
               <button

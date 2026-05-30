@@ -547,7 +547,7 @@ export default function OrderDetail() {
                 style={{
                   flex: 1, padding: '0.5rem 0.75rem', borderRadius: '0.75rem',
                   border: `1.5px solid ${c.border}`, background: c.subtle,
-                  color: c.text, fontSize: '0.875rem', outline: 'none', fontFamily: 'inherit',
+                  color: c.text, fontSize: '1rem', outline: 'none', fontFamily: 'inherit',
                 }}
               />
               <button

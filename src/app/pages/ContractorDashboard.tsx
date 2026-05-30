@@ -2319,7 +2319,7 @@ export default function ContractorDashboard() {
 
       {editProfileOpen && (
         <div className="fixed inset-0 z-[90] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => { setEditProfileOpen(false); setEmailChangeStep('idle'); setEmailChangeCode(''); setEmailChangeError(''); }}>
-          <div className="w-full lg:max-w-sm rounded-t-2xl lg:rounded-2xl" style={{ background: c.surface }} onClick={e => e.stopPropagation()}>
+          <div className="w-full lg:max-w-sm rounded-t-2xl lg:rounded-2xl" style={{ background: c.surface, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="text-base font-bold" style={{ color: c.text }}>Редактирование профиля</div>
@@ -2331,7 +2331,7 @@ export default function ContractorDashboard() {
                   value={editProfileForm.name}
                   onChange={e => setEditProfileForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="Ваше имя"
-                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '1rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                 />
               </div>
               <div className="mb-4">
@@ -2339,7 +2339,7 @@ export default function ContractorDashboard() {
                 <select
                   value={editProfileForm.sbpBank}
                   onChange={e => setEditProfileForm(f => ({ ...f, sbpBank: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit', appearance: 'none', cursor: 'pointer' }}
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '1rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit', appearance: 'none', cursor: 'pointer' }}
                 >
                   <option value="">Выберите банк...</option>
                   {['Сбербанк','Т-Банк (Тинькофф)','ВТБ','Альфа-Банк','Газпромбанк','Открытие','Совкомбанк','Росбанк','МТС Банк','Почта Банк','Райффайзен','ПСБ'].map(b => <option key={b} value={b}>{b}</option>)}
@@ -2350,7 +2350,7 @@ export default function ContractorDashboard() {
                 <select
                   value={editProfileForm.district}
                   onChange={e => setEditProfileForm(f => ({ ...f, district: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit', appearance: 'none', cursor: 'pointer' }}
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${c.border}`, borderRadius: '0.75rem', fontSize: '1rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit', appearance: 'none', cursor: 'pointer' }}
                 >
                   {CONTRACTOR_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
@@ -2363,7 +2363,7 @@ export default function ContractorDashboard() {
                   placeholder="12 цифр"
                   maxLength={12}
                   inputMode="numeric"
-                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${editProfileForm.inn.length > 0 && editProfileForm.inn.length < 12 ? '#f59e0b' : editProfileForm.inn.length === 12 ? '#22c55e' : c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${editProfileForm.inn.length > 0 && editProfileForm.inn.length < 12 ? '#f59e0b' : editProfileForm.inn.length === 12 ? '#22c55e' : c.border}`, borderRadius: '0.75rem', fontSize: '1rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                 />
                 {editProfileForm.inn.length > 0 && editProfileForm.inn.length < 12 && (
                   <div className="text-xs mt-1" style={{ color: '#f59e0b' }}>Введите все 12 цифр</div>
@@ -2386,7 +2386,7 @@ export default function ContractorDashboard() {
                       value={emailChangeCode}
                       onChange={e => { setEmailChangeCode(e.target.value.replace(/\D/g, '')); setEmailChangeError(''); }}
                       placeholder="Код из письма"
-                      style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${emailChangeError ? '#ef4444' : c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit', letterSpacing: '0.15em' }}
+                      style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${emailChangeError ? '#ef4444' : c.border}`, borderRadius: '0.75rem', fontSize: '1rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit', letterSpacing: '0.15em' }}
                     />
                     {emailChangeError && <div className="text-xs mt-1" style={{ color: '#ef4444' }}>{emailChangeError}</div>}
                   </div>
@@ -2430,7 +2430,7 @@ export default function ContractorDashboard() {
                       onChange={e => setEditProfileForm(f => ({ ...f, email: e.target.value }))}
                       onBlur={e => { if (!e.target.value.trim() && user?.email) setEditProfileForm(f => ({ ...f, email: user!.email! })); }}
                       placeholder="your@email.com"
-                      style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${!editProfileForm.email.trim() && user?.email ? '#ef4444' : c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
+                      style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${!editProfileForm.email.trim() && user?.email ? '#ef4444' : c.border}`, borderRadius: '0.75rem', fontSize: '1rem', outline: 'none', background: c.input, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit' }}
                     />
                     {!editProfileForm.email.trim() && user?.email
                       ? <div className="text-xs mt-1" style={{ color: '#ef4444' }}>Email обязателен — используется для входа</div>

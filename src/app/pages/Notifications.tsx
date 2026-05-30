@@ -213,7 +213,7 @@ export default function Notifications() {
                 <div className="px-4 py-3">
                   <div className="text-xs mb-2" style={{ color: c.muted }}>Email для уведомлений (привязан к аккаунту)</div>
                   <div className="flex gap-2">
-                    <input type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="your@email.com" style={{ flex: 1, height: '2.25rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: c.subtle, color: c.text, padding: '0 0.75rem', fontSize: '0.875rem', fontFamily: 'inherit', outline: 'none' }} />
+                    <input type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="your@email.com" style={{ flex: 1, height: '2.25rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: c.subtle, color: c.text, padding: '0 0.75rem', fontSize: '1rem', fontFamily: 'inherit', outline: 'none' }} />
                     <button
                       disabled={savingEmail}
                       onClick={async () => {

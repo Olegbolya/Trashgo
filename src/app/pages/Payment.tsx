@@ -338,7 +338,7 @@ export default function Payment() {
               placeholder="12 цифр ИНН"
               maxLength={12}
               inputMode="numeric"
-              style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${innInput.length > 0 && innInput.length < 12 ? '#f59e0b' : innInput.length === 12 ? GREEN : c.border}`, borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', background: c.subtle, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit', marginBottom: '0.5rem' }}
+              style={{ width: '100%', padding: '0.625rem 0.75rem', border: `1px solid ${innInput.length > 0 && innInput.length < 12 ? '#f59e0b' : innInput.length === 12 ? GREEN : c.border}`, borderRadius: '0.75rem', fontSize: '1rem', outline: 'none', background: c.subtle, color: c.text, boxSizing: 'border-box' as const, fontFamily: 'inherit', marginBottom: '0.5rem' }}
             />
             {innInput.length > 0 && innInput.length < 12 && <div className="text-xs mb-3" style={{ color: '#f59e0b' }}>Введите все 12 цифр</div>}
             {innInput.length === 12 && <div className="text-xs mb-3" style={{ color: GREEN }}>✓ ИНН принят</div>}

@@ -247,7 +247,7 @@ export function ChatScreen({
           onChange={(e) => onInputChange(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }}
           placeholder="Написать…"
-          style={{ flex: 1, height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.625rem', border: `1.5px solid ${c.border}`, background: c.input, color: c.text, fontSize: '0.875rem', outline: 'none', fontFamily: 'inherit' }}
+          style={{ flex: 1, height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.625rem', border: `1.5px solid ${c.border}`, background: c.input, color: c.text, fontSize: '1rem', outline: 'none', fontFamily: 'inherit' }}
         />
         <button
           disabled={!input.trim() || sending}
