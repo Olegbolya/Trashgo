@@ -153,6 +153,8 @@ export default function Admin() {
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
   const [sendingReply, setSendingReply] = useState<string | null>(null);
   const [extendingSubscription, setExtendingSubscription] = useState<string | null>(null);
+  const [broadcastingUpdate, setBroadcastingUpdate] = useState(false);
+  const [broadcastResult, setBroadcastResult] = useState<{ sent: number; failed: number; total: number } | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const apiFetch = useCallback(async (path: string, opts?: RequestInit) => {
@@ -363,6 +365,17 @@ export default function Admin() {
     loadSupport(f);
   };
 
+  const handleBroadcastUpdate = async () => {
+    if (!confirm('Отправить push-уведомление об обновлении всем пользователям с FCM-токеном?')) return;
+    setBroadcastingUpdate(true);
+    setBroadcastResult(null);
+    try {
+      const r = await apiFetch('/admin/broadcast-update', { method: 'POST' });
+      setBroadcastResult(r.data);
+    } catch (e: any) { setError(e.message); }
+    finally { setBroadcastingUpdate(false); }
+  };
+
   const handleExtendSubscription = async (userId: string) => {
     setExtendingSubscription(userId);
     try {
@@ -489,6 +502,26 @@ export default function Admin() {
                   );
                 })}
               </div>
+            </div>
+
+            {/* Broadcast update notification */}
+            <div style={{ background: surface, borderRadius: '0.875rem', padding: '1.25rem', border: `1px solid ${border}`, marginTop: '1rem' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: muted, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Уведомление об обновлении</div>
+              <div style={{ fontSize: '0.8125rem', color: muted, marginBottom: '1rem' }}>
+                Отправляет push-уведомление всем пользователям с FCM-токеном — приходит в шторку уведомлений Android, даже если приложение закрыто.
+              </div>
+              {broadcastResult && (
+                <div style={{ marginBottom: '0.75rem', fontSize: '0.8125rem', color: '#4ade80' }}>
+                  ✓ Отправлено: {broadcastResult.sent} / {broadcastResult.total} (ошибок: {broadcastResult.failed})
+                </div>
+              )}
+              <button
+                onClick={handleBroadcastUpdate}
+                disabled={broadcastingUpdate}
+                style={{ padding: '0.625rem 1.25rem', borderRadius: '0.625rem', background: broadcastingUpdate ? border : '#3b82f620', border: `1px solid ${broadcastingUpdate ? border : '#3b82f660'}`, color: broadcastingUpdate ? muted : '#60a5fa', cursor: broadcastingUpdate ? 'not-allowed' : 'pointer', fontSize: '0.875rem', fontWeight: 600, fontFamily: 'inherit' }}
+              >
+                {broadcastingUpdate ? '⏳ Отправляем...' : '📢 Уведомить об обновлении'}
+              </button>
             </div>
           </div>
         )}
