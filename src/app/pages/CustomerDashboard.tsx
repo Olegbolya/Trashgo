@@ -37,6 +37,75 @@ import { ChatScreen } from '../components/ChatScreen';
 const ACCENT = '#66BB6A';
 const DAY_LABELS: Record<number, string> = { 1: 'ПН', 2: 'ВТ', 3: 'СР', 4: 'ЧТ', 5: 'ПТ', 6: 'СБ', 7: 'ВС' };
 
+function SwipeableCancelCard({ children, onCancel, cancelling }: { children: React.ReactNode; onCancel: () => void; cancelling: boolean }) {
+  const [dx, setDx] = useState(0);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const committed = useRef(false);
+  const scrollBlocked = useRef(false);
+  const THRESHOLD = 80;
+  const MAX_DRAG = 110;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
+    committed.current = false;
+    scrollBlocked.current = false;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (scrollBlocked.current || cancelling) return;
+    const rawX = e.touches[0].clientX - startX.current;
+    const rawY = e.touches[0].clientY - startY.current;
+    if (!committed.current) {
+      if (Math.abs(rawY) > Math.abs(rawX) + 5) { scrollBlocked.current = true; return; }
+      if (Math.abs(rawX) < 6) return;
+      if (rawX > 0) { scrollBlocked.current = true; return; }
+      committed.current = true;
+    }
+    const clamped = Math.max(-MAX_DRAG, Math.min(0, rawX));
+    setDx(clamped);
+    if (clamped < 0) e.preventDefault();
+  };
+
+  const onTouchEnd = () => {
+    if (committed.current && dx <= -THRESHOLD && !cancelling) onCancel();
+    setDx(0);
+    committed.current = false;
+  };
+
+  const progress = Math.min(1, Math.abs(dx) / THRESHOLD);
+  const reached = Math.abs(dx) >= THRESHOLD;
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '0.875rem', touchAction: 'pan-y' }}>
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: reached ? '#dc2626' : '#ef4444',
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: '1.5rem',
+        opacity: progress, pointerEvents: 'none',
+        transition: 'background 0.15s',
+      }}>
+        <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem' }}>
+          {reached ? '⚠️ Отпустите' : '← Отменить'}
+        </span>
+      </div>
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{
+          transform: `translateX(${dx}px)`,
+          transition: dx !== 0 ? 'none' : 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          willChange: 'transform',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function parseAddressParts(full: string): { address: string; entrance: string; floor: string; apartment: string } {
   let remaining = full;
   let entrance = '';
@@ -78,6 +147,7 @@ export default function CustomerDashboard() {
   const [isPublishing, setIsPublishing] = useState(false);
   const publishingRef = useRef(false);
   const isEditingRef = useRef(false);
+  const skipNextHomeRefreshRef = useRef(false);
   const prevXpRef = useRef<number | null>(null);
   const prevLevelRef = useRef<number | null>(null);
   const prevOrderStatusesRef = useRef<Record<string, string>>({});
@@ -329,7 +399,10 @@ export default function CustomerDashboard() {
   // Refresh when switching to home tab + poll every 10s while on home tab
   useEffect(() => {
     if (activeTab === 'home') {
-      refreshOrders();
+      if (!skipNextHomeRefreshRef.current) {
+        refreshOrders();
+      }
+      skipNextHomeRefreshRef.current = false;
       const interval = setInterval(() => refreshOrders(true), 10000);
       return () => clearInterval(interval);
     }
@@ -894,7 +967,17 @@ export default function CustomerDashboard() {
                 ) : (
                   <div className="space-y-3">
                     {activeOrders.map((order) => (
-                      <div key={order.id} style={{ ...card2, borderColor: c.border, cursor: 'pointer' }} onClick={() => setSelectedOrder(order)}>
+                      <SwipeableCancelCard key={order.id} cancelling={cancelingId === order.id} onCancel={async () => {
+                        if (order.status !== 'waiting') return;
+                        hapticTap();
+                        setCancelingId(order.id);
+                        try { await ordersApi.updateStatus(order.id, 'cancelled'); } catch {}
+                        setMyOrders(prev => prev.filter(o => o.id !== order.id));
+                        setCancelingId(null);
+                        hapticSuccess();
+                        toast.success('Заказ отменён');
+                      }}>
+                      <div style={{ ...card2, borderColor: c.border, cursor: 'pointer' }} onClick={() => setSelectedOrder(order)}>
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
@@ -956,6 +1039,7 @@ export default function CustomerDashboard() {
                           </div>
                         )}
                       </div>
+                      </SwipeableCancelCard>
                     ))}
                   </div>
                 )}
@@ -1561,7 +1645,7 @@ export default function CustomerDashboard() {
                   toast.success('Заказ создан!', { description: 'Исполнители уже видят ваш заказ', duration: 3000 });
                 }
 
-                setCreateForm({ address: '', date: '', time: '', asap: false, volume: 1, price: 50, entrance: '', floor: '', apartment: '', description: '' });
+                setCreateForm({ address: '', date: '', time: '', asap: false, volume: 1, price: 50, entrance: '', floor: '', apartment: '', description: '', wasteType: 'household' });
                 setCreatePhotos([]);
                 setPreloadedPhotoUrls([]);
                 setCreateErrors({});
@@ -1569,6 +1653,7 @@ export default function CustomerDashboard() {
                 isEditingRef.current = false;
                 setOriginalOrder(null);
                 sessionStorage.removeItem('trashgo_pending_edit');
+                skipNextHomeRefreshRef.current = true;
                 setActiveTab('home');
               } catch (err: any) {
                 toast.error(err?.message || (isEditing ? 'Не удалось обновить заказ' : 'Не удалось создать заказ'));

@@ -115,6 +115,75 @@ function SwipeableJobCard({ children, canCancel, onCancel }: { children: React.R
   );
 }
 
+function SwipeableAcceptCard({ children, onAccept, accepting }: { children: React.ReactNode; onAccept: () => void; accepting: boolean }) {
+  const [dx, setDx] = useState(0);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const committed = useRef(false);
+  const scrollBlocked = useRef(false);
+  const THRESHOLD = 80;
+  const MAX_DRAG = 110;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
+    committed.current = false;
+    scrollBlocked.current = false;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (scrollBlocked.current || accepting) return;
+    const rawX = e.touches[0].clientX - startX.current;
+    const rawY = e.touches[0].clientY - startY.current;
+    if (!committed.current) {
+      if (Math.abs(rawY) > Math.abs(rawX) + 5) { scrollBlocked.current = true; return; }
+      if (Math.abs(rawX) < 6) return;
+      if (rawX < 0) { scrollBlocked.current = true; return; }
+      committed.current = true;
+    }
+    const clamped = Math.max(0, Math.min(MAX_DRAG, rawX));
+    setDx(clamped);
+    if (clamped > 0) e.preventDefault();
+  };
+
+  const onTouchEnd = () => {
+    if (committed.current && dx >= THRESHOLD && !accepting) onAccept();
+    setDx(0);
+    committed.current = false;
+  };
+
+  const progress = Math.min(1, dx / THRESHOLD);
+  const reached = dx >= THRESHOLD;
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '0.875rem', touchAction: 'pan-y' }}>
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: reached ? '#16a34a' : '#22c55e',
+        display: 'flex', alignItems: 'center', paddingLeft: '1.5rem',
+        opacity: progress, pointerEvents: 'none',
+        transition: 'background 0.15s',
+      }}>
+        <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem', transform: `scale(${0.8 + progress * 0.2})`, display: 'inline-block' }}>
+          {reached ? '🎯 Отпустите!' : '✓ Взять заказ →'}
+        </span>
+      </div>
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{
+          transform: `translateX(${dx}px)`,
+          transition: dx > 0 ? 'none' : 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          willChange: 'transform',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function ContractorDashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -131,6 +200,7 @@ export default function ContractorDashboard() {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState(false);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [swipeAcceptingId, setSwipeAcceptingId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [completionPhotos, setCompletionPhotos] = useState<Record<string, File[]>>({});
@@ -987,18 +1057,21 @@ export default function ContractorDashboard() {
                                       onClick={async () => {
                                         const photos = completionPhotos[job.id] || [];
                                         if (photos.length === 0) {
+                                          hapticError();
                                           toast.error('Сначала сделайте фото мусора у бака');
                                           return;
                                         }
+                                        hapticTap();
                                         setSubmittingId(job.id);
                                         try {
                                           const urls = await Promise.all(photos.map(f => uploadPhotoWithFallback(f, 'completions')));
                                           await ordersApi.completeOrder(job.id, urls);
                                           setMyJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'pending_confirmation' as const } : j));
                                           setCompletionPhotos(prev => { const n = { ...prev }; delete n[job.id]; return n; });
+                                          hapticSuccess();
                                           toast.success('Выполнение отправлено!', { description: 'Ждите подтверждения от заказчика', duration: 3000 });
                                           setTimeout(refreshAchievements, 1000);
-                                        } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
+                                        } catch (e: any) { hapticError(); toast.error(e?.message || 'Ошибка'); }
                                         finally { setSubmittingId(null); }
                                       }}
                                     >
@@ -1021,13 +1094,15 @@ export default function ContractorDashboard() {
                                       disabled={confirmingPaymentId === job.id}
                                       style={{ background: '#22c55e', color: 'white', border: 'none', cursor: confirmingPaymentId === job.id ? 'not-allowed' : 'pointer', opacity: confirmingPaymentId === job.id ? 0.6 : 1, fontFamily: 'inherit' }}
                                       onClick={async () => {
+                                        hapticTap();
                                         setConfirmingPaymentId(job.id);
                                         try {
                                           await ordersApi.confirmPayment(job.id);
                                           setMyJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'completed' as const } : j));
+                                          hapticSuccess();
                                           toast.success('✅ Оплата подтверждена!', { description: `+${job.price}₽ начислено на баланс`, duration: 5000 });
                                           setTimeout(refreshAchievements, 1000);
-                                        } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
+                                        } catch (e: any) { hapticError(); toast.error(e?.message || 'Ошибка'); }
                                         finally { setConfirmingPaymentId(null); }
                                       }}
                                     >
@@ -1937,7 +2012,21 @@ export default function ContractorDashboard() {
                       const timeStr = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
                       const dateStr = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
                       return (
-                        <div key={order.id} style={{ ...card, cursor: 'pointer', borderColor: isAsap ? ACCENT : c.border }} onClick={() => setSelectedOrder(order)}>
+                        <SwipeableAcceptCard key={order.id} accepting={swipeAcceptingId === order.id} onAccept={async () => {
+                          hapticTap();
+                          setSwipeAcceptingId(order.id);
+                          try {
+                            const res = await ordersApi.updateStatus(order.id, 'accepted') as any;
+                            const accepted = res?.data ?? { ...order, status: 'accepted' as const };
+                            setAvailableOrders(prev => prev.filter(o => o.id !== order.id));
+                            setMyJobs(prev => [accepted, ...prev]);
+                            hapticSuccess();
+                            toast.success('Заказ принят!', { description: 'Он появился в разделе «Активные заказы»', duration: 3000 });
+                            setActiveTab('active');
+                          } catch (e: any) { hapticError(); toast.error(e?.message || 'Не удалось принять заказ'); }
+                          finally { setSwipeAcceptingId(null); }
+                        }}>
+                        <div style={{ ...card, cursor: 'pointer', borderColor: isAsap ? ACCENT : c.border }} onClick={() => setSelectedOrder(order)}>
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -1980,6 +2069,7 @@ export default function ContractorDashboard() {
                             </div>
                           </div>
                         </div>
+                        </SwipeableAcceptCard>
                       );
                     })}
                   </div>
