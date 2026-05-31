@@ -16,8 +16,14 @@ interface Props {
   orderCoords: Map<string, { lat: number; lon: number } | null>;
   ordersLoading?: boolean;
   isDark: boolean;
-  onOrderClick?: (orderId: string) => void;
+  onOrderClick?: (orderIds: string[]) => void;
   accentColor?: string;
+}
+
+// Round to 4 decimal places (~11 m precision) so orders at the same address
+// share one marker even if Nominatim returns marginally different coords.
+function coordKey(lat: number, lon: number) {
+  return `${lat.toFixed(4)},${lon.toFixed(4)}`;
 }
 
 export function OrdersMapAll({
@@ -30,13 +36,13 @@ export function OrdersMapAll({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
+  // Markers keyed by coordKey (one marker per unique location, may hold many orders)
   const markersRef = useRef<Map<string, any>>(new Map());
+  // Track which order IDs each marker currently represents (for change detection)
+  const markerOrdersRef = useRef<Map<string, string[]>>(new Map());
   const hasFitRef = useRef(false);
 
   // ─── ALWAYS-FRESH REFS ────────────────────────────────────────────────────
-  // Updated synchronously during every render so any async closure can safely
-  // read .current and always gets the latest props — this is the fix for the
-  // stale-closure bug where init useEffect captured empty orderCoords.
   const ordersRef = useRef(orders);
   const orderCoordsRef = useRef(orderCoords);
   const onOrderClickRef = useRef(onOrderClick);
@@ -46,7 +52,7 @@ export function OrdersMapAll({
   onOrderClickRef.current = onOrderClick;
   accentRef.current = accentColor;
 
-  // ─── DERIVED STATE (rendered with fresh props, not refs) ──────────────────
+  // ─── DERIVED STATE ────────────────────────────────────────────────────────
   const resolvedCount = orders.filter(
     (o) => orderCoords.get(o.id) !== undefined && orderCoords.get(o.id) !== null
   ).length;
@@ -55,74 +61,107 @@ export function OrdersMapAll({
     !ordersLoading && orders.length > 0 && !pendingGeocode && resolvedCount === 0;
 
   // ─── SYNC MARKERS ────────────────────────────────────────────────────────
-  // Reads exclusively from refs → safe to call from any async closure, even a
-  // stale one, because refs always hold the latest data.
   function syncMarkers(L: any, map: any) {
     const curOrders = ordersRef.current;
     const curCoords = orderCoordsRef.current;
     const accent = accentRef.current;
 
-    // 1. Remove markers whose orders left the visible list
-    const liveIds = new Set(curOrders.map((o) => o.id));
-    for (const [id, marker] of markersRef.current.entries()) {
-      if (!liveIds.has(id)) {
+    // Build coord-groups: one entry per unique location with all orders at that location.
+    const groups = new Map<string, { lat: number; lon: number; orders: Order[] }>();
+    for (const order of curOrders) {
+      const coords = curCoords.get(order.id);
+      if (!coords) continue;
+      const key = coordKey(coords.lat, coords.lon);
+      if (!groups.has(key)) groups.set(key, { lat: coords.lat, lon: coords.lon, orders: [] });
+      groups.get(key)!.orders.push(order);
+    }
+
+    // Remove markers whose location no longer has any orders.
+    for (const [key, marker] of markersRef.current.entries()) {
+      if (!groups.has(key)) {
         map.removeLayer(marker);
-        markersRef.current.delete(id);
+        markersRef.current.delete(key);
+        markerOrdersRef.current.delete(key);
       }
     }
 
-    // 2. Add markers for newly geocoded orders
-    for (const order of curOrders) {
-      if (markersRef.current.has(order.id)) continue; // already on map
-      const coords = curCoords.get(order.id);
-      if (!coords) continue; // undefined (pending) or null (failed) → skip
+    // Add or update markers for each coord group.
+    for (const [key, group] of groups.entries()) {
+      const currentIds = (markerOrdersRef.current.get(key) ?? []).slice().sort().join(',');
+      const newIds = group.orders.map((o) => o.id).slice().sort().join(',');
+      if (markersRef.current.has(key) && currentIds === newIds) continue; // no change
+
+      // Remove stale marker if it exists.
+      if (markersRef.current.has(key)) {
+        map.removeLayer(markersRef.current.get(key));
+        markersRef.current.delete(key);
+      }
+
+      const { lat, lon, orders: grpOrders } = group;
+      const multi = grpOrders.length > 1;
+      const totalPrice = grpOrders.reduce((s, o) => s + o.price, 0);
 
       const priceLabel =
-        order.price >= 1000
-          ? `${Math.round(order.price / 1000)}k`
-          : String(order.price);
+        totalPrice >= 1000
+          ? `${Math.round(totalPrice / 1000)}k`
+          : String(totalPrice);
 
       const icon = L.divIcon({
         html: `<div style="
-            width:38px;height:38px;background:${accent};border-radius:50%;
+            position:relative;
+            width:${multi ? 44 : 38}px;height:${multi ? 44 : 38}px;
+            background:${accent};border-radius:50%;
             border:2.5px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.45);
             display:flex;flex-direction:column;align-items:center;justify-content:center;
             color:#fff;font-family:system-ui,sans-serif;cursor:pointer;gap:0;line-height:1.1;">
-          <span style="font-size:10px;font-weight:800">${priceLabel}</span>
+          <span style="font-size:${multi ? 9 : 10}px;font-weight:800">${priceLabel}</span>
           <span style="font-size:7px;font-weight:600;opacity:.9">₽</span>
+          ${multi ? `<div style="
+              position:absolute;top:-5px;right:-5px;
+              background:#ef4444;color:#fff;font-size:9px;font-weight:800;
+              border-radius:50%;width:16px;height:16px;
+              display:flex;align-items:center;justify-content:center;
+              border:1.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);">${grpOrders.length}</div>` : ''}
         </div>`,
-        iconSize: [38, 38],
-        iconAnchor: [19, 19],
+        iconSize: [multi ? 44 : 38, multi ? 44 : 38],
+        iconAnchor: [multi ? 22 : 19, multi ? 22 : 19],
         className: '',
       });
 
-      const districtLine = order.district
-        ? `<br/><span style="color:#6b7280;font-size:0.78rem">${order.district}</span>`
-        : '';
+      const popupBody = multi
+        ? `<b style="font-size:0.88rem;color:#111">${grpOrders[0].address}</b>
+           <br/><span style="color:#6b7280;font-size:0.78rem">${grpOrders.length} заявки по этому адресу</span>
+           <br/><span style="color:${accent};font-weight:700;font-size:1rem">${totalPrice} ₽ суммарно</span>
+           <br/><span style="color:#4b5563;font-size:0.8rem">Нажмите для выбора заявки</span>`
+        : (() => {
+            const o = grpOrders[0];
+            const districtLine = o.district
+              ? `<br/><span style="color:#6b7280;font-size:0.78rem">${o.district}</span>`
+              : '';
+            return `<b style="font-size:0.88rem;color:#111">${o.address}</b>
+              ${districtLine}
+              <br/><span style="color:${accent};font-weight:700;font-size:1rem">${o.price} ₽</span>
+              <br/><span style="color:#4b5563;font-size:0.8rem">Нажмите для просмотра</span>`;
+          })();
 
-      const popup = L.popup({ offset: [0, -16], maxWidth: 210 }).setContent(
-        `<div style="min-width:150px;font-family:system-ui,sans-serif">
-          <b style="font-size:0.88rem;color:#111">${order.address}</b>
-          ${districtLine}
-          <br/>
-          <span style="color:${accent};font-weight:700;font-size:1rem">${order.price} ₽</span>
-          <br/>
-          <span style="color:#4b5563;font-size:0.8rem">Нажмите для просмотра</span>
-        </div>`
+      const popup = L.popup({ offset: [0, -16], maxWidth: 220 }).setContent(
+        `<div style="min-width:150px;font-family:system-ui,sans-serif">${popupBody}</div>`
       );
 
-      const marker = L.marker([coords.lat, coords.lon], { icon })
+      const marker = L.marker([lat, lon], { icon })
         .addTo(map)
         .bindPopup(popup);
 
+      const ids = grpOrders.map((o) => o.id);
       marker.on('click', () => {
-        onOrderClickRef.current?.(order.id);
+        onOrderClickRef.current?.(ids);
       });
 
-      markersRef.current.set(order.id, marker);
+      markersRef.current.set(key, marker);
+      markerOrdersRef.current.set(key, ids);
     }
 
-    // Auto-fit to show all markers on first load (never fights user panning)
+    // Auto-fit to show all markers on first load.
     if (!hasFitRef.current && markersRef.current.size > 0) {
       hasFitRef.current = true;
       const latlngs = Array.from(markersRef.current.values()).map((m) => m.getLatLng());
@@ -154,13 +193,10 @@ export function OrdersMapAll({
       L.tileLayer(tileUrl, { attribution, maxZoom: 19 }).addTo(map);
       mapRef.current = map;
 
-      // Fix tile layout after the container is painted at its real size
       requestAnimationFrame(() => {
         if (mapRef.current) mapRef.current.invalidateSize();
       });
 
-      // syncMarkers reads from refs → sees latest orders/coords even though
-      // this closure was captured at first render (stale closure fix)
       syncMarkers(L, map);
     });
 
@@ -169,6 +205,7 @@ export function OrdersMapAll({
         mapRef.current.remove();
         mapRef.current = null;
         markersRef.current.clear();
+        markerOrdersRef.current.clear();
         hasFitRef.current = false;
       }
     };
@@ -177,7 +214,7 @@ export function OrdersMapAll({
 
   // ─── RE-SYNC ON DATA CHANGE ───────────────────────────────────────────────
   useEffect(() => {
-    if (!mapRef.current) return; // Leaflet not loaded yet → init will pick it up
+    if (!mapRef.current) return;
     import('leaflet').then(({ default: L }) => {
       if (!mapRef.current) return;
       syncMarkers(L, mapRef.current);
@@ -217,7 +254,6 @@ export function OrdersMapAll({
         minHeight: '400px',
       }}
     >
-      {/* Leaflet container */}
       <div
         ref={containerRef}
         style={{ height: '100%', minHeight: '400px', width: '100%' }}

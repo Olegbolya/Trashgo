@@ -203,6 +203,7 @@ export default function ContractorDashboard() {
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [swipeAcceptingId, setSwipeAcceptingId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [locationOrders, setLocationOrders] = useState<Order[]>([]);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [completionPhotos, setCompletionPhotos] = useState<Record<string, File[]>>({});
   const [submittingId, setSubmittingId] = useState<string | null>(null);
@@ -2094,9 +2095,13 @@ export default function ContractorDashboard() {
                     ordersLoading={ordersLoading}
                     isDark={isDark}
                     accentColor={ACCENT}
-                    onOrderClick={(orderId) => {
-                      const order = availableOrders.find(o => o.id === orderId);
-                      if (order) setSelectedOrder(order);
+                    onOrderClick={(orderIds) => {
+                      const found = orderIds.map(id => availableOrders.find(o => o.id === id)).filter(Boolean) as Order[];
+                      if (found.length === 1) {
+                        setSelectedOrder(found[0]);
+                      } else if (found.length > 1) {
+                        setLocationOrders(found);
+                      }
                     }}
                   />
                 </div>
@@ -2235,7 +2240,7 @@ export default function ContractorDashboard() {
 
       {/* Order detail modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-[80] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => { setSelectedOrder(null); setShowMap(false); }}>
+        <div className="fixed inset-0 z-[1000] flex items-end lg:items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => { setSelectedOrder(null); setShowMap(false); }}>
           <div
             className="w-full lg:max-w-lg rounded-t-2xl lg:rounded-2xl overflow-y-auto"
             style={{ background: c.surface, maxHeight: '90vh' }}
@@ -2371,6 +2376,59 @@ export default function ContractorDashboard() {
               >
                 Больше не показывать эту заявку
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Location-picker: multiple orders at the same address */}
+      {locationOrders.length > 0 && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setLocationOrders([])}
+        >
+          <div
+            className="w-full rounded-t-2xl overflow-y-auto"
+            style={{ background: c.surface, maxHeight: '70vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: c.border, margin: '12px auto 4px' }} />
+            <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${c.border}` }}>
+              <button
+                onClick={() => setLocationOrders([])}
+                style={{ background: c.subtle, border: 'none', cursor: 'pointer', color: c.textSub, display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.4rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.875rem', fontFamily: 'inherit', fontWeight: 500 }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                Назад
+              </button>
+              <span className="text-sm font-bold" style={{ color: c.text }}>
+                {locationOrders.length} заявки по адресу
+              </span>
+              <div style={{ width: 72 }} />
+            </div>
+            <div className="px-4 py-3 space-y-2">
+              {locationOrders.map((order) => (
+                <button
+                  key={order.id}
+                  className="w-full rounded-xl text-left"
+                  style={{ background: c.subtle, border: `1px solid ${c.border}`, padding: '0.875rem 1rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                  onClick={() => { setLocationOrders([]); setSelectedOrder(order); }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0 mr-3">
+                      <div className="text-sm font-semibold truncate" style={{ color: c.text }}>{order.address}</div>
+                      {order.district && (
+                        <div className="text-xs mt-0.5" style={{ color: c.muted }}>{order.district}</div>
+                      )}
+                      <div className="text-xs mt-1" style={{ color: c.textSub }}>
+                        {order.asap ? '⚡ Как можно скорее' : order.volume + ' мешк.'}
+                      </div>
+                    </div>
+                    <div className="text-lg font-bold flex-shrink-0" style={{ color: ACCENT }}>{order.price}₽</div>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         </div>
