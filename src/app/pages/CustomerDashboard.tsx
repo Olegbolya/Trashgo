@@ -244,6 +244,8 @@ export default function CustomerDashboard() {
   const [ordersHasMore, setOrdersHasMore] = useState(false);
   const [ordersLoadingMore, setOrdersLoadingMore] = useState(false);
   const [historySort, setHistorySort] = useState<'date' | 'price'>('date');
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<'all' | 'completed' | 'cancelled'>('all');
+  const [historySearch, setHistorySearch] = useState('');
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [geocodeSuggestions, setGeocodeSuggestions] = useState<{ label: string; full: string }[]>([]);
@@ -1102,17 +1104,37 @@ export default function CustomerDashboard() {
 
           {/* CALENDAR TAB */}
           {activeTab === 'calendar' && user?.subscriptionStatus !== 'expired' && (() => {
-            const historyOrders = [...myOrders.filter(o => o.status === 'completed' || o.status === 'cancelled')]
-              .sort((a, b) => historySort === 'price' ? b.price - a.price : b.createdAtMs - a.createdAtMs);
+            const historyOrders = [...myOrders.filter(o => {
+              if (o.status !== 'completed' && o.status !== 'cancelled') return false;
+              if (historyStatusFilter !== 'all' && o.status !== historyStatusFilter) return false;
+              if (historySearch.trim() && !o.address.toLowerCase().includes(historySearch.trim().toLowerCase())) return false;
+              return true;
+            })].sort((a, b) => historySort === 'price' ? b.price - a.price : b.createdAtMs - a.createdAtMs);
             return (
             <div className="max-w-4xl mx-auto space-y-6">
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                   <h2 className="text-lg font-semibold" style={{ color: c.text }}>История заказов</h2>
                   <div className="flex gap-1.5">
                     {(['date', 'price'] as const).map(s => (
                       <button key={s} onClick={() => setHistorySort(s)} style={{ padding: '0.25rem 0.625rem', borderRadius: '0.5rem', border: `1px solid ${historySort === s ? ACCENT : c.border}`, background: historySort === s ? `${ACCENT}18` : 'transparent', color: historySort === s ? ACCENT : c.muted, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'inherit', fontWeight: historySort === s ? 600 : 400 }}>
                         {s === 'date' ? 'По дате' : 'По цене'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Search + status filter */}
+                <div className="space-y-2 mb-4">
+                  <input
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    placeholder="Поиск по адресу…"
+                    style={{ width: '100%', height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.625rem', border: `1.5px solid ${c.border}`, background: c.subtle, color: c.text, fontSize: '0.875rem', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  />
+                  <div className="flex gap-1.5">
+                    {([['all', 'Все'], ['completed', 'Выполнены'], ['cancelled', 'Отменены']] as const).map(([v, l]) => (
+                      <button key={v} onClick={() => setHistoryStatusFilter(v)} style={{ padding: '0.25rem 0.75rem', borderRadius: '0.5rem', border: `1px solid ${historyStatusFilter === v ? ACCENT : c.border}`, background: historyStatusFilter === v ? `${ACCENT}18` : 'transparent', color: historyStatusFilter === v ? ACCENT : c.muted, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'inherit', fontWeight: historyStatusFilter === v ? 600 : 400 }}>
+                        {l}
                       </button>
                     ))}
                   </div>
@@ -1138,10 +1160,14 @@ export default function CustomerDashboard() {
                 ) : historyOrders.length === 0 ? (
                   <div className="text-center py-12" style={{ ...card }}>
                     <Package className="w-12 h-12 mx-auto mb-4" style={{ color: c.border }} />
-                    <div className="mb-4" style={{ color: c.muted }}>Завершённых заказов пока нет</div>
-                    <button className="px-4 py-2 rounded-xl font-medium" style={{ background: c.text, color: c.surface, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setActiveTab('create')}>
-                      + Создать заказ
-                    </button>
+                    <div className="mb-4" style={{ color: c.muted }}>
+                      {historySearch.trim() || historyStatusFilter !== 'all' ? 'Нет заказов по выбранным фильтрам' : 'Завершённых заказов пока нет'}
+                    </div>
+                    {!historySearch.trim() && historyStatusFilter === 'all' && (
+                      <button className="px-4 py-2 rounded-xl font-medium" style={{ background: c.text, color: c.surface, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setActiveTab('create')}>
+                        + Создать заказ
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-2">

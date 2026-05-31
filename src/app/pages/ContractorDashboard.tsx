@@ -1231,7 +1231,29 @@ export default function ContractorDashboard() {
           {/* HISTORY TAB */}
           {activeTab === 'history' && user?.subscriptionStatus !== 'expired' && (
             <div className="max-w-4xl mx-auto space-y-3">
-              <h1 className="text-xl font-semibold" style={{ color: c.text }}>История заказов</h1>
+              <div className="flex items-center justify-between">
+                <h1 className="text-xl font-semibold" style={{ color: c.text }}>История заказов</h1>
+                <button
+                  onClick={async () => {
+                    try {
+                      const token = (() => { try { const s = localStorage.getItem('auth-storage'); return s ? JSON.parse(s)?.state?.token : null; } catch { return null; } })();
+                      const { API_BASE_URL } = await import('../../api/client');
+                      const res = await fetch(`${API_BASE_URL}/orders?mode=contractor&export=csv`, { headers: { Authorization: `Bearer ${token}` } });
+                      if (!res.ok) return;
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `trashgo-${new Date().toISOString().slice(0, 10)}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    } catch {}
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', borderRadius: '0.625rem', border: `1px solid ${c.border}`, background: 'transparent', color: c.muted, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 500, fontFamily: 'inherit' }}
+                >
+                  📥 CSV
+                </button>
+              </div>
               {(() => {
                 const completedJobs = myJobs.filter(j => j.status === 'completed');
                 const cancelledJobs = myJobs.filter(j => j.status === 'cancelled');
