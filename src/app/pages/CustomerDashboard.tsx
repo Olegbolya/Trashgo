@@ -252,6 +252,7 @@ export default function CustomerDashboard() {
   const [geocodeNoResults, setGeocodeNoResults] = useState(false);
   const geocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [geoLocating, setGeoLocating] = useState(false);
+  const [etaTick, setEtaTick] = useState(0);
 
   const handleGeoLocate = () => {
     if (!navigator.geolocation) { toast.error('Геолокация не поддерживается'); return; }
@@ -554,6 +555,14 @@ export default function CustomerDashboard() {
     const interval = setInterval(poll, 15000);
     return () => clearInterval(interval);
   }, [myOrders, chatOpen]);
+
+  // Live ETA tick: re-render every 30s while any en_route order is active
+  useEffect(() => {
+    const hasEnRoute = myOrders.some(o => o.status === 'en_route' && o.etaMinutes && o.enRouteAt);
+    if (!hasEnRoute) return;
+    const id = setInterval(() => setEtaTick(t => t + 1), 30000);
+    return () => clearInterval(id);
+  }, [myOrders]);
 
   // Android back button: last-declared = highest priority (stack top = closes first)
   useNativeBackClose(showHowItWorks, () => setShowHowItWorks(false));
@@ -1045,6 +1054,7 @@ export default function CustomerDashboard() {
                             ) : order.status === 'en_route' ? (
                               <div className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-lg" style={{ background: '#F9731618', color: '#F97316' }}>
                                 <span>🚗 Едет{order.etaMinutes && order.enRouteAt ? (() => {
+                                  void etaTick;
                                   const elapsed = Math.floor((Date.now() - new Date(order.enRouteAt!).getTime()) / 60000);
                                   const remaining = Math.max(0, order.etaMinutes! - elapsed);
                                   return remaining > 0 ? ` ~${remaining} мин` : ' — уже рядом!';
