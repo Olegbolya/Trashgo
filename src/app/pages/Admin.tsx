@@ -158,6 +158,10 @@ export default function Admin() {
   const [extendingSubscription, setExtendingSubscription] = useState<string | null>(null);
   const [broadcastingUpdate, setBroadcastingUpdate] = useState(false);
   const [broadcastResult, setBroadcastResult] = useState<{ sent: number; failed: number; total: number } | null>(null);
+  const [grantPhone, setGrantPhone] = useState('');
+  const [grantMonths, setGrantMonths] = useState(1);
+  const [grantSubmitting, setGrantSubmitting] = useState(false);
+  const [grantResult, setGrantResult] = useState<{ name: string; phone: string; expiresAt: string } | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const apiFetch = useCallback(async (path: string, opts?: RequestInit) => {
@@ -416,6 +420,19 @@ export default function Admin() {
     finally { setExtendingSubscription(null); }
   };
 
+  const handleGrantByPhone = async () => {
+    const phone = grantPhone.trim();
+    if (!phone) return;
+    setGrantSubmitting(true);
+    setGrantResult(null);
+    try {
+      const r = await apiFetch('/admin/grant-subscription', { method: 'POST', body: JSON.stringify({ phone, months: grantMonths }) });
+      setGrantResult(r.data);
+      setGrantPhone('');
+    } catch (e: any) { setError(e.message || 'Пользователь не найден'); }
+    finally { setGrantSubmitting(false); }
+  };
+
   const bg = '#0f172a';
   const surface = '#1e293b';
   const border = '#334155';
@@ -647,11 +664,9 @@ export default function Admin() {
                           {verifying === u.id ? '...' : '✓ Верифицировать'}
                         </button>
                       )}
-                      {u.role === 'contractor' && (
-                        <button disabled={extendingSubscription === u.id} onClick={() => handleExtendSubscription(u.id)} style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#a855f715', border: '1px solid #a855f740', color: '#a855f7', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}>
-                          {extendingSubscription === u.id ? '...' : '🔄 +30 дней'}
-                        </button>
-                      )}
+                      <button disabled={extendingSubscription === u.id} onClick={() => handleExtendSubscription(u.id)} style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#a855f715', border: '1px solid #a855f740', color: '#a855f7', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}>
+                        {extendingSubscription === u.id ? '...' : '🔄 +30 дней'}
+                      </button>
                       <button onClick={() => setDeleteModal({ userId: u.id, name: u.name || u.phone })} style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#ef444415', border: '1px solid #ef444440', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}>
                         🗑 Удалить
                       </button>
@@ -710,6 +725,44 @@ export default function Admin() {
         {/* PLANS TAB */}
         {!loading && tab === 'plans' && (
           <div>
+            {/* GRANT SUBSCRIPTION DIRECTLY */}
+            <div style={{ background: surface, border: `1px solid #a855f740`, borderRadius: '0.875rem', padding: '1rem 1.25rem', marginBottom: '1.25rem' }}>
+              <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#a855f7', marginBottom: '0.75rem' }}>🎁 Выдать абонемент по номеру телефона</div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div style={{ flex: '1 1 180px' }}>
+                  <div style={{ fontSize: '0.75rem', color: muted, marginBottom: '0.25rem' }}>Телефон (+7...)</div>
+                  <input
+                    value={grantPhone}
+                    onChange={e => { setGrantPhone(e.target.value); setGrantResult(null); }}
+                    onKeyDown={e => { if (e.key === 'Enter') handleGrantByPhone(); }}
+                    placeholder="+79991234567"
+                    style={{ width: '100%', height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.5rem', border: `1px solid ${border}`, background: '#1a2035', color: text, fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div style={{ flex: '0 0 100px' }}>
+                  <div style={{ fontSize: '0.75rem', color: muted, marginBottom: '0.25rem' }}>Месяцев</div>
+                  <input
+                    type="number" min={1} max={12}
+                    value={grantMonths}
+                    onChange={e => setGrantMonths(Math.max(1, Math.min(12, Number(e.target.value))))}
+                    style={{ width: '100%', height: '2.25rem', padding: '0 0.75rem', borderRadius: '0.5rem', border: `1px solid ${border}`, background: '#1a2035', color: text, fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <button
+                  disabled={!grantPhone.trim() || grantSubmitting}
+                  onClick={handleGrantByPhone}
+                  style={{ height: '2.25rem', padding: '0 1.25rem', borderRadius: '0.5rem', background: grantSubmitting ? muted : '#a855f7', color: '#fff', border: 'none', cursor: grantSubmitting || !grantPhone.trim() ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600, flexShrink: 0 }}
+                >
+                  {grantSubmitting ? '...' : '✓ Выдать'}
+                </button>
+              </div>
+              {grantResult && (
+                <div style={{ marginTop: '0.75rem', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', background: '#4ade8015', border: '1px solid #4ade8040', fontSize: '0.8125rem', color: '#4ade80' }}>
+                  ✅ Абонемент выдан: <strong>{grantResult.name || grantResult.phone}</strong> · до {new Date(grantResult.expiresAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </div>
+              )}
+            </div>
+
             <div style={{ fontSize: '1rem', fontWeight: 700, color: text, marginBottom: '1rem' }}>
               💳 Ожидают подтверждения оплаты — {pendingPlans.length}
             </div>

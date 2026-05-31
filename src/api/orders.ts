@@ -62,8 +62,8 @@ export const ordersApi = {
     return api.get<ApiResponse<ChatMessage[]>>(`/orders/${id}/messages`);
   },
 
-  sendMessage(id: string, text: string) {
-    return api.post<ChatMessage>(`/orders/${id}/messages`, { text });
+  sendMessage(id: string, text: string, photoUrl?: string | null) {
+    return api.post<ChatMessage>(`/orders/${id}/messages`, { text, ...(photoUrl ? { photoUrl } : {}) });
   },
 
   rate(id: string, rating: number, review?: string) {

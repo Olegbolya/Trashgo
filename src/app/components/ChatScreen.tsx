@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Phone, ArrowLeft, Send } from 'lucide-react';
+import { Phone, ArrowLeft, Send, Camera } from 'lucide-react';
 import { isNative } from '../../lib/platform';
 import { hapticTap } from '../../lib/haptics';
 import type { ChatMessage } from '../../types/order';
@@ -16,17 +16,20 @@ interface Props {
   onClose: () => void;
   onInputChange: (v: string) => void;
   onSend: () => void;
+  onSendPhoto?: (file: File) => Promise<void>;
   emptyText?: string;
 }
 
 export function ChatScreen({
   otherName, otherPhone, messages, input, sending, myUserId,
-  accentColor, isDark, onClose, onInputChange, onSend, emptyText,
+  accentColor, isDark, onClose, onInputChange, onSend, onSendPhoto, emptyText,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [overlayHeight, setOverlayHeight] = useState<number | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -57,6 +60,30 @@ export function ChatScreen({
     subtle:  isDark ? '#1f2937' : '#f3f4f6',
     input:   isDark ? '#1f2937' : '#ffffff',
     header:  isDark ? '#1e2433' : '#ffffff',
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !onSendPhoto) return;
+    e.target.value = '';
+    await onSendPhoto(file);
+  };
+
+  const renderMsgContent = (msg: ChatMessage, isMine: boolean) => {
+    if (msg.photoUrl) {
+      return (
+        <div>
+          <img
+            src={msg.photoUrl}
+            alt="фото"
+            onClick={() => setLightboxUrl(msg.photoUrl!)}
+            style={{ maxWidth: '100%', maxHeight: '220px', borderRadius: '0.5rem', cursor: 'pointer', display: 'block', objectFit: 'cover' }}
+          />
+          {msg.text && <div style={{ marginTop: '0.35rem', fontSize: '0.875rem', wordBreak: 'break-word' }}>{msg.text}</div>}
+        </div>
+      );
+    }
+    return <>{msg.text}</>;
   };
 
   const isFullscreen = isNative();
@@ -132,7 +159,7 @@ export function ChatScreen({
               <div
                 style={{
                   maxWidth: '78%',
-                  padding: '0.5rem 0.75rem',
+                  padding: msg.photoUrl ? '0.375rem' : '0.5rem 0.75rem',
                   borderRadius: isMine ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem',
                   background: isMine ? accentColor : c.surface,
                   color: isMine ? 'white' : c.text,
@@ -141,7 +168,7 @@ export function ChatScreen({
                   boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
                 }}
               >
-                {msg.text}
+                {renderMsgContent(msg, isMine)}
               </div>
               <span style={{ fontSize: '0.65rem', color: c.muted, marginTop: '0.15rem', paddingLeft: '0.25rem', paddingRight: '0.25rem' }}>
                 {new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
@@ -161,8 +188,19 @@ export function ChatScreen({
           background: c.surface,
           borderTop: `1px solid ${c.border}`,
           flexShrink: 0,
+          alignItems: 'center',
         }}
       >
+        <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+        {onSendPhoto && (
+          <button
+            disabled={sending}
+            onClick={() => { hapticTap(); fileRef.current?.click(); }}
+            style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: c.subtle, border: `1.5px solid ${c.border}`, color: c.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          >
+            <Camera className="w-4 h-4" />
+          </button>
+        )}
         <input
           ref={inputRef}
           value={input}
@@ -183,7 +221,7 @@ export function ChatScreen({
           }}
         />
         <button
-          disabled={!input.trim() || sending}
+          disabled={(!input.trim() && !sending) ? false : sending}
           onClick={() => { hapticTap(); onSend(); }}
           style={{
             width: '2.5rem',
@@ -206,7 +244,21 @@ export function ChatScreen({
     </div>
   );
 
-  if (isFullscreen) return overlay;
+  if (isFullscreen) {
+    return (
+      <>
+        {overlay}
+        {lightboxUrl && (
+          <div
+            onClick={() => setLightboxUrl(null)}
+            style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}
+          >
+            <img src={lightboxUrl} alt="фото" style={{ maxWidth: '95vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '0.5rem' }} />
+          </div>
+        )}
+      </>
+    );
+  }
 
   // Desktop: render as inline panel inside the order card
   return (
@@ -230,8 +282,8 @@ export function ChatScreen({
           return (
             <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
               {!isMine && <span style={{ fontSize: '0.7rem', color: c.muted, marginBottom: '0.15rem', paddingLeft: '0.25rem' }}>{msg.senderName}</span>}
-              <div style={{ maxWidth: '80%', padding: '0.5rem 0.75rem', borderRadius: isMine ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem', background: isMine ? accentColor : c.surface, color: isMine ? 'white' : c.text, fontSize: '0.875rem', wordBreak: 'break-word' }}>
-                {msg.text}
+              <div style={{ maxWidth: '80%', padding: msg.photoUrl ? '0.375rem' : '0.5rem 0.75rem', borderRadius: isMine ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem', background: isMine ? accentColor : c.surface, color: isMine ? 'white' : c.text, fontSize: '0.875rem', wordBreak: 'break-word' }}>
+                {renderMsgContent(msg, isMine)}
               </div>
               <span style={{ fontSize: '0.65rem', color: c.muted, marginTop: '0.15rem', paddingLeft: '0.25rem', paddingRight: '0.25rem' }}>
                 {new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
@@ -241,7 +293,16 @@ export function ChatScreen({
         })}
       </div>
       {/* Input */}
-      <div style={{ display: 'flex', gap: '0.5rem', padding: '0.625rem', background: c.surface, borderTop: `1px solid ${c.border}` }}>
+      <div style={{ display: 'flex', gap: '0.5rem', padding: '0.625rem', background: c.surface, borderTop: `1px solid ${c.border}`, alignItems: 'center' }}>
+        {onSendPhoto && (
+          <button
+            disabled={sending}
+            onClick={() => fileRef.current?.click()}
+            style={{ width: '2.25rem', height: '2.25rem', borderRadius: '0.5rem', background: c.subtle, border: `1.5px solid ${c.border}`, color: c.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          >
+            <Camera className="w-3.5 h-3.5" />
+          </button>
+        )}
         <input
           value={input}
           onChange={(e) => onInputChange(e.target.value)}
@@ -257,6 +318,14 @@ export function ChatScreen({
           <Send className="w-3.5 h-3.5" />
         </button>
       </div>
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}
+        >
+          <img src={lightboxUrl} alt="фото" style={{ maxWidth: '95vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '0.5rem' }} />
+        </div>
+      )}
     </div>
   );
 }

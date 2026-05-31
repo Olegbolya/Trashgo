@@ -5,6 +5,7 @@ export interface ChatMessage {
   senderId: string;
   senderName: string;
   text: string;
+  photoUrl?: string | null;
   createdAt: string;
 }
 

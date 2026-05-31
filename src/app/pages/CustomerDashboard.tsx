@@ -194,7 +194,7 @@ export default function CustomerDashboard() {
     date: string; time: string; asap: boolean; volume: number; price: number;
     description: string; photoUrls: string[]; completionPhotoUrls: string[];
     status: 'waiting' | 'active' | 'en_route' | 'pending' | 'payment' | 'cancelled' | 'completed';
-    responses: number; createdAt: string; ratingByCustomer: number | null;
+    responses: number; createdAt: string; createdAtMs: number; ratingByCustomer: number | null;
     contractorName?: string;
     pickedUp?: boolean;
     wasteType?: 'household' | 'construction' | 'bulky';
@@ -227,6 +227,7 @@ export default function CustomerDashboard() {
       status,
       responses: 0,
       createdAt: new Date(o.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }),
+      createdAtMs: new Date(o.createdAt).getTime(),
       ratingByCustomer: o.ratingByCustomer ?? null,
       contractorName: o.contractorName ?? '',
       pickedUp: o.status === 'in_progress' || o.status === 'pending_confirmation' || o.status === 'pending_payment',
@@ -1102,7 +1103,7 @@ export default function CustomerDashboard() {
           {/* CALENDAR TAB */}
           {activeTab === 'calendar' && user?.subscriptionStatus !== 'expired' && (() => {
             const historyOrders = [...myOrders.filter(o => o.status === 'completed' || o.status === 'cancelled')]
-              .sort((a, b) => historySort === 'price' ? b.price - a.price : 0);
+              .sort((a, b) => historySort === 'price' ? b.price - a.price : b.createdAtMs - a.createdAtMs);
             return (
             <div className="max-w-4xl mx-auto space-y-6">
               <div>
@@ -2258,6 +2259,18 @@ export default function CustomerDashboard() {
           } catch { setChatInput(text); }
           finally { setChatSending(false); }
         };
+        const sendChatPhoto = async (file: File) => {
+          if (chatSending || !selectedOrder) return;
+          setChatSending(true);
+          try {
+            const photoUrl = await uploadPhotoWithFallback(file, 'chat');
+            await ordersApi.sendMessage(selectedOrder.id, '', photoUrl);
+            const res = await ordersApi.getMessages(selectedOrder.id) as any;
+            setChatMessages(res?.data ?? []);
+            setTimeout(scrollChatToBottom, 150);
+          } catch {}
+          finally { setChatSending(false); }
+        };
         return (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}
@@ -2379,6 +2392,7 @@ export default function CustomerDashboard() {
                 onClose={() => setChatOpen(false)}
                 onInputChange={setChatInput}
                 onSend={sendChatMessage}
+                onSendPhoto={sendChatPhoto}
                 emptyText="Начните переписку с исполнителем"
               />
             )}

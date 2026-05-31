@@ -1151,6 +1151,17 @@ export default function ContractorDashboard() {
                                         setTimeout(scrollChatToBottom, 50);
                                       } catch { setChatInput(text); } finally { setChatSending(false); }
                                     }}
+                                    onSendPhoto={async (file: File) => {
+                                      if (chatSending) return;
+                                      setChatSending(true);
+                                      try {
+                                        const photoUrl = await uploadPhotoWithFallback(file, 'chat');
+                                        await ordersApi.sendMessage(job.id, '', photoUrl);
+                                        const res = await ordersApi.getMessages(job.id) as any;
+                                        setChatMessages(res?.data ?? []);
+                                        setTimeout(scrollChatToBottom, 50);
+                                      } catch {} finally { setChatSending(false); }
+                                    }}
                                     emptyText="Начните переписку с заказчиком"
                                   />
                                 )}
@@ -1221,6 +1232,73 @@ export default function ContractorDashboard() {
           {activeTab === 'history' && user?.subscriptionStatus !== 'expired' && (
             <div className="max-w-4xl mx-auto space-y-3">
               <h1 className="text-xl font-semibold" style={{ color: c.text }}>История заказов</h1>
+              {(() => {
+                const completedJobs = myJobs.filter(j => j.status === 'completed');
+                const cancelledJobs = myJobs.filter(j => j.status === 'cancelled');
+                const allDone = [...completedJobs, ...cancelledJobs];
+
+                // Earnings stats
+                const nowD = new Date();
+                const thisMonthStart = new Date(nowD.getFullYear(), nowD.getMonth(), 1);
+                const lastMonthStart = new Date(nowD.getFullYear(), nowD.getMonth() - 1, 1);
+                const thisMonthEarned = completedJobs.filter(j => new Date(j.createdAt) >= thisMonthStart).reduce((s, j) => s + j.price, 0);
+                const lastMonthEarned = completedJobs.filter(j => { const d = new Date(j.createdAt); return d >= lastMonthStart && d < thisMonthStart; }).reduce((s, j) => s + j.price, 0);
+                const totalEarned = completedJobs.reduce((s, j) => s + j.price, 0);
+                const weekMs = 7 * 24 * 60 * 60 * 1000;
+                const weeklyData = Array.from({ length: 8 }, (_, i) => {
+                  const wEnd = new Date(nowD.getTime() - (7 - i - 1) * weekMs);
+                  const wStart = new Date(wEnd.getTime() - weekMs);
+                  return {
+                    label: `${wStart.getDate()}.${String(wStart.getMonth() + 1).padStart(2, '0')}`,
+                    earned: completedJobs.filter(j => { const t = new Date(j.createdAt).getTime(); return t >= wStart.getTime() && t < wEnd.getTime(); }).reduce((s, j) => s + j.price, 0),
+                  };
+                });
+                const maxWeekly = Math.max(...weeklyData.map(w => w.earned), 1);
+                const chartH = 56, barW = 24, gap = 6;
+
+                return (
+                  <>
+                    {/* Earnings summary cards */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: 'Этот месяц', value: thisMonthEarned, color: '#4CAF50' },
+                        { label: 'Прошлый месяц', value: lastMonthEarned, color: '#38bdf8' },
+                        { label: 'Всего заработано', value: totalEarned, color: ACCENT },
+                      ].map((s, i) => (
+                        <div key={i} style={{ ...card, padding: '0.75rem', textAlign: 'center' }}>
+                          <div className="text-base font-bold" style={{ color: s.color }}>{s.value.toLocaleString('ru-RU')}₽</div>
+                          <div className="text-xs mt-0.5" style={{ color: c.muted }}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Weekly bar chart */}
+                    {totalEarned > 0 && (
+                      <div style={{ ...card, padding: '0.875rem 1rem' }}>
+                        <div className="text-xs font-semibold mb-2" style={{ color: c.muted }}>Заработок по неделям</div>
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: `${gap}px`, height: `${chartH + 18}px` }}>
+                          {weeklyData.map((w, i) => (
+                            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', flex: 1 }}>
+                              <div style={{ fontSize: '0.6rem', color: c.muted, height: '12px', display: 'flex', alignItems: 'flex-end' }}>
+                                {w.earned > 0 ? `${Math.round(w.earned / 1000) > 0 ? Math.round(w.earned / 1000) + 'к' : w.earned}` : ''}
+                              </div>
+                              <div style={{
+                                width: '100%', borderRadius: '3px 3px 0 0',
+                                height: `${Math.max(3, Math.round((w.earned / maxWeekly) * chartH))}px`,
+                                background: w.earned > 0 ? `linear-gradient(to top, ${ACCENT}, ${ACCENT}99)` : c.border,
+                                transition: 'height 0.3s ease',
+                              }} />
+                              <div style={{ fontSize: '0.55rem', color: c.muted, whiteSpace: 'nowrap' }}>{w.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {myJobsLoading && <div className="text-xs text-center mt-1" style={{ color: c.muted }}>Загрузка истории...</div>}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
               {(() => {
                 const completedJobs = myJobs.filter(j => j.status === 'completed');
                 const cancelledJobs = myJobs.filter(j => j.status === 'cancelled');
