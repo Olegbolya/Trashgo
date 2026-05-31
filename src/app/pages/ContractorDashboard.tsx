@@ -388,7 +388,13 @@ export default function ContractorDashboard() {
 
     load();
     const interval = setInterval(load, 15000);
-    return () => { cancelled = true; clearInterval(interval); };
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      // Remove IDs that didn't get coords yet — they'll be retried on next tab visit
+      // (orders that succeeded stay in orderCoords state so re-geocoding is skipped by the .has() check)
+      geocodingRef.current.clear();
+    };
   }, [activeTab]);
 
   // Persist filters to localStorage whenever they change
