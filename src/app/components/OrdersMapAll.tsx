@@ -31,6 +31,7 @@ export function OrdersMapAll({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<Map<string, any>>(new Map());
+  const hasFitRef = useRef(false);
 
   // ─── ALWAYS-FRESH REFS ────────────────────────────────────────────────────
   // Updated synchronously during every render so any async closure can safely
@@ -120,6 +121,17 @@ export function OrdersMapAll({
 
       markersRef.current.set(order.id, marker);
     }
+
+    // Auto-fit to show all markers on first load (never fights user panning)
+    if (!hasFitRef.current && markersRef.current.size > 0) {
+      hasFitRef.current = true;
+      const latlngs = Array.from(markersRef.current.values()).map((m) => m.getLatLng());
+      if (latlngs.length === 1) {
+        map.setView(latlngs[0], 14);
+      } else {
+        map.fitBounds(L.latLngBounds(latlngs).pad(0.35));
+      }
+    }
   }
 
   // ─── INIT MAP (once on mount) ─────────────────────────────────────────────
@@ -157,6 +169,7 @@ export function OrdersMapAll({
         mapRef.current.remove();
         mapRef.current = null;
         markersRef.current.clear();
+        hasFitRef.current = false;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
