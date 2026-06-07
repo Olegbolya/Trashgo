@@ -219,9 +219,7 @@ export default function Home() {
       }}>
         <div style={{ height: '3.5rem', maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.5rem' }}>
           <a href="#" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-            <div style={{ width: 30, height: 30, borderRadius: 8, background: btnGrad, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Trash2 size={16} color="#fff" />
-            </div>
+            <img src="/logo.png" alt="TrashGo" style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0 }} />
             <span style={{ fontSize: '1rem', fontWeight: 800, color: text, letterSpacing: '-0.02em' }}>Trash<span style={{ color: accent, transition: 'color 0.4s' }}>Go</span></span>
           </a>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -554,9 +552,7 @@ export default function Home() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '2rem 3rem', marginBottom: '2.5rem' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.875rem' }}>
-                <div style={{ width: 28, height: 28, borderRadius: 7, background: btnGrad, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Trash2 size={14} color="#fff" />
-                </div>
+                <img src="/logo.png" alt="TrashGo" style={{ width: 30, height: 30, borderRadius: 7, flexShrink: 0 }} />
                 <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>TrashGo</span>
               </div>
               <p style={{ fontSize: '0.84rem', lineHeight: 1.7, maxWidth: 260, margin: 0 }}>Платформа для вывоза мусора. Соединяем заказчиков с исполнителями быстро и надёжно.</p>
@@ -625,9 +621,7 @@ export default function Home() {
               <X size={16} />
             </button>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.75rem' }}>
-              <div style={{ width: 64, height: 64, borderRadius: 18, background: btnGrad, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, boxShadow: btnShadow }}>
-                <Trash2 size={32} color="#fff" />
-              </div>
+              <img src="/logo.png" alt="TrashGo" style={{ width: 72, height: 72, borderRadius: 18, marginBottom: 12, boxShadow: btnShadow }} />
               <div style={{ fontSize: '1.2rem', fontWeight: 800, color: text, letterSpacing: '-0.02em' }}>Trash<span style={{ color: accent, transition: 'color 0.4s' }}>Go</span></div>
             </div>
             <h2 style={{ fontSize: '1.55rem', fontWeight: 800, color: text, textAlign: 'center', margin: '0 0 8px' }}>
