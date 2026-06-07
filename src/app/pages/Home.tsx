@@ -17,25 +17,25 @@ function formatPhone(raw: string) {
 }
 
 const FEATURES = [
-  { icon: '🕐', bg: '#dcfce7', name: 'Быстрый отклик', desc: 'Найдите исполнителя в течение 15 минут. Система автоматически подбирает ближайших специалистов.' },
-  { icon: '🛡️', bg: '#dbeafe', name: 'Гарантия качества', desc: 'Все исполнители проходят верификацию. Рейтинговая система помогает выбрать лучшего.' },
-  { icon: '💰', bg: '#fed7aa', name: 'Прозрачные цены', desc: 'Вы сами указываете желаемую цену. Никаких скрытых комиссий — оплата напрямую через СБП.' },
-  { icon: '📍', bg: '#e9d5ff', name: 'Отслеживание', desc: 'Следите за статусом заказа в реальном времени на карте. Push-уведомления о каждом этапе.' },
-  { icon: '🌱', bg: '#fce7f3', name: 'Экологичность', desc: 'Мы сортируем и перерабатываем мусор. Вместе мы делаем планету чище.' },
-  { icon: '💬', bg: '#ccfbf1', name: 'Поддержка 24/7', desc: 'Наша команда поддержки всегда на связи. Решим любой вопрос в кратчайшие сроки.' },
+  { icon: '🗺️', bg: '#dcfce7', name: 'Заявки на карте', desc: 'Исполнители видят все доступные заявки в своём районе на интерактивной карте — никакого посредника.' },
+  { icon: '💸', bg: '#fed7aa', name: 'Вы ставите цену', desc: 'Укажите желаемую сумму сами при создании заявки. Оплата — напрямую через СБП, без комиссии платформы.' },
+  { icon: '🛡️', bg: '#dbeafe', name: 'Проверенные исполнители', desc: 'Все исполнители проходят верификацию. Рейтинги и отзывы помогают сделать правильный выбор.' },
+  { icon: '💬', bg: '#e9d5ff', name: 'Встроенный чат', desc: 'Общайтесь с исполнителем прямо в приложении — без посторонних мессенджеров и лишних контактов.' },
+  { icon: '📱', bg: '#fce7f3', name: 'Мобильное приложение', desc: 'Android APK и PWA для iPhone — всегда под рукой, уведомления о новых заявках приходят мгновенно.' },
+  { icon: '🎁', bg: '#ccfbf1', name: 'Реферальная программа', desc: 'Приглашайте друзей и платите меньше. 5 активных друзей — абонемент бесплатно навсегда.' },
 ];
 
 const STEPS = [
-  { n: '1', title: 'Опишите задачу', desc: 'Укажите тип мусора, объём и адрес вывоза' },
-  { n: '2', title: 'Получите отклики', desc: 'Исполнители предложат свои услуги и цены' },
-  { n: '3', title: 'Выберите лучшего', desc: 'Сравните рейтинги, отзывы и стоимость' },
-  { n: '4', title: 'Мусор вывезен!', desc: 'Оцените работу исполнителя и оставьте отзыв' },
+  { n: '1', title: 'Создайте заявку', desc: 'Укажите адрес, опишите мусор, прикрепите фото и поставьте желаемую цену' },
+  { n: '2', title: 'Исполнитель берёт заказ', desc: 'Он видит вашу заявку на карте в своём районе и сам принимает её' },
+  { n: '3', title: 'Уточните детали в чате', desc: 'Договоритесь о времени и нюансах прямо в приложении' },
+  { n: '4', title: 'Мусор вывезен!', desc: 'Исполнитель приезжает и делает работу, оплата через СБП' },
 ];
 
 const TESTIMONIALS = [
   { avatar: 'АК', name: 'Анна Козлова', role: 'Заказчик, Казань', text: '«Заказала вывоз строительного мусора после ремонта. Исполнитель приехал через 20 минут! Всё забрали, убрали. Очень довольна!»' },
   { avatar: 'ДМ', name: 'Дмитрий Морозов', role: 'Исполнитель, Казань', text: '«Работаю на TrashGo уже полгода. Зарабатываю около 40 000 ₽ в месяц. Удобное приложение, много заказов в моём районе.»' },
-  { avatar: 'ЕС', name: 'Елена Смирнова', role: 'УК «ДомСервис»', text: '«Используем для нашей управляющей компании. Регулярный вывоз мусора из контейнеров. Всегда вовремя, всегда чисто.»' },
+  { avatar: 'МК', name: 'Михаил Кузнецов', role: 'Заказчик, Казань', text: '«Переезжали — накопилось много старой мебели и хлама. Нашёл исполнителя через TrashGo за 10 минут, всё вывезли за один приезд. Очень доволен!»' },
 ];
 
 const FAQ_ITEMS = [
@@ -203,8 +203,6 @@ export default function Home() {
       <section style={{ position: 'relative', overflow: 'hidden', paddingTop: '3.5rem' }}>
         {/* Gradient background */}
         <div style={{ position: 'absolute', inset: 0, background: isDark ? 'linear-gradient(135deg, #0f172a 0%, #0c1a0e 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 55%, #ecfdf5 100%)' }} />
-        {/* Grid pattern */}
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: `linear-gradient(${isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)'} 1px, transparent 1px), linear-gradient(90deg, ${isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)'} 1px, transparent 1px)`, backgroundSize: '40px 40px' }} />
         {/* Floating blobs */}
         <div className="tg-blob" style={{ position: 'absolute', top: '-8%', right: '-4%', width: 400, height: 400, borderRadius: '50%', background: isDark ? 'rgba(34,197,94,0.06)' : 'rgba(34,197,94,0.07)', animationDelay: '0s', pointerEvents: 'none' }} />
         <div className="tg-blob" style={{ position: 'absolute', bottom: '-6%', left: '8%', width: 280, height: 280, borderRadius: '50%', background: isDark ? 'rgba(34,197,94,0.05)' : 'rgba(34,197,94,0.06)', animationDelay: '3s', pointerEvents: 'none' }} />
@@ -387,18 +385,18 @@ export default function Home() {
             {/* Customers */}
             <div className="tg-anim tg-card" style={{ background: surface, borderRadius: 20, padding: '1.75rem', border: `2px solid ${border}`, textAlign: 'center' }}>
               <div style={{ fontSize: '1.1rem', fontWeight: 700, color: text, marginBottom: 4 }}>Для заказчиков</div>
-              <div style={{ fontSize: '0.82rem', color: textMuted, marginBottom: '1rem' }}>Разместите заявку бесплатно</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: text, letterSpacing: '-0.04em', marginBottom: 2 }}>0 <span style={{ fontSize: '1rem', fontWeight: 500, color: textMuted }}>₽</span></div>
-              <div style={{ fontSize: '0.8rem', color: textMuted, marginBottom: '1.375rem' }}>навсегда бесплатно</div>
+              <div style={{ fontSize: '0.82rem', color: textMuted, marginBottom: '1rem' }}>Первый месяц бесплатно</div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: text, letterSpacing: '-0.04em', marginBottom: 2 }}>50 <span style={{ fontSize: '1rem', fontWeight: 500, color: textMuted }}>₽</span></div>
+              <div style={{ fontSize: '0.8rem', color: textMuted, marginBottom: '1.375rem' }}>в месяц</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.375rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {['Создание заявок', 'Отслеживание на карте', 'Отзывы и рейтинги', 'Оплата напрямую через СБП', 'Push-уведомления'].map(item => (
+                {['Создание заявок на вывоз', 'Карта статуса заказа', 'Встроенный чат с исполнителем', 'Отзывы и рейтинги', '30 дней бесплатно при регистрации'].map(item => (
                   <li key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '0.875rem', color: textSub }}>
                     <span style={{ color: '#22c55e', fontWeight: 700, flexShrink: 0 }}>✓</span>{item}
                   </li>
                 ))}
               </ul>
               <button onClick={() => { handleRoleSelect('customer'); }} style={{ width: '100%', padding: '0.75rem', borderRadius: 12, fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', background: surface, color: text, border: `2px solid ${border}`, fontFamily: 'inherit', transition: 'border-color 0.2s' }}>
-                Попробовать бесплатно
+                Начать бесплатно
               </button>
             </div>
             {/* Contractors — featured */}
