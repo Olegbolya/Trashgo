@@ -620,44 +620,44 @@ export default function Home() {
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}
           style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', background: 'rgba(0,0,0,0.52)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
         >
-          <div className="tg-modal" style={{ background: surface, borderRadius: 24, padding: '2.25rem 2rem 2rem', width: '100%', maxWidth: 400, position: 'relative', boxShadow: isDark ? '0 32px 80px rgba(0,0,0,0.7)' : '0 32px 80px rgba(0,0,0,0.18)', border: `1px solid ${border}` }}>
-            <button onClick={() => setShowModal(false)} style={{ position: 'absolute', top: 14, right: 14, width: 32, height: 32, borderRadius: 8, border: 'none', background: isDark ? 'rgba(255,255,255,0.08)' : '#f3f4f6', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: textMuted }}>
-              <X size={15} />
+          <div className="tg-modal" style={{ background: surface, borderRadius: 28, padding: '3rem 2.75rem 2.5rem', width: '100%', maxWidth: 500, position: 'relative', boxShadow: isDark ? '0 40px 100px rgba(0,0,0,0.75)' : '0 40px 100px rgba(0,0,0,0.22)', border: `1px solid ${border}` }}>
+            <button onClick={() => setShowModal(false)} style={{ position: 'absolute', top: 18, right: 18, width: 36, height: 36, borderRadius: 10, border: 'none', background: isDark ? 'rgba(255,255,255,0.08)' : '#f3f4f6', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: textMuted }}>
+              <X size={16} />
             </button>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <div style={{ width: 52, height: 52, borderRadius: 14, background: btnGrad, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, boxShadow: btnShadow }}>
-                <Trash2 size={26} color="#fff" />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.75rem' }}>
+              <div style={{ width: 64, height: 64, borderRadius: 18, background: btnGrad, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, boxShadow: btnShadow }}>
+                <Trash2 size={32} color="#fff" />
               </div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: text, letterSpacing: '-0.02em' }}>Trash<span style={{ color: accent, transition: 'color 0.4s' }}>Go</span></div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: text, letterSpacing: '-0.02em' }}>Trash<span style={{ color: accent, transition: 'color 0.4s' }}>Go</span></div>
             </div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: text, textAlign: 'center', margin: '0 0 6px' }}>
+            <h2 style={{ fontSize: '1.55rem', fontWeight: 800, color: text, textAlign: 'center', margin: '0 0 8px' }}>
               {modalMode === 'login' ? 'Вход в аккаунт' : 'Создать аккаунт'}
             </h2>
-            <p style={{ fontSize: '0.83rem', color: textMuted, textAlign: 'center', margin: '0 0 1.5rem', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.88rem', color: textMuted, textAlign: 'center', margin: '0 0 2rem', lineHeight: 1.6 }}>
               Введите email — пришлём код подтверждения
             </p>
             <form onSubmit={handleModalSubmit}>
-              <div style={{ marginBottom: '0.875rem' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: textSub, marginBottom: 5 }}>Email</label>
+              <div style={{ marginBottom: '1.125rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: textSub, marginBottom: 7 }}>Email</label>
                 <input
                   type="email"
                   placeholder="your@email.com"
                   value={modalEmail}
                   onChange={e => { setModalError(''); setModalEmail(e.target.value); }}
                   autoFocus
-                  style={{ display: 'block', width: '100%', height: '2.875rem', padding: '0 0.875rem', borderRadius: 10, border: `1.5px solid ${modalError ? '#ef4444' : modalEmail.length > 0 ? accent : border}`, fontSize: '0.95rem', outline: 'none', background: inputBg, color: text, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                  style={{ display: 'block', width: '100%', height: '3.25rem', padding: '0 1rem', borderRadius: 12, border: `1.5px solid ${modalError ? '#ef4444' : modalEmail.length > 0 ? accent : border}`, fontSize: '1rem', outline: 'none', background: inputBg, color: text, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                 />
-                {modalError && <p style={{ color: '#ef4444', fontSize: '0.74rem', marginTop: 4, marginBottom: 0 }}>{modalError}</p>}
+                {modalError && <p style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: 5, marginBottom: 0 }}>{modalError}</p>}
               </div>
               <button
                 type="submit"
                 disabled={modalLoading || !modalEmailValid}
-                style={{ display: 'block', width: '100%', padding: '0.875rem', borderRadius: 12, background: btnGrad, color: '#fff', fontSize: '0.9rem', fontWeight: 700, border: 'none', cursor: modalLoading || !modalEmailValid ? 'not-allowed' : 'pointer', opacity: modalLoading || !modalEmailValid ? 0.5 : 1, fontFamily: 'inherit', boxShadow: modalEmailValid ? btnShadow : 'none', transition: 'all 0.2s', marginBottom: '1rem' }}
+                style={{ display: 'block', width: '100%', padding: '1rem', borderRadius: 14, background: btnGrad, color: '#fff', fontSize: '1rem', fontWeight: 700, border: 'none', cursor: modalLoading || !modalEmailValid ? 'not-allowed' : 'pointer', opacity: modalLoading || !modalEmailValid ? 0.5 : 1, fontFamily: 'inherit', boxShadow: modalEmailValid ? btnShadow : 'none', transition: 'all 0.2s', marginBottom: '1.25rem' }}
               >
                 {modalLoading ? 'Проверяем...' : 'Продолжить →'}
               </button>
             </form>
-            <p style={{ fontSize: '0.78rem', color: textMuted, textAlign: 'center', margin: 0 }}>
+            <p style={{ fontSize: '0.84rem', color: textMuted, textAlign: 'center', margin: 0 }}>
               {modalMode === 'login' ? (
                 <>Нет аккаунта?{' '}<button type="button" onClick={() => setModalMode('register')} style={{ color: accent, background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', fontWeight: 600, padding: 0, transition: 'color 0.4s' }}>Зарегистрироваться</button></>
               ) : (
