@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Moon, Sun, ChevronDown } from 'lucide-react';
+import { Moon, Sun, ChevronDown, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore, ROLE_COLORS } from '../../stores/role.store';
@@ -35,7 +35,7 @@ const STEPS = [
 const TESTIMONIALS = [
   { avatar: 'АК', name: 'Анна Козлова', role: 'Заказчик, Казань', text: '«Заказала вывоз строительного мусора после ремонта. Исполнитель приехал через 20 минут! Всё забрали, убрали. Очень довольна!»' },
   { avatar: 'ДМ', name: 'Дмитрий Морозов', role: 'Исполнитель, Казань', text: '«Работаю на TrashGo уже полгода. Зарабатываю около 40 000 ₽ в месяц. Удобное приложение, много заказов в моём районе.»' },
-  { avatar: 'МК', name: 'Михаил Кузнецов', role: 'Заказчик, Казань', text: '«Переезжали — накопилось много старой мебели и хлама. Нашёл исполнителя через TrashGo за 10 минут, всё вывезли за один приезд. Очень доволен!»' },
+  { avatar: 'МК', name: 'Михаил Кузнецов', role: 'Заказчик, Казань', text: '«Переезжали — накопилось много старой мебели и хлама. Нашёл исполнителя за 10 минут, всё вывезли за один приезд. Очень доволен!»' },
 ];
 
 const FAQ_ITEMS = [
@@ -67,7 +67,16 @@ export default function Home() {
   const [verifyNavState, setVerifyNavState] = useState<Record<string, unknown> | null>(null);
   const [headerScrolled, setHeaderScrolled] = useState(false);
 
+  const [showModal, setShowModal] = useState(false);
+  const [modalMode, setModalMode] = useState<'login' | 'register'>('login');
+  const [modalEmail, setModalEmail] = useState('');
+  const [modalError, setModalError] = useState('');
+  const [modalLoading, setModalLoading] = useState(false);
+
   const accent = accentColor;
+  const accentDark = selectedRole === 'contractor' ? '#1565c0' : '#43a047';
+  const btnGrad = `linear-gradient(135deg, ${accent}, ${accentDark})`;
+  const btnShadow = `0 4px 16px ${accent}44`;
 
   const bg = isDark ? '#0f172a' : '#ffffff';
   const bgAlt = isDark ? '#1e293b' : '#f9fafb';
@@ -87,25 +96,63 @@ export default function Home() {
   useEffect(() => { if (!selectedRole) setRole('customer'); }, []);
 
   useEffect(() => {
-    const handler = () => setHeaderScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', handler, { passive: true });
-    return () => window.removeEventListener('scroll', handler);
+    const h = () => setHeaderScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', h, { passive: true });
+    return () => window.removeEventListener('scroll', h);
   }, []);
 
   useEffect(() => {
     const els = document.querySelectorAll('.tg-anim');
-    const observer = new IntersectionObserver(
-      (entries) => entries.forEach((entry, i) => {
-        if (entry.isIntersecting) {
-          setTimeout(() => entry.target.classList.add('tg-anim-in'), i * 80);
-          observer.unobserve(entry.target);
+    const obs = new IntersectionObserver(
+      (entries) => entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+          setTimeout(() => e.target.classList.add('tg-anim-in'), i * 80);
+          obs.unobserve(e.target);
         }
       }),
       { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
     );
-    els.forEach(el => observer.observe(el));
-    return () => observer.disconnect();
+    els.forEach(el => obs.observe(el));
+    return () => obs.disconnect();
   }, []);
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowModal(false); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = showModal ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [showModal]);
+
+  const openModal = (mode: 'login' | 'register') => {
+    setModalMode(mode);
+    setModalEmail('');
+    setModalError('');
+    setShowModal(true);
+  };
+
+  const modalEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(modalEmail.trim());
+
+  const handleModalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!modalEmailValid || modalLoading) return;
+    setModalError('');
+    setModalLoading(true);
+    try {
+      const role = selectedRole || 'customer';
+      const res = await authApi.login(modalEmail.trim());
+      const navState = { email: modalEmail.trim(), role, devCode: res.devCode, channel: res.channel, deliveryEmail: res.deliveryEmail || modalEmail.trim(), telegramBotLink: res.telegramBotLink };
+      setShowModal(false);
+      navigate('/verify', { state: navState });
+    } catch {
+      setModalError('Ошибка. Проверьте email и попробуйте снова.');
+    } finally {
+      setModalLoading(false);
+    }
+  };
 
   const handleRoleSelect = (role: 'customer' | 'contractor') => {
     setRole(role);
@@ -114,8 +161,7 @@ export default function Home() {
   };
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const phoneDigits = phone.replace(/\D/g, '');
-  const phoneValid = phoneDigits.length >= 10;
+  const phoneValid = phone.replace(/\D/g, '').length >= 10;
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,10 +188,9 @@ export default function Home() {
     setFormError('');
     setLoading(true);
     try {
-      const role = selectedRole || 'customer';
       const fp = formatPhone(phone);
       const res = await authApi.login(email.trim(), fp);
-      navigate('/verify', { state: { email: email.trim(), phone: fp, role, devCode: res.devCode, channel: res.channel, deliveryEmail: res.deliveryEmail || email.trim(), telegramBotLink: res.telegramBotLink } });
+      navigate('/verify', { state: { email: email.trim(), phone: fp, role: selectedRole || 'customer', devCode: res.devCode, channel: res.channel, deliveryEmail: res.deliveryEmail || email.trim(), telegramBotLink: res.telegramBotLink } });
     } catch {
       setFormError('Ошибка. Попробуйте ещё раз.');
     } finally {
@@ -153,8 +198,8 @@ export default function Home() {
     }
   };
 
-  const sectionLabel = (icon: string, txt: string) => (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', background: isDark ? 'rgba(34,197,94,0.12)' : '#f0fdf4', border: `1px solid ${isDark ? 'rgba(34,197,94,0.25)' : '#bbf7d0'}`, borderRadius: 999, fontSize: 13, fontWeight: 600, color: isDark ? '#4ade80' : '#16a34a', marginBottom: 14 }}>
+  const SectionLabel = ({ icon, txt }: { icon: string; txt: string }) => (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', background: `${accent}18`, border: `1px solid ${accent}44`, borderRadius: 999, fontSize: 13, fontWeight: 600, color: accent, marginBottom: 14, transition: 'all 0.4s' }}>
       {icon} {txt}
     </div>
   );
@@ -169,28 +214,28 @@ export default function Home() {
         backdropFilter: headerScrolled ? 'blur(12px)' : 'none',
         WebkitBackdropFilter: headerScrolled ? 'blur(12px)' : 'none',
         borderBottom: `1px solid ${headerScrolled ? border : 'transparent'}`,
-        transition: 'background 0.3s, border-color 0.3s, backdrop-filter 0.3s',
+        transition: 'background 0.3s, border-color 0.3s',
         paddingTop: 'env(safe-area-inset-top)',
       }}>
         <div style={{ height: '3.5rem', maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.5rem' }}>
           <a href="#" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #22c55e, #16a34a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>♻</div>
-            <span style={{ fontSize: '1rem', fontWeight: 800, color: text, letterSpacing: '-0.02em' }}>Trash<span style={{ color: accent }}>Go</span></span>
+            <img src="/favicon.svg" alt="" style={{ width: 30, height: 30 }} />
+            <span style={{ fontSize: '1rem', fontWeight: 800, color: text, letterSpacing: '-0.02em' }}>Trash<span style={{ color: accent, transition: 'color 0.4s' }}>Go</span></span>
           </a>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button onClick={toggleTheme} style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
               {isDark ? <Sun size={14} color={textMuted} /> : <Moon size={14} color={textMuted} />}
             </button>
             {isAuthenticated ? (
-              <button onClick={() => navigate(user?.role === 'contractor' ? '/contractor' : '/customer')} style={{ padding: '0.5rem 1rem', borderRadius: 8, background: accent, color: '#fff', fontSize: '0.82rem', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={() => navigate(user?.role === 'contractor' ? '/contractor' : '/customer')} style={{ padding: '0.5rem 1rem', borderRadius: 8, background: btnGrad, color: '#fff', fontSize: '0.82rem', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 Мой кабинет
               </button>
             ) : (
               <>
-                <button onClick={() => navigate('/login')} style={{ padding: '0.5rem 1rem', borderRadius: 8, background: 'none', color: text, fontSize: '0.82rem', fontWeight: 600, border: `1.5px solid ${border}`, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <button onClick={() => openModal('login')} style={{ padding: '0.5rem 1rem', borderRadius: 8, background: 'none', color: text, fontSize: '0.82rem', fontWeight: 600, border: `1.5px solid ${border}`, cursor: 'pointer', fontFamily: 'inherit' }}>
                   Войти
                 </button>
-                <button onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })} style={{ padding: '0.5rem 1rem', borderRadius: 8, background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#fff', fontSize: '0.82rem', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <button onClick={() => openModal('register')} style={{ padding: '0.5rem 1rem', borderRadius: 8, background: btnGrad, color: '#fff', fontSize: '0.82rem', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                   Регистрация
                 </button>
               </>
@@ -200,20 +245,16 @@ export default function Home() {
       </header>
 
       {/* ── HERO ── */}
-      <section style={{ position: 'relative', overflow: 'hidden', paddingTop: '3.5rem' }}>
-        {/* Gradient background */}
-        <div style={{ position: 'absolute', inset: 0, background: isDark ? 'linear-gradient(135deg, #0f172a 0%, #0c1a0e 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 55%, #ecfdf5 100%)' }} />
-        {/* Floating blobs */}
-        <div className="tg-blob" style={{ position: 'absolute', top: '-8%', right: '-4%', width: 400, height: 400, borderRadius: '50%', background: isDark ? 'rgba(34,197,94,0.06)' : 'rgba(34,197,94,0.07)', animationDelay: '0s', pointerEvents: 'none' }} />
-        <div className="tg-blob" style={{ position: 'absolute', bottom: '-6%', left: '8%', width: 280, height: 280, borderRadius: '50%', background: isDark ? 'rgba(34,197,94,0.05)' : 'rgba(34,197,94,0.06)', animationDelay: '3s', pointerEvents: 'none' }} />
-        <div className="tg-blob" style={{ position: 'absolute', top: '35%', left: '48%', width: 180, height: 180, borderRadius: '50%', background: isDark ? 'rgba(34,197,94,0.04)' : 'rgba(34,197,94,0.05)', animationDelay: '6s', pointerEvents: 'none' }} />
+      <section style={{ position: 'relative', overflow: 'hidden', paddingTop: '3.5rem', background: bg }}>
+        <div className="tg-blob" style={{ position: 'absolute', top: '-8%', right: '-4%', width: 400, height: 400, borderRadius: '50%', background: `${accent}0d`, pointerEvents: 'none' }} />
+        <div className="tg-blob" style={{ position: 'absolute', bottom: '-6%', left: '8%', width: 280, height: 280, borderRadius: '50%', background: `${accent}0a`, animationDelay: '3s', pointerEvents: 'none' }} />
+        <div className="tg-blob" style={{ position: 'absolute', top: '35%', left: '48%', width: 180, height: 180, borderRadius: '50%', background: `${accent}08`, animationDelay: '6s', pointerEvents: 'none' }} />
 
         <div style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto', padding: 'clamp(4rem,8vw,6rem) 1.5rem clamp(3rem,6vw,5rem)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,320px), 1fr))', gap: '3rem', alignItems: 'center' }}>
-
           {/* Left */}
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', background: isDark ? 'rgba(34,197,94,0.12)' : '#f0fdf4', border: `1px solid ${isDark ? 'rgba(34,197,94,0.25)' : '#bbf7d0'}`, borderRadius: 999, fontSize: 13, fontWeight: 600, color: isDark ? '#4ade80' : '#16a34a', marginBottom: '1.25rem' }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', background: `${accent}18`, border: `1px solid ${accent}44`, borderRadius: 999, fontSize: 13, fontWeight: 600, color: accent, marginBottom: '1.25rem', transition: 'all 0.4s' }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: accent, display: 'inline-block', transition: 'background 0.4s' }} />
               Уже 2,500+ пользователей
             </div>
             <h1 style={{ fontSize: 'clamp(2.4rem,5.5vw,3.75rem)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.1, color: text, margin: '0 0 1.1rem' }}>
@@ -255,12 +296,11 @@ export default function Home() {
           {/* Right — auth card */}
           <div ref={formRef}>
             <div style={{ background: surface, borderRadius: 24, padding: '1.75rem', border: `1px solid ${border}`, boxShadow: isDark ? '0 24px 64px rgba(0,0,0,0.55)' : '0 24px 64px rgba(0,0,0,0.08)', maxWidth: 420, marginLeft: 'auto' }}>
-              {/* Role tabs */}
               <div style={{ display: 'flex', background: isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6', borderRadius: 12, padding: 4, marginBottom: '1.375rem', gap: 4 }}>
                 {(['customer', 'contractor'] as const).map(role => (
                   <button key={role} onClick={() => { setRole(role); setFormError(''); }} style={{
-                    flex: 1, padding: '0.5rem', borderRadius: 9,
-                    fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', border: 'none',
+                    flex: 1, padding: '0.5rem', borderRadius: 9, fontSize: '0.85rem', fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'inherit', border: 'none',
                     background: selectedRole === role ? surface : 'transparent',
                     color: selectedRole === role ? ROLE_COLORS[role] : textMuted,
                     boxShadow: selectedRole === role ? (isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.07)') : 'none',
@@ -282,10 +322,8 @@ export default function Home() {
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '2.25rem', marginBottom: 8 }}>✅</div>
                   <div style={{ fontSize: '1rem', fontWeight: 700, color: text, marginBottom: 4 }}>Аккаунт уже существует</div>
-                  <div style={{ fontSize: '0.8rem', color: textMuted, marginBottom: '1.25rem' }}>
-                    Код входа отправлен на <span style={{ color: text, fontWeight: 600 }}>{email}</span>
-                  </div>
-                  <button onClick={() => navigate('/verify', { state: verifyNavState })} style={{ display: 'block', width: '100%', padding: '0.8rem', borderRadius: 12, background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#fff', fontSize: '0.9rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8, boxShadow: '0 4px 16px rgba(22,163,74,0.3)' }}>
+                  <div style={{ fontSize: '0.8rem', color: textMuted, marginBottom: '1.25rem' }}>Код отправлен на <span style={{ color: text, fontWeight: 600 }}>{email}</span></div>
+                  <button onClick={() => navigate('/verify', { state: verifyNavState })} style={{ display: 'block', width: '100%', padding: '0.8rem', borderRadius: 12, background: btnGrad, color: '#fff', fontSize: '0.9rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8, boxShadow: btnShadow }}>
                     Войти →
                   </button>
                   <button onClick={() => { setAccountFound(false); setVerifyNavState(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', color: textMuted, fontFamily: 'inherit' }}>
@@ -299,12 +337,12 @@ export default function Home() {
                     <input type="email" placeholder="your@email.com" value={email} onChange={e => { setFormError(''); setEmail(e.target.value); }} autoFocus style={{ display: 'block', width: '100%', height: '2.75rem', padding: '0 0.875rem', borderRadius: 10, border: `1.5px solid ${formError ? '#ef4444' : email.length > 0 ? accent : border}`, fontSize: '0.95rem', outline: 'none', background: inputBg, color: text, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }} />
                     {formError && <p style={{ color: '#ef4444', fontSize: '0.74rem', marginTop: 4, marginBottom: 0 }}>{formError}</p>}
                   </div>
-                  <button type="submit" disabled={loading || !emailValid} style={{ display: 'block', width: '100%', padding: '0.8rem', borderRadius: 12, background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#fff', fontSize: '0.9rem', fontWeight: 700, border: 'none', cursor: loading || !emailValid ? 'not-allowed' : 'pointer', opacity: loading || !emailValid ? 0.5 : 1, fontFamily: 'inherit', marginBottom: '0.875rem', boxShadow: emailValid ? '0 4px 16px rgba(22,163,74,0.25)' : 'none', transition: 'all 0.2s' }}>
+                  <button type="submit" disabled={loading || !emailValid} style={{ display: 'block', width: '100%', padding: '0.8rem', borderRadius: 12, background: btnGrad, color: '#fff', fontSize: '0.9rem', fontWeight: 700, border: 'none', cursor: loading || !emailValid ? 'not-allowed' : 'pointer', opacity: loading || !emailValid ? 0.5 : 1, fontFamily: 'inherit', marginBottom: '0.875rem', boxShadow: emailValid ? btnShadow : 'none', transition: 'all 0.2s' }}>
                     {loading ? 'Проверяем...' : (selectedRole === 'contractor' ? 'Начать зарабатывать →' : 'Продолжить →')}
                   </button>
                   <p style={{ fontSize: '0.78rem', color: textMuted, textAlign: 'center', margin: 0 }}>
                     Уже есть аккаунт?{' '}
-                    <button type="button" onClick={() => navigate('/login')} style={{ color: accent, background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', fontWeight: 600, padding: 0 }}>Войти</button>
+                    <button type="button" onClick={() => openModal('login')} style={{ color: accent, background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', fontWeight: 600, padding: 0, transition: 'color 0.4s' }}>Войти</button>
                   </p>
                 </form>
               ) : (
@@ -319,7 +357,7 @@ export default function Home() {
                     <input type="tel" inputMode="numeric" placeholder="+7 (___) ___-__-__" value={phone ? formatPhone(phone) : ''} onChange={e => { setFormError(''); setPhone(e.target.value.replace(/\D/g, '')); }} autoFocus style={{ display: 'block', width: '100%', height: '2.75rem', padding: '0 0.875rem', borderRadius: 10, border: `1.5px solid ${formError ? '#ef4444' : phone.length > 0 ? accent : border}`, fontSize: '0.95rem', outline: 'none', background: inputBg, color: text, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }} />
                     {formError && <p style={{ color: '#ef4444', fontSize: '0.74rem', marginTop: 4, marginBottom: 0 }}>{formError}</p>}
                   </div>
-                  <button type="submit" disabled={loading || !phoneValid} style={{ display: 'block', width: '100%', padding: '0.8rem', borderRadius: 12, background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#fff', fontSize: '0.9rem', fontWeight: 700, border: 'none', cursor: loading || !phoneValid ? 'not-allowed' : 'pointer', opacity: loading || !phoneValid ? 0.5 : 1, fontFamily: 'inherit', boxShadow: phoneValid ? '0 4px 16px rgba(22,163,74,0.25)' : 'none', transition: 'all 0.2s' }}>
+                  <button type="submit" disabled={loading || !phoneValid} style={{ display: 'block', width: '100%', padding: '0.8rem', borderRadius: 12, background: btnGrad, color: '#fff', fontSize: '0.9rem', fontWeight: 700, border: 'none', cursor: loading || !phoneValid ? 'not-allowed' : 'pointer', opacity: loading || !phoneValid ? 0.5 : 1, fontFamily: 'inherit', boxShadow: phoneValid ? btnShadow : 'none', transition: 'all 0.2s' }}>
                     {loading ? 'Отправляем...' : 'Получить код →'}
                   </button>
                 </form>
@@ -333,11 +371,11 @@ export default function Home() {
       <section style={{ padding: 'clamp(4rem,8vw,6rem) 1.5rem', background: bgAlt }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div className="tg-anim" style={{ textAlign: 'center', marginBottom: '2.75rem' }}>
-            {sectionLabel('✨', 'Преимущества')}
+            <SectionLabel icon="✨" txt="Преимущества" />
             <h2 style={{ fontSize: 'clamp(1.75rem,4vw,2.4rem)', fontWeight: 800, color: text, letterSpacing: '-0.035em', margin: '0 0 10px' }}>Почему выбирают TrashGo</h2>
             <p style={{ fontSize: '0.975rem', color: textSub, maxWidth: 540, margin: '0 auto' }}>Мы создали платформу, которая делает вывоз мусора простым и удобным для всех</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+          <div className="tg-features">
             {FEATURES.map((f, i) => (
               <div key={i} className="tg-anim tg-card" style={{ background: surface, borderRadius: 20, padding: '1.625rem', border: `1px solid ${border}` }}>
                 <div style={{ width: 50, height: 50, borderRadius: 13, background: isDark ? 'rgba(255,255,255,0.07)' : f.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, marginBottom: 14 }}>
@@ -355,14 +393,14 @@ export default function Home() {
       <section style={{ padding: 'clamp(4rem,8vw,6rem) 1.5rem', background: bg }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           <div className="tg-anim" style={{ textAlign: 'center', marginBottom: '2.75rem' }}>
-            {sectionLabel('📋', 'Как это работает')}
+            <SectionLabel icon="📋" txt="Как это работает" />
             <h2 style={{ fontSize: 'clamp(1.75rem,4vw,2.4rem)', fontWeight: 800, color: text, letterSpacing: '-0.035em', margin: '0 0 10px' }}>Четыре простых шага</h2>
             <p style={{ fontSize: '0.975rem', color: textSub, maxWidth: 480, margin: '0 auto' }}>От заказа до вывоза — всё максимально просто и быстро</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '2rem' }}>
             {STEPS.map((s, i) => (
               <div key={i} className="tg-anim" style={{ textAlign: 'center' }}>
-                <div className="tg-step" style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#fff', fontSize: '1.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.125rem', boxShadow: '0 4px 16px rgba(22,163,74,0.32)' }}>
+                <div className="tg-step" style={{ width: 72, height: 72, borderRadius: '50%', background: btnGrad, color: '#fff', fontSize: '1.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.125rem', boxShadow: btnShadow, ['--step-accent' as string]: `${accent}55` }}>
                   {s.n}
                 </div>
                 <div style={{ fontSize: '0.975rem', fontWeight: 700, color: text, marginBottom: 7 }}>{s.title}</div>
@@ -377,13 +415,13 @@ export default function Home() {
       <section style={{ padding: 'clamp(4rem,8vw,6rem) 1.5rem', background: bgAlt }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <div className="tg-anim" style={{ textAlign: 'center', marginBottom: '2.75rem' }}>
-            {sectionLabel('💎', 'Тарифы')}
+            <SectionLabel icon="💎" txt="Тарифы" />
             <h2 style={{ fontSize: 'clamp(1.75rem,4vw,2.4rem)', fontWeight: 800, color: text, letterSpacing: '-0.035em', margin: '0 0 10px' }}>Простые и понятные цены</h2>
             <p style={{ fontSize: '0.975rem', color: textSub, maxWidth: 480, margin: '0 auto' }}>Никаких скрытых комиссий — оплата напрямую между заказчиком и исполнителем</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
-            {/* Customers */}
-            <div className="tg-anim tg-card" style={{ background: surface, borderRadius: 20, padding: '1.75rem', border: `2px solid ${border}`, textAlign: 'center' }}>
+
+            <div className="tg-anim tg-card" onClick={() => handleRoleSelect('customer')} style={{ background: surface, borderRadius: 20, padding: '1.75rem', border: `2px solid ${border}`, textAlign: 'center', cursor: 'pointer' }}>
               <div style={{ fontSize: '1.1rem', fontWeight: 700, color: text, marginBottom: 4 }}>Для заказчиков</div>
               <div style={{ fontSize: '0.82rem', color: textMuted, marginBottom: '1rem' }}>Первый месяц бесплатно</div>
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: text, letterSpacing: '-0.04em', marginBottom: 2 }}>50 <span style={{ fontSize: '1rem', fontWeight: 500, color: textMuted }}>₽</span></div>
@@ -391,17 +429,17 @@ export default function Home() {
               <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.375rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {['Создание заявок на вывоз', 'Карта статуса заказа', 'Встроенный чат с исполнителем', 'Отзывы и рейтинги', '30 дней бесплатно при регистрации'].map(item => (
                   <li key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '0.875rem', color: textSub }}>
-                    <span style={{ color: '#22c55e', fontWeight: 700, flexShrink: 0 }}>✓</span>{item}
+                    <span style={{ color: accent, fontWeight: 700, flexShrink: 0, transition: 'color 0.4s' }}>✓</span>{item}
                   </li>
                 ))}
               </ul>
-              <button onClick={() => { handleRoleSelect('customer'); }} style={{ width: '100%', padding: '0.75rem', borderRadius: 12, fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', background: surface, color: text, border: `2px solid ${border}`, fontFamily: 'inherit', transition: 'border-color 0.2s' }}>
+              <button onClick={e => { e.stopPropagation(); handleRoleSelect('customer'); }} style={{ width: '100%', padding: '0.75rem', borderRadius: 12, fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', background: surface, color: text, border: `2px solid ${border}`, fontFamily: 'inherit' }}>
                 Начать бесплатно
               </button>
             </div>
-            {/* Contractors — featured */}
-            <div className="tg-anim tg-card" style={{ background: surface, borderRadius: 20, padding: '1.75rem', border: '2px solid #22c55e', textAlign: 'center', position: 'relative', boxShadow: '0 8px 32px rgba(34,197,94,0.15)' }}>
-              <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#fff', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.04em', padding: '4px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>
+
+            <div className="tg-anim tg-card" onClick={() => handleRoleSelect('contractor')} style={{ background: surface, borderRadius: 20, padding: '1.75rem', border: `2px solid ${accent}`, textAlign: 'center', position: 'relative', boxShadow: `0 8px 32px ${accent}26`, cursor: 'pointer', transition: 'all 0.4s' }}>
+              <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: btnGrad, color: '#fff', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.04em', padding: '4px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>
                 ДЛЯ ИСПОЛНИТЕЛЕЙ
               </div>
               <div style={{ fontSize: '1.1rem', fontWeight: 700, color: text, marginBottom: 4 }}>Подписка</div>
@@ -409,27 +447,27 @@ export default function Home() {
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: text, letterSpacing: '-0.04em', marginBottom: 2 }}>50 <span style={{ fontSize: '1rem', fontWeight: 500, color: textMuted }}>₽</span></div>
               <div style={{ fontSize: '0.8rem', color: textMuted, marginBottom: '1.375rem' }}>в месяц</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.375rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {['Доступ ко всем заявкам в вашем районе', '30 дней бесплатно при регистрации', 'Принимайте и выполняйте заказы', 'Push-уведомления о новых заявках', 'Скидки за приглашённых друзей'].map(item => (
+                {['Доступ ко всем заявкам в районе', '30 дней бесплатно при регистрации', 'Принимайте и выполняйте заказы', 'Push-уведомления о новых заявках', 'Скидки за приглашённых друзей'].map(item => (
                   <li key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '0.875rem', color: textSub }}>
-                    <span style={{ color: '#22c55e', fontWeight: 700, flexShrink: 0 }}>✓</span>{item}
+                    <span style={{ color: accent, fontWeight: 700, flexShrink: 0, transition: 'color 0.4s' }}>✓</span>{item}
                   </li>
                 ))}
               </ul>
-              <button onClick={() => { handleRoleSelect('contractor'); }} style={{ width: '100%', padding: '0.75rem', borderRadius: 12, fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#fff', border: 'none', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(22,163,74,0.3)' }}>
+              <button onClick={e => { e.stopPropagation(); handleRoleSelect('contractor'); }} style={{ width: '100%', padding: '0.75rem', borderRadius: 12, fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', background: btnGrad, color: '#fff', border: 'none', fontFamily: 'inherit', boxShadow: btnShadow }}>
                 Начать зарабатывать
               </button>
             </div>
-            {/* Referral */}
+
             <div className="tg-anim tg-card" style={{ background: surface, borderRadius: 20, padding: '1.75rem', border: `2px solid ${border}`, textAlign: 'center' }}>
               <div style={{ fontSize: '1.1rem', fontWeight: 700, color: text, marginBottom: 4 }}>Реферальная</div>
               <div style={{ fontSize: '0.82rem', color: textMuted, marginBottom: '1rem' }}>Приглашайте друзей</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#22c55e', letterSpacing: '-0.04em', marginBottom: 2 }}>0 <span style={{ fontSize: '1rem', fontWeight: 500, color: textMuted }}>₽</span></div>
-              <div style={{ fontSize: '0.8rem', color: textMuted, marginBottom: '1.375rem' }}>при 5+ друзьях</div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: accent, letterSpacing: '-0.04em', marginBottom: 2, transition: 'color 0.4s' }}>0 <span style={{ fontSize: '1rem', fontWeight: 500, color: textMuted }}>₽</span></div>
+              <div style={{ fontSize: '0.8rem', color: textMuted, marginBottom: '1.375rem' }}>при 5+ активных друзьях</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1.375rem' }}>
                 {[['1 друг', '40₽/мес'], ['2 друга', '30₽/мес'], ['3 друга', '20₽/мес'], ['4 друга', '10₽/мес'], ['5 друзей', 'Бесплатно!']].map(([n, p]) => (
-                  <div key={n} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.65rem', borderRadius: 8, background: p === 'Бесплатно!' ? (isDark ? 'rgba(34,197,94,0.12)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.04)' : '#f9fafb') }}>
+                  <div key={n} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.65rem', borderRadius: 8, background: p === 'Бесплатно!' ? (isDark ? `${accent}1a` : `${accent}10`) : (isDark ? 'rgba(255,255,255,0.04)' : '#f9fafb') }}>
                     <span style={{ fontSize: '0.82rem', color: textSub }}>{n}</span>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: p === 'Бесплатно!' ? '#22c55e' : text }}>{p}</span>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: p === 'Бесплатно!' ? accent : text, transition: 'color 0.4s' }}>{p}</span>
                   </div>
                 ))}
               </div>
@@ -443,7 +481,7 @@ export default function Home() {
       <section style={{ padding: 'clamp(4rem,8vw,6rem) 1.5rem', background: bg }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           <div className="tg-anim" style={{ textAlign: 'center', marginBottom: '2.75rem' }}>
-            {sectionLabel('💬', 'Отзывы')}
+            <SectionLabel icon="💬" txt="Отзывы" />
             <h2 style={{ fontSize: 'clamp(1.75rem,4vw,2.4rem)', fontWeight: 800, color: text, letterSpacing: '-0.035em', margin: '0 0 10px' }}>Что говорят наши пользователи</h2>
             <p style={{ fontSize: '0.975rem', color: textSub, maxWidth: 480, margin: '0 auto' }}>Реальные отзывы людей, которые уже оценили TrashGo</p>
           </div>
@@ -453,7 +491,7 @@ export default function Home() {
                 <div style={{ color: '#fbbf24', fontSize: '1rem', marginBottom: '0.875rem', letterSpacing: 2 }}>★★★★★</div>
                 <p style={{ fontSize: '0.875rem', color: textSub, lineHeight: 1.7, marginBottom: '1.125rem' }}>{t.text}</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg, #4ade80, #16a34a)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.78rem', flexShrink: 0 }}>{t.avatar}</div>
+                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: btnGrad, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.78rem', flexShrink: 0 }}>{t.avatar}</div>
                   <div>
                     <div style={{ fontSize: '0.875rem', fontWeight: 700, color: text }}>{t.name}</div>
                     <div style={{ fontSize: '0.75rem', color: textMuted }}>{t.role}</div>
@@ -466,7 +504,7 @@ export default function Home() {
       </section>
 
       {/* ── CTA ── */}
-      <section style={{ padding: 'clamp(4rem,8vw,6rem) 1.5rem', background: 'linear-gradient(135deg, #16a34a, #166534)', position: 'relative', overflow: 'hidden' }}>
+      <section style={{ padding: 'clamp(4rem,8vw,6rem) 1.5rem', background: btnGrad, position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 20% 50%, rgba(255,255,255,0.08) 0%, transparent 55%), radial-gradient(ellipse at 80% 80%, rgba(255,255,255,0.05) 0%, transparent 50%)' }} />
         <div className="tg-anim" style={{ position: 'relative', zIndex: 1, maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
           <h2 style={{ fontSize: 'clamp(1.75rem,4vw,2.4rem)', fontWeight: 800, color: '#fff', letterSpacing: '-0.035em', margin: '0 0 14px' }}>Готовы начать?</h2>
@@ -474,10 +512,10 @@ export default function Home() {
             Присоединяйтесь к тысячам пользователей, которые уже сделали вывоз мусора простым и удобным
           </p>
           <div style={{ display: 'flex', gap: '0.875rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => { handleRoleSelect('customer'); }} style={{ padding: '0.8rem 1.75rem', borderRadius: 14, fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', background: '#fff', color: '#16a34a', border: 'none', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', transition: 'all 0.25s' }}>
+            <button onClick={() => openModal('register')} style={{ padding: '0.8rem 1.75rem', borderRadius: 14, fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', background: '#fff', color: accentDark, border: 'none', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
               Зарегистрироваться бесплатно
             </button>
-            <button onClick={() => document.getElementById('tg-how')?.scrollIntoView({ behavior: 'smooth' })} style={{ padding: '0.8rem 1.75rem', borderRadius: 14, fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', background: 'transparent', color: '#fff', border: '2px solid rgba(255,255,255,0.4)', fontFamily: 'inherit', transition: 'all 0.25s' }}>
+            <button onClick={() => document.getElementById('tg-faq')?.scrollIntoView({ behavior: 'smooth' })} style={{ padding: '0.8rem 1.75rem', borderRadius: 14, fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', background: 'transparent', color: '#fff', border: '2px solid rgba(255,255,255,0.4)', fontFamily: 'inherit' }}>
               Узнать больше
             </button>
           </div>
@@ -485,9 +523,9 @@ export default function Home() {
       </section>
 
       {/* ── FAQ ── */}
-      <section id="tg-how" style={{ maxWidth: '680px', margin: '0 auto', padding: 'clamp(4rem,8vw,6rem) 1.5rem' }}>
+      <section id="tg-faq" style={{ maxWidth: '680px', margin: '0 auto', padding: 'clamp(4rem,8vw,6rem) 1.5rem' }}>
         <div className="tg-anim">
-          {sectionLabel('❓', 'FAQ')}
+          <SectionLabel icon="❓" txt="FAQ" />
           <h2 style={{ fontSize: 'clamp(1.5rem,3.5vw,2rem)', fontWeight: 800, letterSpacing: '-0.03em', color: text, margin: '0 0 6px' }}>Частые вопросы</h2>
           <p style={{ fontSize: '0.875rem', color: textMuted, margin: '0 0 1.75rem' }}>Если не нашли ответ — напишите нам в поддержку</p>
         </div>
@@ -512,49 +550,36 @@ export default function Home() {
       <footer style={{ background: isDark ? '#030712' : '#111827', color: '#9ca3af', padding: '3rem 1.5rem 0' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '2rem 3rem', marginBottom: '2.5rem' }}>
-            {/* Brand */}
             <div style={{ gridColumn: 'span 2' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.875rem' }}>
-                <div style={{ width: 30, height: 30, borderRadius: 7, background: 'linear-gradient(135deg, #22c55e, #16a34a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>♻</div>
+                <img src="/favicon.svg" alt="" style={{ width: 28, height: 28 }} />
                 <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>TrashGo</span>
               </div>
               <p style={{ fontSize: '0.84rem', lineHeight: 1.7, maxWidth: 260, margin: 0 }}>Платформа для вывоза мусора. Соединяем заказчиков с исполнителями быстро и надёжно.</p>
             </div>
-            {/* Продукт */}
             <div>
               <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fff', marginBottom: '0.875rem' }}>Продукт</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {[['#', 'Возможности'], ['#', 'Тарифы'], ['#', 'Как это работает'], ['#', 'Отзывы']].map(([href, label]) => (
-                  <li key={label}><a href={href} style={{ fontSize: '0.84rem', color: '#9ca3af', textDecoration: 'none' }}>{label}</a></li>
-                ))}
+                {['Возможности', 'Тарифы', 'Как это работает', 'Отзывы'].map(l => <li key={l}><a href="#" style={{ fontSize: '0.84rem', color: '#9ca3af', textDecoration: 'none' }}>{l}</a></li>)}
               </ul>
             </div>
-            {/* Компания */}
             <div>
               <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fff', marginBottom: '0.875rem' }}>Компания</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {[['#', 'О нас'], ['#', 'Блог'], ['#', 'Контакты']].map(([href, label]) => (
-                  <li key={label}><a href={href} style={{ fontSize: '0.84rem', color: '#9ca3af', textDecoration: 'none' }}>{label}</a></li>
-                ))}
+                {['О нас', 'Блог', 'Контакты'].map(l => <li key={l}><a href="#" style={{ fontSize: '0.84rem', color: '#9ca3af', textDecoration: 'none' }}>{l}</a></li>)}
               </ul>
             </div>
-            {/* Поддержка */}
             <div>
               <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fff', marginBottom: '0.875rem' }}>Поддержка</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {[['#', 'Помощь'], ['#', 'FAQ']].map(([href, label]) => (
-                  <li key={label}><a href={href} style={{ fontSize: '0.84rem', color: '#9ca3af', textDecoration: 'none' }}>{label}</a></li>
-                ))}
+                {['Помощь', 'FAQ'].map(l => <li key={l}><a href="#" style={{ fontSize: '0.84rem', color: '#9ca3af', textDecoration: 'none' }}>{l}</a></li>)}
                 <li><button onClick={() => navigate('/privacy')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.84rem', color: '#9ca3af', fontFamily: 'inherit', padding: 0 }}>Конфиденциальность</button></li>
                 <li><button onClick={() => navigate('/terms')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.84rem', color: '#9ca3af', fontFamily: 'inherit', padding: 0 }}>Условия</button></li>
               </ul>
             </div>
           </div>
-          {/* Privacy summary */}
-          <div style={{ borderTop: '1px solid #1f2937', padding: '1.5rem 0', marginBottom: '1rem' }}>
-            <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#4b5563', marginBottom: '0.875rem' }}>
-              Политика конфиденциальности — основные положения
-            </div>
+          <div style={{ borderTop: '1px solid #1f2937', padding: '1.5rem 0 1rem' }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#4b5563', marginBottom: '0.875rem' }}>Политика конфиденциальности — основные положения</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.5rem' }}>
               {[
                 ['1', 'Что собираем', 'Номер телефона, имя, район и адреса заказов. Платёжные данные не собираются.'],
@@ -565,7 +590,7 @@ export default function Home() {
                 ['6', 'Контакты', 'info@vynosmusora.ru или @trashgo_support в Telegram.'],
               ].map(([n, t, d]) => (
                 <div key={n} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                  <span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: '50%', background: 'rgba(34,197,94,0.15)', color: '#22c55e', fontSize: '0.62rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n}</span>
+                  <span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: '50%', background: 'rgba(100,187,106,0.15)', color: '#66BB6A', fontSize: '0.62rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n}</span>
                   <div>
                     <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#d1d5db', marginBottom: 2 }}>{t}</div>
                     <div style={{ fontSize: '0.68rem', color: '#6b7280', lineHeight: 1.5 }}>{d}</div>
@@ -574,7 +599,6 @@ export default function Home() {
               ))}
             </div>
           </div>
-          {/* Bottom */}
           <div style={{ borderTop: '1px solid #1f2937', padding: '1.125rem 0 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
             <span style={{ fontSize: '0.78rem' }}>© 2026 TrashGo · Казань</span>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -586,6 +610,58 @@ export default function Home() {
         </div>
       </footer>
 
+      {/* ── LOGIN MODAL ── */}
+      {showModal && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', background: 'rgba(0,0,0,0.52)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+        >
+          <div className="tg-modal" style={{ background: surface, borderRadius: 24, padding: '2.25rem 2rem 2rem', width: '100%', maxWidth: 400, position: 'relative', boxShadow: isDark ? '0 32px 80px rgba(0,0,0,0.7)' : '0 32px 80px rgba(0,0,0,0.18)', border: `1px solid ${border}` }}>
+            <button onClick={() => setShowModal(false)} style={{ position: 'absolute', top: 14, right: 14, width: 32, height: 32, borderRadius: 8, border: 'none', background: isDark ? 'rgba(255,255,255,0.08)' : '#f3f4f6', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: textMuted }}>
+              <X size={15} />
+            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <img src="/favicon.svg" alt="" style={{ width: 48, height: 48, marginBottom: 10 }} />
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: text, letterSpacing: '-0.02em' }}>Trash<span style={{ color: accent, transition: 'color 0.4s' }}>Go</span></div>
+            </div>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: text, textAlign: 'center', margin: '0 0 6px' }}>
+              {modalMode === 'login' ? 'Вход в аккаунт' : 'Создать аккаунт'}
+            </h2>
+            <p style={{ fontSize: '0.83rem', color: textMuted, textAlign: 'center', margin: '0 0 1.5rem', lineHeight: 1.5 }}>
+              Введите email — пришлём код подтверждения
+            </p>
+            <form onSubmit={handleModalSubmit}>
+              <div style={{ marginBottom: '0.875rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: textSub, marginBottom: 5 }}>Email</label>
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={modalEmail}
+                  onChange={e => { setModalError(''); setModalEmail(e.target.value); }}
+                  autoFocus
+                  style={{ display: 'block', width: '100%', height: '2.875rem', padding: '0 0.875rem', borderRadius: 10, border: `1.5px solid ${modalError ? '#ef4444' : modalEmail.length > 0 ? accent : border}`, fontSize: '0.95rem', outline: 'none', background: inputBg, color: text, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                />
+                {modalError && <p style={{ color: '#ef4444', fontSize: '0.74rem', marginTop: 4, marginBottom: 0 }}>{modalError}</p>}
+              </div>
+              <button
+                type="submit"
+                disabled={modalLoading || !modalEmailValid}
+                style={{ display: 'block', width: '100%', padding: '0.875rem', borderRadius: 12, background: btnGrad, color: '#fff', fontSize: '0.9rem', fontWeight: 700, border: 'none', cursor: modalLoading || !modalEmailValid ? 'not-allowed' : 'pointer', opacity: modalLoading || !modalEmailValid ? 0.5 : 1, fontFamily: 'inherit', boxShadow: modalEmailValid ? btnShadow : 'none', transition: 'all 0.2s', marginBottom: '1rem' }}
+              >
+                {modalLoading ? 'Проверяем...' : 'Продолжить →'}
+              </button>
+            </form>
+            <p style={{ fontSize: '0.78rem', color: textMuted, textAlign: 'center', margin: 0 }}>
+              {modalMode === 'login' ? (
+                <>Нет аккаунта?{' '}<button type="button" onClick={() => setModalMode('register')} style={{ color: accent, background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', fontWeight: 600, padding: 0, transition: 'color 0.4s' }}>Зарегистрироваться</button></>
+              ) : (
+                <>Уже есть аккаунт?{' '}<button type="button" onClick={() => setModalMode('login')} style={{ color: accent, background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', fontWeight: 600, padding: 0, transition: 'color 0.4s' }}>Войти</button></>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+
       <style>{`
         * { box-sizing: border-box; }
         input, button { -webkit-tap-highlight-color: transparent; }
@@ -595,10 +671,15 @@ export default function Home() {
         .tg-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.1); }
         .tg-blob { animation: tgFloat 9s ease-in-out infinite; }
         .tg-step { position: relative; }
-        .tg-step::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px dashed rgba(34,197,94,0.35); animation: tgSpin 20s linear infinite; }
+        .tg-step::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px dashed var(--step-accent, rgba(100,187,106,0.35)); animation: tgSpin 20s linear infinite; }
+        .tg-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+        @media (max-width: 900px) { .tg-features { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 580px) { .tg-features { grid-template-columns: 1fr; } }
         @keyframes tgFloat { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-18px) scale(1.04); } }
         @keyframes tgSpin { to { transform: rotate(360deg); } }
         @keyframes tgFadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes tgModalIn { from { opacity: 0; transform: scale(0.93) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .tg-modal { animation: tgModalIn 0.2s ease; }
       `}</style>
     </div>
   );
