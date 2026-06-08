@@ -1,0 +1,78 @@
+import { Hono } from 'hono';
+import { eq, and } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
+import { db } from '../db/index.js';
+import { users, referrals } from '../db/schema.js';
+import { authMiddleware, type JwtPayload } from '../middleware/auth.js';
+import { hasActiveSubscription } from '../lib/subscriptionStatus.js';
+
+const referralsRouter = new Hono<{ Variables: { user: JwtPayload } }>();
+
+referralsRouter.use('*', authMiddleware);
+
+const FRONTEND_URL = 'https://trashgo-gamma.vercel.app';
+
+// GET /referrals/my
+referralsRouter.get('/my', async (c) => {
+  const { userId } = c.get('user');
+
+  const userRows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (userRows.length === 0) {
+    return c.json({ error: { code: 'NOT_FOUND', message: 'User not found' } }, 404);
+  }
+
+  let user = userRows[0];
+
+  // Generate and save referral code for existing users who don't have one
+  if (!user.referralCode) {
+    const code = nanoid(8).toUpperCase();
+    const updated = await db.update(users).set({ referralCode: code }).where(eq(users.id, userId)).returning();
+    user = updated[0];
+  }
+
+  // Optional: filter by referred user role
+  const target = c.req.query('target'); // 'contractor' | 'customer' | undefined (all)
+
+  const whereClause = target === 'contractor'
+    ? and(eq(referrals.referrerId, userId), eq(users.role, 'contractor'))
+    : target === 'customer'
+    ? and(eq(referrals.referrerId, userId), eq(users.role, 'customer'))
+    : eq(referrals.referrerId, userId);
+
+  const myReferrals = await db
+    .select({ id: users.id, name: users.name, role: users.role, joinedAt: users.createdAt })
+    .from(referrals)
+    .innerJoin(users, eq(users.id, referrals.refereeId))
+    .where(whereClause)
+    .limit(100);
+
+  const baseLink = `${FRONTEND_URL}/ref/${user.referralCode}`;
+  const link = target === 'contractor'
+    ? `${baseLink}?role=contractor`
+    : `${baseLink}?role=customer`;
+
+  const count = myReferrals.length;
+  const discount = target === 'customer' ? Math.min(count * 2, 20) : undefined;
+
+  // Enrich each referral with subscription activity status
+  const referralsWithStatus = await Promise.all(
+    myReferrals.map(async (r) => ({
+      name: r.name,
+      role: r.role,
+      joinedAt: r.joinedAt.toISOString(),
+      isActive: await hasActiveSubscription(r.id),
+    }))
+  );
+
+  return c.json({
+    data: {
+      code: user.referralCode,
+      link,
+      count,
+      ...(discount !== undefined ? { discount } : {}),
+      referrals: referralsWithStatus,
+    },
+  });
+});
+
+export default referralsRouter;
