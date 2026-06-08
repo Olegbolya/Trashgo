@@ -78,9 +78,9 @@ export default function Home() {
   const btnGrad = `linear-gradient(135deg, ${accent}, ${accentDark})`;
   const btnShadow = `0 4px 16px ${accent}44`;
 
-  const bg = isDark ? '#111827' : '#ffffff';
-  const bgAlt = isDark ? '#1a2235' : '#f9fafb';
-  const surface = isDark ? '#1e293b' : '#ffffff';
+  const bg = isDark ? '#000000' : '#ffffff';
+  const bgAlt = isDark ? '#0d0d0d' : '#f9fafb';
+  const surface = isDark ? '#111111' : '#ffffff';
   const border = isDark ? 'rgba(255,255,255,0.09)' : '#e5e7eb';
   const text = isDark ? '#f9fafb' : '#111827';
   const textSub = isDark ? 'rgba(255,255,255,0.65)' : '#4b5563';
