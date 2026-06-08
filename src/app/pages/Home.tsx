@@ -78,8 +78,8 @@ export default function Home() {
   const btnGrad = `linear-gradient(135deg, ${accent}, ${accentDark})`;
   const btnShadow = `0 4px 16px ${accent}44`;
 
-  const bg = isDark ? '#0f172a' : '#ffffff';
-  const bgAlt = isDark ? '#1e293b' : '#f9fafb';
+  const bg = isDark ? '#111827' : '#ffffff';
+  const bgAlt = isDark ? '#1a2235' : '#f9fafb';
   const surface = isDark ? '#1e293b' : '#ffffff';
   const border = isDark ? 'rgba(255,255,255,0.09)' : '#e5e7eb';
   const text = isDark ? '#f9fafb' : '#111827';
@@ -245,7 +245,7 @@ export default function Home() {
       </header>
 
       {/* ── HERO ── */}
-      <section style={{ position: 'relative', overflow: 'hidden', paddingTop: '3.5rem', background: bg }}>
+      <section style={{ position: 'relative', overflow: 'hidden', paddingTop: '3.5rem' }}>
         <div className="tg-blob" style={{ position: 'absolute', top: '-8%', right: '-4%', width: 400, height: 400, borderRadius: '50%', background: `${accent}0d`, pointerEvents: 'none' }} />
         <div className="tg-blob" style={{ position: 'absolute', bottom: '-6%', left: '8%', width: 280, height: 280, borderRadius: '50%', background: `${accent}0a`, animationDelay: '3s', pointerEvents: 'none' }} />
         <div className="tg-blob" style={{ position: 'absolute', top: '35%', left: '48%', width: 180, height: 180, borderRadius: '50%', background: `${accent}08`, animationDelay: '6s', pointerEvents: 'none' }} />
