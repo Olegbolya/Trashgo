@@ -251,11 +251,20 @@ app.post('/api/v1/auth/telegram/webhook', async (c) => {
 async function sendTelegramMessage(chatId: string, text: string, markdownV2 = false) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return;
-  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, ...(markdownV2 ? { parse_mode: 'MarkdownV2' } : {}) }),
-  }).catch(() => {});
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, ...(markdownV2 ? { parse_mode: 'MarkdownV2' } : {}) }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      console.error(`[Telegram] sendMessage failed ${res.status}:`, body.slice(0, 200));
+    }
+  } catch (e: any) {
+    console.error('[Telegram] sendMessage error:', e?.message ?? e);
+  }
 }
 
 // GET /api/v1/auth/bot-info — public, returns Telegram bot username for deep-link construction
