@@ -483,7 +483,8 @@ serve({ fetch: app.fetch, port });
 async function startTelegramPolling() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return;
-  await fetch(`https://api.telegram.org/bot${token}/deleteWebhook?drop_pending_updates=false`).catch(() => {});
+  console.log('[Telegram] Polling starting, deleting webhook...');
+  await fetch(`https://api.telegram.org/bot${token}/deleteWebhook?drop_pending_updates=false`, { signal: AbortSignal.timeout(10000) }).catch(() => {});
   let offset = 0;
   console.log('[Telegram] Polling started');
   while (true) {
