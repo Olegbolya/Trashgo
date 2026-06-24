@@ -490,8 +490,8 @@ async function startTelegramPolling() {
   while (true) {
     try {
       const res = await fetch(
-        `https://api.telegram.org/bot${token}/getUpdates?timeout=30&offset=${offset}&allowed_updates=%5B%22message%22%5D`,
-        { signal: AbortSignal.timeout(35000) }
+        `https://api.telegram.org/bot${token}/getUpdates?timeout=10&offset=${offset}&allowed_updates=%5B%22message%22%5D`,
+        { signal: AbortSignal.timeout(15000) }
       );
       const data = await res.json() as { ok: boolean; result: Array<{ update_id: number; message?: { text?: string; chat?: { id: number } } }> };
       if (data.ok && data.result.length > 0) {
