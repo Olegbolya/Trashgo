@@ -499,11 +499,17 @@ async function startTelegramPolling() {
           offset = update.update_id + 1;
           const message = update.message;
           if (message?.text && message?.chat?.id) {
-            await processTelegramMessage(String(message.chat.id), message.text.trim()).catch(() => {});
+            const chatId = String(message.chat.id);
+            console.log(`[Telegram] Message from ${chatId}: ${message.text.substring(0, 60)}`);
+            await processTelegramMessage(chatId, message.text.trim())
+              .catch((e) => console.error('[Telegram] processTelegramMessage error:', e?.message ?? e));
           }
         }
       }
-    } catch {
+    } catch (e: any) {
+      if (!String(e?.message).includes('AbortError')) {
+        console.error('[Telegram] Poll error:', e?.message ?? e);
+      }
       await new Promise(r => setTimeout(r, 5000));
     }
   }
