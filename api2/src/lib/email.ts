@@ -76,15 +76,15 @@ async function send(to: string, subject: string, html: string, text?: string): P
 
   // 3. Resend
   if (resend) {
-    const payload = { from: RESEND_FROM, to, subject, html, ...(text ? { text } : {}) };
-    const { error } = await resend.emails.send(payload);
-    if (error) {
-      console.error('[EMAIL] Resend failed, retrying in 5s:', error.message);
-      await new Promise(r => setTimeout(r, 5000));
-      const retry = await resend.emails.send(payload);
-      if (retry.error) { console.error('[EMAIL] Resend retry failed:', retry.error.message); return false; }
+    try {
+      const payload = { from: RESEND_FROM, to, subject, html, ...(text ? { text } : {}) };
+      const { error } = await resend.emails.send(payload);
+      if (!error) return true;
+      console.error('[EMAIL] Resend send failed:', error.message);
+    } catch (e: any) {
+      console.error('[EMAIL] Resend threw (network?):', e?.message ?? e);
     }
-    return true;
+    // fall through to dev fallback
   }
 
   // 4. Dev fallback — log to console
