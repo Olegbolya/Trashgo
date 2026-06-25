@@ -20,8 +20,7 @@ export const VKID_APP_ID = import.meta.env.VITE_VKID_APP_ID ?? '';
 
 export async function startVkOAuth() {
   if (!VKID_APP_ID) {
-    console.error('[VKID] VITE_VKID_APP_ID not set');
-    return;
+    throw new Error('VK ID не настроен. Добавьте VITE_VKID_APP_ID в переменные окружения.');
   }
   const code_verifier = generateRandom(43);
   const code_challenge = await generateCodeChallenge(code_verifier);

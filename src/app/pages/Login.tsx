@@ -118,7 +118,11 @@ export default function Login() {
       <div style={{ width: '100%', maxWidth: 440 }}>
 
         <button
-          onClick={() => showEmail ? setShowEmail(false) : navigate('/')}
+          onClick={() => {
+            if (emailStep === 'phone') { setEmailStep('email'); return; }
+            if (showEmail) { setShowEmail(false); return; }
+            navigate('/');
+          }}
           style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', color: muted, fontFamily: 'inherit', fontSize: '0.875rem', marginBottom: '2rem', padding: 0 }}
         >
           <ArrowLeft size={18} />
@@ -256,7 +260,7 @@ export default function Login() {
             </div>
 
             <button
-              onClick={() => { setShowEmail(false); handleVkLogin(); }}
+              onClick={() => setShowEmail(false)}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                 width: '100%', height: '3rem', borderRadius: 12,
