@@ -33,8 +33,9 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Admin = lazy(() => import("./pages/Admin"));
-const DownloadApp = lazy(() => import("./pages/DownloadApp"));
 const Subscription = lazy(() => import("./pages/Subscription"));
+const VkCallback = lazy(() => import("./pages/VkCallback"));
+const RegisterVk = lazy(() => import("./pages/RegisterVk"));
 
 function PageLoader() {
   return (
@@ -172,6 +173,8 @@ export const router = createBrowserRouter([
   { path: "/select-role", element: page(SelectRole) },
   { path: "/register-customer", element: page(RegisterCustomer) },
   { path: "/register-contractor", element: page(RegisterContractor) },
+  { path: "/auth/vk/callback", element: page(VkCallback) },
+  { path: "/register-vk", element: page(RegisterVk) },
   { path: "/how-it-works", element: page(HowItWorks) },
   { path: "/ref/:code", element: page(RefRedirect) },
   { path: "/privacy", element: page(Privacy) },
@@ -200,9 +203,6 @@ export const router = createBrowserRouter([
   { path: "/find-orders", element: guardedLayout(FindOrders, 'contractor') },
   { path: "/order/:id", element: guardedLayout(OrderDetail) },
   { path: "/leaderboard", element: guarded(Leaderboard) },
-
-  // App download page (public)
-  { path: "/download", element: page(DownloadApp) },
 
   // Admin panel (public, protected by ?secret=)
   { path: "/admin", element: page(Admin) },

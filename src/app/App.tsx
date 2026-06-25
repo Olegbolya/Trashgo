@@ -4,17 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router } from './routes.tsx';
 import { Toaster } from './components/ui/sonner';
 import { ThemeProvider } from './context/ThemeContext';
-import { useTheme } from './context/ThemeContext';
 import { useAuthStore } from '../stores/auth.store';
 import { connectSSE } from '../services/sse';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { InstallBanner } from './components/InstallBanner';
 import { CookieBanner } from './components/CookieBanner';
-import { UpdateBanner } from './components/UpdateBanner';
-import { useAndroidUpdateCheck } from '../hooks/useAndroidUpdateCheck';
-import { isNative } from '../lib/platform';
-import { handleNativeBack } from '../lib/nativeBack';
-import { useNotificationsStore } from '../stores/notifications.store';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,90 +27,7 @@ function SSEConnector() {
     if (isAuthenticated && token) connectSSE(token);
   }, [isAuthenticated, token]);
 
-  // Reconnect SSE when app returns from background (native only)
-  useEffect(() => {
-    if (!isNative()) return;
-    let cleanup: (() => void) | undefined;
-    (async () => {
-      const { App: CapApp } = await import('@capacitor/app');
-      const handle = await CapApp.addListener('appStateChange', ({ isActive }) => {
-        if (isActive && isAuthenticated && token) connectSSE(token);
-      });
-      cleanup = () => handle.remove();
-    })();
-    return () => cleanup?.();
-  }, [isAuthenticated, token]);
-
   usePushNotifications();
-  return null;
-}
-
-// Keeps the Android status bar background/icon style in sync with the app theme.
-function NativeStatusBarSync() {
-  const { isDark } = useTheme();
-  useEffect(() => {
-    if (!isNative()) return;
-    (async () => {
-      try {
-        const { StatusBar, Style } = await import('@capacitor/status-bar');
-        if (isDark) {
-          await StatusBar.setStyle({ style: Style.Light });       // white icons
-          await StatusBar.setBackgroundColor({ color: '#111827' }); // dark bg
-        } else {
-          await StatusBar.setStyle({ style: Style.Dark });        // dark icons
-          await StatusBar.setBackgroundColor({ color: '#ffffff' }); // white bg
-        }
-      } catch {}
-    })();
-  }, [isDark]);
-  return null;
-}
-
-function NativeUpdateCheck() {
-  useAndroidUpdateCheck();
-  return null;
-}
-
-function NativeBootstrap() {
-  useEffect(() => {
-    if (!isNative()) return;
-    (async () => {
-      try {
-        // Back button — check modal stack first, then history, then exit
-        const { App: CapApp } = await import('@capacitor/app');
-        CapApp.addListener('backButton', ({ canGoBack }) => {
-          if (handleNativeBack()) return;
-          if (canGoBack) window.history.back();
-          else CapApp.exitApp();
-        });
-
-        // Native push
-        const { registerNativePush } = await import('../hooks/useNativePush');
-        await registerNativePush();
-
-        // Hide splash
-        const { SplashScreen } = await import('@capacitor/splash-screen');
-        await SplashScreen.hide();
-      } catch (e) {
-        console.error('[NativeBootstrap]', e);
-      }
-    })();
-
-    // Forward foreground push notifications into the in-app bell
-    const addNotification = useNotificationsStore.getState().addNotification;
-    const handler = (e: Event) => {
-      const n = (e as CustomEvent).detail;
-      if (!n?.title) return;
-      addNotification({
-        type: (n.data?.type as any) ?? 'order_status',
-        title: n.title,
-        message: n.body ?? '',
-        orderId: n.data?.orderId ?? undefined,
-      });
-    };
-    window.addEventListener('push:foreground', handler);
-    return () => window.removeEventListener('push:foreground', handler);
-  }, []);
   return null;
 }
 
@@ -142,12 +53,8 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <SSEConnector />
-        <NativeStatusBarSync />
-        <NativeBootstrap />
-        <NativeUpdateCheck />
-        <UpdateBanner />
         <OfflineBanner />
-        {!isNative() && <InstallBanner />}
+        <InstallBanner />
         <CookieBanner />
         <RouterProvider router={router} />
         <Toaster richColors position="top-center" />

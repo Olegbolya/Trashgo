@@ -1,0 +1,91 @@
+import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router';
+import { authApi } from '../../api/auth';
+import { useAuthStore } from '../../stores/auth.store';
+import { toast } from 'sonner';
+
+export default function VkCallback() {
+  const navigate = useNavigate();
+  const processing = useRef(false);
+  const setAuth = useAuthStore((s) => s.setAuth);
+
+  useEffect(() => {
+    if (processing.current) return;
+    processing.current = true;
+
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    const device_id = params.get('device_id');
+
+    const savedState = sessionStorage.getItem('vkid_state');
+    const code_verifier = sessionStorage.getItem('vkid_code_verifier');
+    const redirect_uri = `${window.location.origin}/auth/vk/callback`;
+
+    sessionStorage.removeItem('vkid_state');
+    sessionStorage.removeItem('vkid_code_verifier');
+
+    if (!code || !device_id || !code_verifier) {
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    if (state && savedState && state !== savedState) {
+      toast.error('Ошибка безопасности, попробуйте снова');
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    authApi.vkidExchange({ code, device_id, code_verifier, redirect_uri })
+      .then((res) => {
+        if (res.isNewUser) {
+          navigate('/register-vk', {
+            replace: true,
+            state: { phone: res.phone, name: res.name, tempToken: res.tempToken },
+          });
+        } else if (res.user && res.token && res.refreshToken) {
+          setAuth(res.user, res.token, res.refreshToken);
+          navigate('/dashboard', { replace: true });
+        } else {
+          toast.error('Ошибка входа');
+          navigate('/login', { replace: true });
+        }
+      })
+      .catch((err) => {
+        toast.error(err?.message || 'Ошибка входа через VK');
+        navigate('/login', { replace: true });
+      });
+  }, []);
+
+  return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: '#f9fafb', fontFamily: "'Inter', system-ui, sans-serif",
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: '50%',
+          background: 'linear-gradient(135deg, #2787F5, #5BABFF)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 1rem', fontSize: '1.5rem',
+        }}>
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <path d="M14.5 4.5C9 4.5 4.5 9 4.5 14.5S9 24.5 14.5 24.5 24.5 20 24.5 14.5 20 4.5 14.5 4.5zm6.3 10.2c-.3.4-.9 1-1.7 1.7l-.2.2c-.5.5-.8.9-.8 1.3 0 .2.1.5.4.8l.1.1c.6.5 1.1 1.1 1.4 1.7.1.2.2.4.2.6 0 .4-.2.8-.6.8h-2.1c-.3 0-.6-.1-.9-.3-.3-.2-.5-.5-.5-.8 0-.2.1-.4.2-.6.1-.2.3-.4.5-.6.2-.2.3-.4.3-.6 0-.2-.1-.4-.3-.6-.5-.5-1-.9-1.4-1.1-.2-.1-.4-.2-.6-.2-.3 0-.5.1-.8.3-.3.2-.4.5-.4.8v2.7c0 .3-.1.5-.3.7-.2.2-.5.3-.7.3h-1.6c-.4 0-.8-.1-1.2-.4-.4-.3-.8-.7-1-1.2-.2-.4-.3-.8-.3-1.2 0-.7.2-1.4.7-2 .5-.6 1.2-1 2-1.2.2 0 .3-.1.5-.1.4 0 .6.2.6.5 0 .2-.1.4-.3.5-.5.3-.9.7-1.1 1.2-.2.5-.2.9 0 1.3.1.2.2.3.4.3.1 0 .2 0 .3-.1V14c0-.5.2-.9.5-1.2.3-.3.7-.5 1.2-.5h.5c.4 0 .8.1 1.1.3.3.2.5.5.5.8 0 .2-.1.4-.2.6l-.3.6c-.1.2-.2.4-.2.6 0 .3.1.5.3.7.5.5 1 .8 1.5 1 .2.1.4.1.6.1.3 0 .6-.1.8-.3.2-.2.3-.5.3-.8v-1.5c0-.4.1-.8.4-1.1.3-.3.6-.5 1-.5.3 0 .5.1.7.2.2.1.3.3.3.5 0 .1 0 .2-.1.3z" fill="white"/>
+          </svg>
+        </div>
+        <div style={{ color: '#111827', fontWeight: 600, marginBottom: '0.5rem' }}>Входим через VK ID</div>
+        <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>Пожалуйста, подождите...</div>
+        <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '6px' }}>
+          {[0, 1, 2].map(i => (
+            <div key={i} style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: '#2787F5',
+              animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+            }} />
+          ))}
+        </div>
+        <style>{`@keyframes pulse { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }`}</style>
+      </div>
+    </div>
+  );
+}

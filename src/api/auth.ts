@@ -1,6 +1,16 @@
 import { api } from './client';
 import type { User, UserRole } from '../types/user';
 
+interface VkidResponse {
+  isNewUser: boolean;
+  phone?: string;
+  name?: string;
+  tempToken?: string;
+  user?: User;
+  token?: string;
+  refreshToken?: string;
+}
+
 interface LoginResponse {
   otpSent: boolean;
   isNewUser: boolean;
@@ -116,6 +126,16 @@ export const authApi = {
 
   async botInfo(): Promise<{ username: string | null }> {
     return api.get<{ username: string | null }>('/auth/bot-info');
+  },
+
+  async vkidExchange(data: { code: string; device_id: string; code_verifier: string; redirect_uri: string }): Promise<VkidResponse> {
+    const res = await api.post<{ data: VkidResponse }>('/auth/vkid', data);
+    return res.data;
+  },
+
+  async registerVkid(data: { tempToken: string; name: string; role: UserRole; district: string; transportMode?: string; inn?: string; refCode?: string }): Promise<{ user: User; token: string; refreshToken: string }> {
+    const res = await api.post<{ data: { user: User; token: string; refreshToken: string } }>('/auth/register-vkid', data);
+    return res.data;
   },
 
   async requestTelegram(phone: string, linkOnly?: boolean): Promise<{ telegramBotLink: string }> {

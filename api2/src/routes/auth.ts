@@ -15,6 +15,7 @@ import { verifyFirebaseIdToken, isFirebaseAdminReady } from '../lib/firebase-adm
 import { sendEmailOtp, isEmailEnabled } from '../lib/email.js';
 import { rateLimit } from '../lib/rateLimit.js';
 import { censor } from '../lib/censor.js';
+import { normalizePhone } from '../lib/phone.js';
 
 const auth = new Hono();
 
@@ -554,6 +555,159 @@ auth.post('/refresh', async (c) => {
   } catch {
     return c.json({ error: { code: 'INVALID_TOKEN', message: 'Invalid refresh token' } }, 401);
   }
+});
+
+// POST /auth/vkid — exchange VK ID OAuth code for JWT
+auth.post('/vkid', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const { code, device_id, code_verifier, redirect_uri } = body;
+
+  if (!code || !device_id || !code_verifier) {
+    return c.json({ error: { code: 'VALIDATION', message: 'Missing required params' } }, 400);
+  }
+
+  const appId = process.env.VKID_APP_ID;
+  const secret = process.env.VKID_CLIENT_SECRET;
+  if (!appId || !secret) {
+    return c.json({ error: { code: 'NOT_CONFIGURED', message: 'VK ID not configured on server' } }, 503);
+  }
+
+  // Exchange code for tokens
+  let tokenData: any;
+  try {
+    const tokenRes = await fetch('https://id.vk.com/oauth2/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        client_id: appId,
+        client_secret: secret,
+        device_id,
+        redirect_uri: redirect_uri || 'https://trashgo.pro/auth/vk/callback',
+        code_verifier,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+    tokenData = await tokenRes.json();
+  } catch (e: any) {
+    console.error('[VKID] token exchange error:', e?.message);
+    return c.json({ error: { code: 'VKID_ERROR', message: 'VK недоступен, попробуйте позже' } }, 503);
+  }
+
+  if (tokenData.error) {
+    console.error('[VKID] token error:', tokenData.error, tokenData.error_description);
+    return c.json({ error: { code: 'VKID_ERROR', message: 'Ошибка авторизации VK' } }, 400);
+  }
+
+  // Get user info (phone + name)
+  let vkUser: any;
+  try {
+    const infoRes = await fetch('https://id.vk.com/oauth2/user_info', {
+      headers: { 'Authorization': `Bearer ${tokenData.access_token}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    const infoData = await infoRes.json();
+    vkUser = infoData.user;
+  } catch (e: any) {
+    console.error('[VKID] user_info error:', e?.message);
+    return c.json({ error: { code: 'VKID_ERROR', message: 'Не удалось получить данные VK' } }, 503);
+  }
+
+  const rawPhone = vkUser?.phone ?? vkUser?.phone_number ?? '';
+  if (!rawPhone) {
+    return c.json({ error: { code: 'NO_PHONE', message: 'VK аккаунт не привязан к номеру телефона' } }, 400);
+  }
+
+  const phone = normalizePhone(rawPhone);
+  const vkName = [vkUser?.first_name, vkUser?.last_name].filter(Boolean).join(' ');
+  const vkUserId = String(vkUser?.user_id ?? '');
+
+  // Find existing user
+  const existing = await db.select().from(users).where(eq(users.phone, phone)).limit(1);
+
+  if (existing.length === 0) {
+    // New user — issue short-lived temp token for registration
+    const tempToken = jwt.sign(
+      { phone, name: vkName, vkUserId, type: 'vk_verified' },
+      process.env.JWT_SECRET!,
+      { expiresIn: '10m' },
+    );
+    return c.json({ data: { isNewUser: true, phone, name: vkName, tempToken } });
+  }
+
+  const userRow = existing[0];
+  if ((userRow as any).deletedAt) return c.json({ error: { code: 'ACCOUNT_DELETED', message: 'Аккаунт был удалён' } }, 403);
+  if ((userRow as any).frozen) return c.json({ error: { code: 'ACCOUNT_FROZEN', message: 'Аккаунт заморожен. Обратитесь в поддержку.' } }, 403);
+
+  const tokens = generateTokens(userRow.id, userRow.role);
+  const refreshExpires = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+  await db.insert(refreshTokens).values({ userId: userRow.id, token: tokens.refreshToken, expiresAt: refreshExpires });
+
+  return c.json({ data: { isNewUser: false, user: formatUser(userRow), token: tokens.token, refreshToken: tokens.refreshToken } });
+});
+
+// POST /auth/register-vkid — register new user after VK phone verification
+auth.post('/register-vkid', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const { tempToken, name, role, district, transportMode, inn, refCode } = body;
+
+  if (!tempToken || !name || !role || !district) {
+    return c.json({ error: { code: 'VALIDATION', message: 'Missing fields' } }, 400);
+  }
+  if (!['customer', 'contractor'].includes(role)) {
+    return c.json({ error: { code: 'VALIDATION', message: 'Invalid role' } }, 400);
+  }
+
+  let phone: string;
+  try {
+    const payload = jwt.verify(tempToken, process.env.JWT_SECRET!) as { phone: string; type: string };
+    if (payload.type !== 'vk_verified') throw new Error('Wrong token type');
+    phone = payload.phone;
+  } catch {
+    return c.json({ error: { code: 'INVALID_TOKEN', message: 'Срок действия сессии истёк, войдите снова' } }, 401);
+  }
+
+  const existing = await db.select({ id: users.id }).from(users).where(eq(users.phone, phone)).limit(1);
+  if (existing.length > 0) {
+    return c.json({ error: { code: 'USER_EXISTS', message: 'Аккаунт с таким номером уже существует' } }, 409);
+  }
+
+  let referrerId: string | undefined;
+  if (refCode) {
+    const referrer = await db.select({ id: users.id }).from(users).where(eq(users.referralCode, refCode)).limit(1);
+    if (referrer.length > 0) referrerId = referrer[0].id;
+  }
+
+  const newReferralCode = nanoid(8).toUpperCase();
+  const newUser = await db.insert(users).values({
+    phone,
+    name: censor(name),
+    role,
+    district,
+    ...(transportMode ? { transportMode } : {}),
+    ...(inn ? { inn } : {}),
+    referralCode: newReferralCode,
+    referredBy: referrerId,
+  }).returning();
+
+  if (referrerId) {
+    const bonusExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await db.insert(referrals).values({ referrerId, refereeId: newUser[0].id, bonusExpiresAt });
+    checkReferralAchievements(referrerId).catch(() => {});
+    emitToUser(referrerId, { type: 'xp', title: '👥 Новый реферал!', message: role === 'contractor' ? 'Напарник присоединился! После 5 заказов вы получите +150₽' : 'Сосед зарегистрировался — ваша скидка увеличилась' });
+  }
+
+  if (role === 'contractor') {
+    notifyAdmin(`🆕 *Новый исполнитель (VK ID)*\n\nИмя: ${censor(name)}\nРайон: ${district}\n\nВерифицируйте через /admin`).catch(() => {});
+  }
+
+  const user = newUser[0];
+  const tokens = generateTokens(user.id, user.role);
+  const refreshExpires = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+  await db.insert(refreshTokens).values({ userId: user.id, token: tokens.refreshToken, expiresAt: refreshExpires });
+
+  return c.json({ data: { user: formatUser(user), token: tokens.token, refreshToken: tokens.refreshToken } }, 201);
 });
 
 // POST /auth/request-telegram — generate Telegram bot link as SMS fallback

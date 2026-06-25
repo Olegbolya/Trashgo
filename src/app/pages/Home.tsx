@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Moon, Sun, ChevronDown, X, Trash2 } from 'lucide-react';
+import { Moon, Sun, ChevronDown, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore, ROLE_COLORS } from '../../stores/role.store';
 import { authApi } from '../../api/auth';
+import { startVkOAuth } from '../../lib/vkid';
 
 function formatPhone(raw: string) {
   const digits = raw.replace(/\D/g, '').replace(/^7/, '').replace(/^8/, '').slice(0, 10);
@@ -72,6 +73,8 @@ export default function Home() {
   const [modalEmail, setModalEmail] = useState('');
   const [modalError, setModalError] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
+  const [modalShowEmail, setModalShowEmail] = useState(false);
+  const [vkLoading, setVkLoading] = useState(false);
 
   const accent = accentColor;
   const accentDark = selectedRole === 'contractor' ? '#1565c0' : '#43a047';
@@ -131,7 +134,17 @@ export default function Home() {
     setModalMode(mode);
     setModalEmail('');
     setModalError('');
+    setModalShowEmail(false);
     setShowModal(true);
+  };
+
+  const handleVkLogin = async () => {
+    setVkLoading(true);
+    try {
+      await startVkOAuth();
+    } catch {
+      setVkLoading(false);
+    }
   };
 
   const modalEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(modalEmail.trim());
@@ -315,49 +328,60 @@ export default function Home() {
                 {selectedRole === 'contractor' ? 'Стать исполнителем' : 'Создать аккаунт'}
               </h3>
               <p style={{ fontSize: '0.8rem', color: textMuted, marginBottom: '1.25rem' }}>
-                {selectedRole === 'contractor' ? 'Зарабатывайте на вывозе мусора' : 'Введите email — пришлём код подтверждения'}
+                {selectedRole === 'contractor' ? 'Зарабатывайте на вывозе мусора' : 'Войдите через VK ID или email'}
               </p>
 
-              {accountFound && verifyNavState ? (
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '2.25rem', marginBottom: 8 }}>✅</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: text, marginBottom: 4 }}>Аккаунт уже существует</div>
-                  <div style={{ fontSize: '0.8rem', color: textMuted, marginBottom: '1.25rem' }}>Код отправлен на <span style={{ color: text, fontWeight: 600 }}>{email}</span></div>
-                  <button onClick={() => navigate('/verify', { state: verifyNavState })} style={{ display: 'block', width: '100%', padding: '0.8rem', borderRadius: 12, background: btnGrad, color: '#fff', fontSize: '0.9rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8, boxShadow: btnShadow }}>
+              {/* VK primary button */}
+              <button
+                onClick={handleVkLogin}
+                disabled={vkLoading}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', padding: '0.85rem', borderRadius: 12, background: 'linear-gradient(135deg, #2787F5, #5BABFF)', color: '#fff', fontSize: '0.9rem', fontWeight: 700, border: 'none', cursor: vkLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(39,135,245,0.4)', marginBottom: '0.875rem', transition: 'all 0.2s' }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M12.785 16.241s.288-.032.436-.194c.136-.148.132-.427.132-.427s-.02-1.304.587-1.496c.6-.19 1.37 1.26 2.185 1.815.617.422 1.086.33 1.086.33l2.182-.03s1.14-.071.6-.968c-.044-.073-.314-.661-1.618-1.869-1.365-1.261-1.183-1.057.462-3.237.999-1.332 1.398-2.146 1.272-2.494-.12-.332-.855-.244-.855-.244l-2.454.015s-.182-.025-.317.055c-.133.079-.218.262-.218.262s-.387 1.03-.903 1.906c-1.088 1.848-1.523 1.947-1.7 1.832-.413-.267-.31-1.075-.31-1.648 0-1.793.272-2.54-.529-2.733-.266-.064-.461-.107-1.141-.114-.872-.009-1.609.003-2.027.207-.278.136-.492.439-.362.456.161.021.527.099.72.363.25.341.241 1.107.241 1.107s.144 2.11-.335 2.372c-.328.179-.778-.187-1.745-1.858-.496-.858-.87-1.807-.87-1.807s-.072-.176-.203-.271c-.158-.115-.378-.151-.378-.151l-2.33.015s-.35.01-.478.162C4.003 7.73 4.102 8.05 4.102 8.05s1.822 4.265 3.882 6.414c1.891 1.973 4.039 1.843 4.039 1.843l1.762-.016z" fill="white"/>
+                </svg>
+                {vkLoading ? 'Переходим...' : 'Войти через VK ID'}
+              </button>
+
+              {step === 'email' && !accountFound ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.875rem' }}>
+                    <div style={{ flex: 1, height: 1, background: border }} />
+                    <span style={{ fontSize: '0.72rem', color: textMuted, fontWeight: 500 }}>или по email</span>
+                    <div style={{ flex: 1, height: 1, background: border }} />
+                  </div>
+                  <form onSubmit={handleEmailSubmit}>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <input type="email" placeholder="your@email.com" value={email} onChange={e => { setFormError(''); setEmail(e.target.value); }} style={{ display: 'block', width: '100%', height: '2.75rem', padding: '0 0.875rem', borderRadius: 10, border: `1.5px solid ${formError ? '#ef4444' : email.length > 0 ? accent : border}`, fontSize: '0.95rem', outline: 'none', background: inputBg, color: text, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }} />
+                      {formError && <p style={{ color: '#ef4444', fontSize: '0.74rem', marginTop: 4, marginBottom: 0 }}>{formError}</p>}
+                    </div>
+                    <button type="submit" disabled={loading || !emailValid} style={{ display: 'block', width: '100%', padding: '0.75rem', borderRadius: 10, background: emailValid ? btnGrad : (isDark ? '#374151' : '#e5e7eb'), color: emailValid ? '#fff' : textMuted, fontSize: '0.875rem', fontWeight: 700, border: 'none', cursor: loading || !emailValid ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: emailValid ? btnShadow : 'none', transition: 'all 0.2s' }}>
+                      {loading ? 'Проверяем...' : 'Продолжить по email →'}
+                    </button>
+                  </form>
+                </>
+              ) : accountFound && verifyNavState ? (
+                <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: 6 }}>✅</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: text, marginBottom: 4 }}>Аккаунт найден</div>
+                  <div style={{ fontSize: '0.78rem', color: textMuted, marginBottom: '1rem' }}>Код отправлен на <span style={{ color: text, fontWeight: 600 }}>{email}</span></div>
+                  <button onClick={() => navigate('/verify', { state: verifyNavState })} style={{ display: 'block', width: '100%', padding: '0.75rem', borderRadius: 12, background: btnGrad, color: '#fff', fontSize: '0.875rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8, boxShadow: btnShadow }}>
                     Войти →
                   </button>
-                  <button onClick={() => { setAccountFound(false); setVerifyNavState(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', color: textMuted, fontFamily: 'inherit' }}>
+                  <button onClick={() => { setAccountFound(false); setVerifyNavState(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.78rem', color: textMuted, fontFamily: 'inherit' }}>
                     ← Изменить email
                   </button>
                 </div>
-              ) : step === 'email' ? (
-                <form onSubmit={handleEmailSubmit}>
-                  <div style={{ marginBottom: '0.875rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: textSub, marginBottom: 5 }}>Email</label>
-                    <input type="email" placeholder="your@email.com" value={email} onChange={e => { setFormError(''); setEmail(e.target.value); }} autoFocus style={{ display: 'block', width: '100%', height: '2.75rem', padding: '0 0.875rem', borderRadius: 10, border: `1.5px solid ${formError ? '#ef4444' : email.length > 0 ? accent : border}`, fontSize: '0.95rem', outline: 'none', background: inputBg, color: text, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }} />
-                    {formError && <p style={{ color: '#ef4444', fontSize: '0.74rem', marginTop: 4, marginBottom: 0 }}>{formError}</p>}
-                  </div>
-                  <button type="submit" disabled={loading || !emailValid} style={{ display: 'block', width: '100%', padding: '0.8rem', borderRadius: 12, background: btnGrad, color: '#fff', fontSize: '0.9rem', fontWeight: 700, border: 'none', cursor: loading || !emailValid ? 'not-allowed' : 'pointer', opacity: loading || !emailValid ? 0.5 : 1, fontFamily: 'inherit', marginBottom: '0.875rem', boxShadow: emailValid ? btnShadow : 'none', transition: 'all 0.2s' }}>
-                    {loading ? 'Проверяем...' : (selectedRole === 'contractor' ? 'Начать зарабатывать →' : 'Продолжить →')}
-                  </button>
-                  <p style={{ fontSize: '0.78rem', color: textMuted, textAlign: 'center', margin: 0 }}>
-                    Уже есть аккаунт?{' '}
-                    <button type="button" onClick={() => openModal('login')} style={{ color: accent, background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', fontWeight: 600, padding: 0, transition: 'color 0.4s' }}>Войти</button>
-                  </p>
-                </form>
               ) : (
-                <form onSubmit={handlePhoneSubmit}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.45rem 0.7rem', borderRadius: 8, background: `${accent}12`, marginBottom: '0.875rem', fontSize: '0.8rem', color: text }}>
+                <form onSubmit={handlePhoneSubmit} style={{ marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.4rem 0.7rem', borderRadius: 8, background: `${accent}12`, marginBottom: '0.75rem', fontSize: '0.8rem', color: text }}>
                     <span>📧</span>
                     <span style={{ fontWeight: 600 }}>{email}</span>
                     <button type="button" onClick={() => setStep('email')} style={{ marginLeft: 'auto', color: textMuted, background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.74rem', fontFamily: 'inherit' }}>Изменить</button>
                   </div>
-                  <div style={{ marginBottom: '0.875rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: textSub, marginBottom: 5 }}>Телефон</label>
-                    <input type="tel" inputMode="numeric" placeholder="+7 (___) ___-__-__" value={phone ? formatPhone(phone) : ''} onChange={e => { setFormError(''); setPhone(e.target.value.replace(/\D/g, '')); }} autoFocus style={{ display: 'block', width: '100%', height: '2.75rem', padding: '0 0.875rem', borderRadius: 10, border: `1.5px solid ${formError ? '#ef4444' : phone.length > 0 ? accent : border}`, fontSize: '0.95rem', outline: 'none', background: inputBg, color: text, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }} />
-                    {formError && <p style={{ color: '#ef4444', fontSize: '0.74rem', marginTop: 4, marginBottom: 0 }}>{formError}</p>}
-                  </div>
-                  <button type="submit" disabled={loading || !phoneValid} style={{ display: 'block', width: '100%', padding: '0.8rem', borderRadius: 12, background: btnGrad, color: '#fff', fontSize: '0.9rem', fontWeight: 700, border: 'none', cursor: loading || !phoneValid ? 'not-allowed' : 'pointer', opacity: loading || !phoneValid ? 0.5 : 1, fontFamily: 'inherit', boxShadow: phoneValid ? btnShadow : 'none', transition: 'all 0.2s' }}>
+                  <input type="tel" inputMode="numeric" placeholder="+7 (___) ___-__-__" value={phone ? formatPhone(phone) : ''} onChange={e => { setFormError(''); setPhone(e.target.value.replace(/\D/g, '')); }} autoFocus style={{ display: 'block', width: '100%', height: '2.75rem', padding: '0 0.875rem', borderRadius: 10, border: `1.5px solid ${formError ? '#ef4444' : phone.length > 0 ? accent : border}`, fontSize: '0.95rem', outline: 'none', background: inputBg, color: text, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s', marginBottom: '0.75rem' }} />
+                  {formError && <p style={{ color: '#ef4444', fontSize: '0.74rem', marginTop: -8, marginBottom: 8 }}>{formError}</p>}
+                  <button type="submit" disabled={loading || !phoneValid} style={{ display: 'block', width: '100%', padding: '0.75rem', borderRadius: 10, background: phoneValid ? btnGrad : (isDark ? '#374151' : '#e5e7eb'), color: phoneValid ? '#fff' : textMuted, fontSize: '0.875rem', fontWeight: 700, border: 'none', cursor: loading || !phoneValid ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: phoneValid ? btnShadow : 'none', transition: 'all 0.2s' }}>
                     {loading ? 'Отправляем...' : 'Получить код →'}
                   </button>
                 </form>
@@ -627,30 +651,61 @@ export default function Home() {
             <h2 style={{ fontSize: '1.55rem', fontWeight: 800, color: text, textAlign: 'center', margin: '0 0 8px' }}>
               {modalMode === 'login' ? 'Вход в аккаунт' : 'Создать аккаунт'}
             </h2>
-            <p style={{ fontSize: '0.88rem', color: textMuted, textAlign: 'center', margin: '0 0 2rem', lineHeight: 1.6 }}>
-              Введите email — пришлём код подтверждения
+            <p style={{ fontSize: '0.88rem', color: textMuted, textAlign: 'center', margin: '0 0 1.75rem', lineHeight: 1.6 }}>
+              Верификация телефона через VK ID
             </p>
-            <form onSubmit={handleModalSubmit}>
-              <div style={{ marginBottom: '1.125rem' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: textSub, marginBottom: 7 }}>Email</label>
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  value={modalEmail}
-                  onChange={e => { setModalError(''); setModalEmail(e.target.value); }}
-                  autoFocus
-                  style={{ display: 'block', width: '100%', height: '3.25rem', padding: '0 1rem', borderRadius: 12, border: `1.5px solid ${modalError ? '#ef4444' : modalEmail.length > 0 ? accent : border}`, fontSize: '1rem', outline: 'none', background: inputBg, color: text, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-                />
-                {modalError && <p style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: 5, marginBottom: 0 }}>{modalError}</p>}
-              </div>
+
+            {/* VK primary */}
+            <button
+              onClick={handleVkLogin}
+              disabled={vkLoading}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', padding: '1rem', borderRadius: 14, background: 'linear-gradient(135deg, #2787F5, #5BABFF)', color: '#fff', fontSize: '1rem', fontWeight: 700, border: 'none', cursor: vkLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 20px rgba(39,135,245,0.4)', marginBottom: '1rem', transition: 'all 0.2s' }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M12.785 16.241s.288-.032.436-.194c.136-.148.132-.427.132-.427s-.02-1.304.587-1.496c.6-.19 1.37 1.26 2.185 1.815.617.422 1.086.33 1.086.33l2.182-.03s1.14-.071.6-.968c-.044-.073-.314-.661-1.618-1.869-1.365-1.261-1.183-1.057.462-3.237.999-1.332 1.398-2.146 1.272-2.494-.12-.332-.855-.244-.855-.244l-2.454.015s-.182-.025-.317.055c-.133.079-.218.262-.218.262s-.387 1.03-.903 1.906c-1.088 1.848-1.523 1.947-1.7 1.832-.413-.267-.31-1.075-.31-1.648 0-1.793.272-2.54-.529-2.733-.266-.064-.461-.107-1.141-.114-.872-.009-1.609.003-2.027.207-.278.136-.492.439-.362.456.161.021.527.099.72.363.25.341.241 1.107.241 1.107s.144 2.11-.335 2.372c-.328.179-.778-.187-1.745-1.858-.496-.858-.87-1.807-.87-1.807s-.072-.176-.203-.271c-.158-.115-.378-.151-.378-.151l-2.33.015s-.35.01-.478.162C4.003 7.73 4.102 8.05 4.102 8.05s1.822 4.265 3.882 6.414c1.891 1.973 4.039 1.843 4.039 1.843l1.762-.016z" fill="white"/>
+              </svg>
+              {vkLoading ? 'Переходим в VK...' : 'Войти через VK ID'}
+            </button>
+
+            {!modalShowEmail ? (
               <button
-                type="submit"
-                disabled={modalLoading || !modalEmailValid}
-                style={{ display: 'block', width: '100%', padding: '1rem', borderRadius: 14, background: btnGrad, color: '#fff', fontSize: '1rem', fontWeight: 700, border: 'none', cursor: modalLoading || !modalEmailValid ? 'not-allowed' : 'pointer', opacity: modalLoading || !modalEmailValid ? 0.5 : 1, fontFamily: 'inherit', boxShadow: modalEmailValid ? btnShadow : 'none', transition: 'all 0.2s', marginBottom: '1.25rem' }}
+                type="button"
+                onClick={() => setModalShowEmail(true)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '0.75rem', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6', color: textMuted, fontSize: '0.875rem', fontWeight: 500, border: `1.5px solid ${border}`, cursor: 'pointer', fontFamily: 'inherit', marginBottom: '1.25rem', transition: 'all 0.2s' }}
               >
-                {modalLoading ? 'Проверяем...' : 'Продолжить →'}
+                <span style={{ fontSize: '1rem' }}>📧</span>
+                Войти по email
               </button>
-            </form>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.875rem' }}>
+                  <div style={{ flex: 1, height: 1, background: border }} />
+                  <span style={{ fontSize: '0.72rem', color: textMuted }}>или по email</span>
+                  <div style={{ flex: 1, height: 1, background: border }} />
+                </div>
+                <form onSubmit={handleModalSubmit} style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ marginBottom: '0.875rem' }}>
+                    <input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={modalEmail}
+                      onChange={e => { setModalError(''); setModalEmail(e.target.value); }}
+                      autoFocus
+                      style={{ display: 'block', width: '100%', height: '3rem', padding: '0 1rem', borderRadius: 12, border: `1.5px solid ${modalError ? '#ef4444' : modalEmail.length > 0 ? accent : border}`, fontSize: '1rem', outline: 'none', background: inputBg, color: text, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                    />
+                    {modalError && <p style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: 5, marginBottom: 0 }}>{modalError}</p>}
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={modalLoading || !modalEmailValid}
+                    style={{ display: 'block', width: '100%', padding: '0.875rem', borderRadius: 12, background: modalEmailValid ? btnGrad : (isDark ? '#374151' : '#e5e7eb'), color: modalEmailValid ? '#fff' : textMuted, fontSize: '0.95rem', fontWeight: 700, border: 'none', cursor: modalLoading || !modalEmailValid ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: modalEmailValid ? btnShadow : 'none', transition: 'all 0.2s' }}
+                  >
+                    {modalLoading ? 'Проверяем...' : 'Продолжить →'}
+                  </button>
+                </form>
+              </>
+            )}
+
             <p style={{ fontSize: '0.84rem', color: textMuted, textAlign: 'center', margin: 0 }}>
               {modalMode === 'login' ? (
                 <>Нет аккаунта?{' '}<button type="button" onClick={() => setModalMode('register')} style={{ color: accent, background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', fontWeight: 600, padding: 0, transition: 'color 0.4s' }}>Зарегистрироваться</button></>
