@@ -6,6 +6,7 @@ import { useAuthStore } from '../../stores/auth.store';
 import { useRoleStore, ROLE_COLORS } from '../../stores/role.store';
 import { authApi } from '../../api/auth';
 import { startVkOAuth } from '../../lib/vkid';
+import { toast } from 'sonner';
 
 function formatPhone(raw: string) {
   const digits = raw.replace(/\D/g, '').replace(/^7/, '').replace(/^8/, '').slice(0, 10);
@@ -143,6 +144,7 @@ export default function Home() {
     try {
       await startVkOAuth();
     } catch {
+      toast.error('Не удалось запустить вход через VK. Попробуйте ещё раз.');
       setVkLoading(false);
     }
   };
