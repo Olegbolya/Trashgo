@@ -16,14 +16,17 @@ export default function VkCallback() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const state = params.get('state');
-    const device_id = params.get('device_id');
 
     const savedState = sessionStorage.getItem('vkid_state');
     const code_verifier = sessionStorage.getItem('vkid_code_verifier');
+    // device_id comes back in the callback URL from VK (same as what we sent)
+    // Fall back to sessionStorage if VK omits it in the redirect
+    const device_id = params.get('device_id') || sessionStorage.getItem('vkid_device_id') || '';
     const redirect_uri = `${window.location.origin}/auth/vk/callback`;
 
     sessionStorage.removeItem('vkid_state');
     sessionStorage.removeItem('vkid_code_verifier');
+    sessionStorage.removeItem('vkid_device_id');
 
     const vkError = params.get('error');
     if (vkError) {
@@ -33,7 +36,7 @@ export default function VkCallback() {
       return;
     }
 
-    if (!code || !device_id || !code_verifier) {
+    if (!code || !code_verifier) {
       toast.error('Не удалось войти через VK. Попробуйте снова.');
       navigate('/login', { replace: true });
       return;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useTheme } from '../context/ThemeContext';
 import { accessPlansApi, type AccessPlanStatus, type AccessPlanRecord } from '../../api/access-plans';
 import { referralsApi, type ReferralInfo } from '../../api/referrals';
@@ -11,6 +11,7 @@ const PLAN_PRICE = 50;
 
 export default function SubscriptionPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isDark } = useTheme();
   const [status, setStatus] = useState<AccessPlanStatus | null>(null);
   const [history, setHistory] = useState<AccessPlanRecord[]>([]);
@@ -23,6 +24,7 @@ export default function SubscriptionPage() {
   const [promoError, setPromoError] = useState('');
   const [promoChecking, setPromoChecking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -39,18 +41,40 @@ export default function SubscriptionPage() {
     borderRadius: '1rem', padding: '1.25rem',
   };
 
-  useEffect(() => {
-    Promise.all([
+  const loadData = async () => {
+    const [s, h, ref] = await Promise.all([
       accessPlansApi.getStatus(),
       accessPlansApi.getHistory(),
       referralsApi.getMyReferral().catch(() => null),
-    ]).then(([s, h, ref]) => {
-      setStatus(s);
-      setHistory(h);
-      if (ref) setReferralInfo(ref);
-    }).catch(() => {
+    ]);
+    setStatus(s);
+    setHistory(h);
+    if (ref) setReferralInfo(ref);
+  };
+
+  useEffect(() => {
+    loadData().catch(() => {
       toast.error('Не удалось загрузить данные абонемента');
     }).finally(() => setLoading(false));
+  }, []);
+
+  // Handle return from YooKassa payment
+  useEffect(() => {
+    const payment = searchParams.get('payment');
+    const planId = searchParams.get('plan');
+    if (payment === 'success' && planId && !verifying) {
+      setVerifying(true);
+      accessPlansApi.verifyPayment(planId).then(({ activated }) => {
+        if (activated) {
+          toast.success('Абонемент успешно активирован!');
+        } else {
+          toast.info('Оплата получена — абонемент будет активирован автоматически.');
+        }
+        return loadData();
+      }).catch(() => {
+        toast.info('Оплата получена — абонемент будет активирован в течение нескольких минут.');
+      }).finally(() => setVerifying(false));
+    }
   }, []);
 
   const handleCheckPromo = async () => {
@@ -73,18 +97,22 @@ export default function SubscriptionPage() {
   const handleRequestPlan = async () => {
     setSubmitting(true);
     try {
-      await accessPlansApi.requestPlan(paymentRef.trim() || undefined, promoChecked?.code);
+      const result = await accessPlansApi.requestPlan(paymentRef.trim() || undefined, promoChecked?.code);
+
+      // YooKassa: redirect to payment page
+      if (result.paymentUrl) {
+        window.location.href = result.paymentUrl;
+        return;
+      }
+
+      // Manual SBP flow
       toast.success('Запрос отправлен — администратор активирует абонемент в течение 24 часов');
       setPaymentModalOpen(false);
       setPaymentRef('');
       setPromoCode('');
       setPromoChecked(null);
       setPromoError('');
-      // Refresh status
-      const s = await accessPlansApi.getStatus();
-      setStatus(s);
-      const h = await accessPlansApi.getHistory();
-      setHistory(h);
+      await loadData();
     } catch (e: any) {
       if (e?.code === 'ALREADY_PENDING') {
         toast.error('У вас уже есть ожидающий запрос');
@@ -153,6 +181,8 @@ export default function SubscriptionPage() {
     );
   }
 
+  const useYookassa = status?.yookassaEnabled ?? false;
+
   return (
     <div style={{ minHeight: '100vh', background: c.bg, color: c.text }}>
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '1rem 1rem 5rem' }}>
@@ -199,7 +229,7 @@ export default function SubscriptionPage() {
                     display: 'flex', alignItems: 'center', gap: '0.5rem',
                   }}>
                     <Clock className="w-4 h-4 flex-shrink-0" />
-                    Запрос на активацию отправлен — ожидайте подтверждения администратора (до 24 ч)
+                    Запрос на активацию отправлен — ожидайте подтверждения (до 24 ч)
                   </div>
                 ) : (
                   <button
@@ -211,7 +241,7 @@ export default function SubscriptionPage() {
                       fontSize: '0.9rem', fontWeight: 600,
                     }}
                   >
-                    Оплатить абонемент — {status.nextPrice}₽/мес
+                    {useYookassa ? `Оплатить онлайн — ${status.nextPrice}₽/мес` : `Оплатить абонемент — ${status.nextPrice}₽/мес`}
                   </button>
                 )}
               </div>
@@ -241,7 +271,9 @@ export default function SubscriptionPage() {
           </div>
           <div style={{ fontSize: '0.82rem', color: c.muted, lineHeight: 1.6 }}>
             Первый месяц бесплатно с момента регистрации. После — {PLAN_PRICE}₽/месяц.
-            Оплата P2P за заказы — без изменений, напрямую через СБП.
+            {useYookassa
+              ? ' Оплата картой онлайн через ЮKassa.'
+              : ' Оплата P2P напрямую через СБП.'}
           </div>
         </div>
 
@@ -257,7 +289,6 @@ export default function SubscriptionPage() {
             </div>
           </div>
 
-          {/* Per-referral list */}
           {referralInfo && referralInfo.referrals.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.875rem' }}>
               {referralInfo.referrals.slice(0, 5).map((r, i) => (
@@ -359,7 +390,7 @@ export default function SubscriptionPage() {
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
             display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-            zIndex: 1000, padding: '0 0 0 0',
+            zIndex: 1000,
           }}
           onClick={(e) => { if (e.target === e.currentTarget) setPaymentModalOpen(false); }}
         >
@@ -371,104 +402,186 @@ export default function SubscriptionPage() {
               Оплата абонемента
             </div>
 
-            {/* Instructions */}
-            <div style={{
-              padding: '1rem', borderRadius: '0.875rem',
-              background: isDark ? 'rgba(34,168,73,0.12)' : '#F0FDF4',
-              border: `1px solid ${isDark ? 'rgba(34,168,73,0.3)' : '#BBF7D0'}`,
-              marginBottom: '1rem',
-            }}>
-              <div style={{ fontSize: '0.875rem', color: c.text, lineHeight: 1.7 }}>
-                <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>
-                  Переведите <strong style={{ color: '#22a849' }}>{Math.max(0, status.nextPrice - (promoChecked?.discountAmount ?? 0))}₽</strong> через СБП:
-                  {promoChecked && <span style={{ fontSize: '0.8rem', color: c.muted, fontWeight: 400 }}> (со скидкой {promoChecked.discountAmount}₽)</span>}
+            {useYookassa ? (
+              /* YooKassa flow */
+              <div>
+                <div style={{
+                  padding: '1rem', borderRadius: '0.875rem',
+                  background: isDark ? 'rgba(34,168,73,0.12)' : '#F0FDF4',
+                  border: `1px solid ${isDark ? 'rgba(34,168,73,0.3)' : '#BBF7D0'}`,
+                  marginBottom: '1.25rem',
+                  fontSize: '0.875rem', color: c.text, lineHeight: 1.7,
+                }}>
+                  <div style={{ fontWeight: 600, marginBottom: '0.375rem' }}>
+                    Оплата картой онлайн — <strong style={{ color: '#22a849' }}>{Math.max(0, status.nextPrice - (promoChecked?.discountAmount ?? 0))}₽</strong>
+                  </div>
+                  <div style={{ color: c.muted, fontSize: '0.8rem' }}>
+                    Вы будете перенаправлены на защищённую страницу оплаты ЮKassa. После оплаты абонемент активируется автоматически.
+                  </div>
                 </div>
-                <div style={{ fontFamily: 'monospace', fontSize: '1rem', fontWeight: 700, color: c.text, marginBottom: '0.375rem' }}>
-                  {SBP_PHONE}
-                </div>
-                <div style={{ fontSize: '0.8rem', color: c.muted }}>
-                  В комментарии укажите: «TrashGo абонемент» + ваш телефон или email
-                </div>
-              </div>
-            </div>
 
-            {/* Payment reference input */}
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.82rem', color: c.muted, marginBottom: '0.375rem' }}>
-                Номер операции или последние 4 цифры карты (необязательно)
-              </label>
-              <input
-                type="text"
-                placeholder="например: 1234 или AB123456"
-                value={paymentRef}
-                onChange={(e) => setPaymentRef(e.target.value)}
-                maxLength={100}
-                style={{
-                  display: 'block', width: '100%', height: '2.75rem',
-                  padding: '0 0.875rem', borderRadius: '0.75rem',
-                  border: `1.5px solid ${c.border}`, background: c.subtle,
-                  color: c.text, fontSize: '0.9rem', outline: 'none',
-                  fontFamily: 'inherit', boxSizing: 'border-box',
-                }}
-              />
-            </div>
+                {/* Promo code */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', color: c.muted, marginBottom: '0.375rem' }}>
+                    Промокод (если есть)
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      placeholder="PROMO2026"
+                      value={promoCode}
+                      onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoChecked(null); setPromoError(''); }}
+                      maxLength={50}
+                      style={{
+                        flex: 1, height: '2.75rem',
+                        padding: '0 0.875rem', borderRadius: '0.75rem',
+                        border: `1.5px solid ${promoChecked ? '#22a849' : promoError ? '#ef4444' : c.border}`, background: c.subtle,
+                        color: c.text, fontSize: '0.9rem', outline: 'none',
+                        fontFamily: 'inherit', boxSizing: 'border-box',
+                      }}
+                    />
+                    <button
+                      onClick={handleCheckPromo}
+                      disabled={!promoCode.trim() || promoChecking}
+                      style={{
+                        height: '2.75rem', padding: '0 1rem', borderRadius: '0.75rem',
+                        background: c.subtle, color: c.text,
+                        border: `1.5px solid ${c.border}`, cursor: 'pointer',
+                        fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 500, whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {promoChecking ? '...' : 'Применить'}
+                    </button>
+                  </div>
+                  {promoChecked && (
+                    <div style={{ marginTop: '0.375rem', fontSize: '0.8rem', color: '#22a849' }}>
+                      ✓ Скидка {promoChecked.discountAmount}₽ применена
+                    </div>
+                  )}
+                  {promoError && (
+                    <div style={{ marginTop: '0.375rem', fontSize: '0.8rem', color: '#ef4444' }}>{promoError}</div>
+                  )}
+                </div>
 
-            {/* Promo code input */}
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.82rem', color: c.muted, marginBottom: '0.375rem' }}>
-                Промокод (если есть)
-              </label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
-                  type="text"
-                  placeholder="PROMO2026"
-                  value={promoCode}
-                  onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoChecked(null); setPromoError(''); }}
-                  maxLength={50}
-                  style={{
-                    flex: 1, height: '2.75rem',
-                    padding: '0 0.875rem', borderRadius: '0.75rem',
-                    border: `1.5px solid ${promoChecked ? '#22a849' : promoError ? '#ef4444' : c.border}`, background: c.subtle,
-                    color: c.text, fontSize: '0.9rem', outline: 'none',
-                    fontFamily: 'inherit', boxSizing: 'border-box',
-                  }}
-                />
                 <button
-                  onClick={handleCheckPromo}
-                  disabled={!promoCode.trim() || promoChecking}
+                  onClick={handleRequestPlan}
+                  disabled={submitting}
                   style={{
-                    height: '2.75rem', padding: '0 1rem', borderRadius: '0.75rem',
-                    background: c.subtle, color: c.text,
-                    border: `1.5px solid ${c.border}`, cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 500, whiteSpace: 'nowrap',
+                    width: '100%', height: '2.875rem', borderRadius: '0.875rem',
+                    background: submitting ? c.muted : '#22a849', color: '#fff',
+                    border: 'none', cursor: submitting ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 600,
+                    marginBottom: '0.625rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
                   }}
                 >
-                  {promoChecking ? '...' : 'Применить'}
+                  <CreditCard className="w-4 h-4" />
+                  {submitting ? 'Переход к оплате...' : `Оплатить ${Math.max(0, status.nextPrice - (promoChecked?.discountAmount ?? 0))}₽ онлайн`}
                 </button>
               </div>
-              {promoChecked && (
-                <div style={{ marginTop: '0.375rem', fontSize: '0.8rem', color: '#22a849' }}>
-                  ✓ Скидка {promoChecked.discountAmount}₽ применена
+            ) : (
+              /* Manual SBP flow */
+              <div>
+                <div style={{
+                  padding: '1rem', borderRadius: '0.875rem',
+                  background: isDark ? 'rgba(34,168,73,0.12)' : '#F0FDF4',
+                  border: `1px solid ${isDark ? 'rgba(34,168,73,0.3)' : '#BBF7D0'}`,
+                  marginBottom: '1rem',
+                }}>
+                  <div style={{ fontSize: '0.875rem', color: c.text, lineHeight: 1.7 }}>
+                    <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>
+                      Переведите <strong style={{ color: '#22a849' }}>{Math.max(0, status.nextPrice - (promoChecked?.discountAmount ?? 0))}₽</strong> через СБП:
+                      {promoChecked && <span style={{ fontSize: '0.8rem', color: c.muted, fontWeight: 400 }}> (со скидкой {promoChecked.discountAmount}₽)</span>}
+                    </div>
+                    <div style={{ fontFamily: 'monospace', fontSize: '1rem', fontWeight: 700, color: c.text, marginBottom: '0.375rem' }}>
+                      {SBP_PHONE}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: c.muted }}>
+                      В комментарии укажите: «TrashGo абонемент» + ваш телефон или email
+                    </div>
+                  </div>
                 </div>
-              )}
-              {promoError && (
-                <div style={{ marginTop: '0.375rem', fontSize: '0.8rem', color: '#ef4444' }}>{promoError}</div>
-              )}
-            </div>
 
-            <button
-              onClick={handleRequestPlan}
-              disabled={submitting}
-              style={{
-                width: '100%', height: '2.875rem', borderRadius: '0.875rem',
-                background: submitting ? c.muted : '#22a849', color: '#fff',
-                border: 'none', cursor: submitting ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 600,
-                marginBottom: '0.625rem',
-              }}
-            >
-              {submitting ? 'Отправка...' : 'Я оплатил — отправить запрос'}
-            </button>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', color: c.muted, marginBottom: '0.375rem' }}>
+                    Номер операции или последние 4 цифры карты (необязательно)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="например: 1234 или AB123456"
+                    value={paymentRef}
+                    onChange={(e) => setPaymentRef(e.target.value)}
+                    maxLength={100}
+                    style={{
+                      display: 'block', width: '100%', height: '2.75rem',
+                      padding: '0 0.875rem', borderRadius: '0.75rem',
+                      border: `1.5px solid ${c.border}`, background: c.subtle,
+                      color: c.text, fontSize: '0.9rem', outline: 'none',
+                      fontFamily: 'inherit', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', color: c.muted, marginBottom: '0.375rem' }}>
+                    Промокод (если есть)
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      placeholder="PROMO2026"
+                      value={promoCode}
+                      onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoChecked(null); setPromoError(''); }}
+                      maxLength={50}
+                      style={{
+                        flex: 1, height: '2.75rem',
+                        padding: '0 0.875rem', borderRadius: '0.75rem',
+                        border: `1.5px solid ${promoChecked ? '#22a849' : promoError ? '#ef4444' : c.border}`, background: c.subtle,
+                        color: c.text, fontSize: '0.9rem', outline: 'none',
+                        fontFamily: 'inherit', boxSizing: 'border-box',
+                      }}
+                    />
+                    <button
+                      onClick={handleCheckPromo}
+                      disabled={!promoCode.trim() || promoChecking}
+                      style={{
+                        height: '2.75rem', padding: '0 1rem', borderRadius: '0.75rem',
+                        background: c.subtle, color: c.text,
+                        border: `1.5px solid ${c.border}`, cursor: 'pointer',
+                        fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 500, whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {promoChecking ? '...' : 'Применить'}
+                    </button>
+                  </div>
+                  {promoChecked && (
+                    <div style={{ marginTop: '0.375rem', fontSize: '0.8rem', color: '#22a849' }}>
+                      ✓ Скидка {promoChecked.discountAmount}₽ применена
+                    </div>
+                  )}
+                  {promoError && (
+                    <div style={{ marginTop: '0.375rem', fontSize: '0.8rem', color: '#ef4444' }}>{promoError}</div>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleRequestPlan}
+                  disabled={submitting}
+                  style={{
+                    width: '100%', height: '2.875rem', borderRadius: '0.875rem',
+                    background: submitting ? c.muted : '#22a849', color: '#fff',
+                    border: 'none', cursor: submitting ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 600,
+                    marginBottom: '0.625rem',
+                  }}
+                >
+                  {submitting ? 'Отправка...' : 'Я оплатил — отправить запрос'}
+                </button>
+
+                <div style={{ fontSize: '0.75rem', color: c.muted, textAlign: 'center', marginTop: '0.25rem', lineHeight: 1.5 }}>
+                  Администратор активирует абонемент вручную в течение 24 часов
+                </div>
+              </div>
+            )}
 
             <button
               onClick={() => setPaymentModalOpen(false)}
@@ -476,15 +589,11 @@ export default function SubscriptionPage() {
                 width: '100%', height: '2.75rem', borderRadius: '0.875rem',
                 background: 'transparent', color: c.muted,
                 border: `1px solid ${c.border}`, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: '0.875rem',
+                fontFamily: 'inherit', fontSize: '0.875rem', marginTop: '0.625rem',
               }}
             >
               Отмена
             </button>
-
-            <div style={{ fontSize: '0.75rem', color: c.muted, textAlign: 'center', marginTop: '0.75rem', lineHeight: 1.5 }}>
-              Администратор активирует абонемент вручную в течение 24 часов после подтверждения оплаты
-            </div>
           </div>
         </div>
       )}

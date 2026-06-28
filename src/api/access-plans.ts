@@ -8,6 +8,7 @@ export interface AccessPlanStatus {
   discountAmount: number;
   nextPrice: number;
   hasPendingRequest: boolean;
+  yookassaEnabled?: boolean;
 }
 
 export interface AccessPlanRecord {
@@ -32,11 +33,16 @@ export const accessPlansApi = {
     return res.data;
   },
 
-  requestPlan: async (paymentRef?: string, promoCode?: string): Promise<{ id: string; priceAtPurchase: number; discountApplied?: number; promoCode?: string | null; status: string }> => {
-    const res = await api.post<{ data: { id: string; priceAtPurchase: number; discountApplied?: number; promoCode?: string | null; status: string } }>(
+  requestPlan: async (paymentRef?: string, promoCode?: string): Promise<{ id: string; priceAtPurchase: number; discountApplied?: number; promoCode?: string | null; status: string; paymentUrl?: string }> => {
+    const res = await api.post<{ data: { id: string; priceAtPurchase: number; discountApplied?: number; promoCode?: string | null; status: string; paymentUrl?: string } }>(
       '/access-plans/request',
       { paymentRef: paymentRef || null, promoCode: promoCode || null },
     );
+    return res.data;
+  },
+
+  verifyPayment: async (planId: string): Promise<{ activated: boolean }> => {
+    const res = await api.post<{ data: { activated: boolean } }>('/access-plans/verify-payment', { planId });
     return res.data;
   },
 

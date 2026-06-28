@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../api/auth';
-import { Home, MapPin, User, Plus, Package, CheckCircle, Clock, RefreshCw, Edit, LogOut, Bell, CreditCard, UserPlus, HelpCircle, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Star, Phone, MessageCircle, Menu, X, Trophy, Pause, Play, Trash2, Smartphone } from 'lucide-react';
+import { Home, MapPin, User, Plus, Package, CheckCircle, Clock, RefreshCw, Edit, LogOut, Bell, CreditCard, UserPlus, HelpCircle, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Star, Phone, MessageCircle, Menu, X, Trophy, Pause, Play, Trash2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { hapticTap, hapticSuccess, hapticError } from '../../lib/haptics';
 import { LevelSystem, getRankLabel, type LevelData } from '../components/LevelSystem';
@@ -24,7 +24,6 @@ import { useNotificationsStore } from '../../stores/notifications.store';
 import { searchKazanStreets } from '../../data/kazanStreets';
 import { uploadPhotoWithFallback } from '../../api/upload';
 import { MapPicker } from '../components/MapPicker';
-import { TelegramReminder } from '../components/TelegramReminder';
 import { KazanAddressInput } from '../components/KazanAddressInput';
 import { isNative } from '../../lib/platform';
 import { pickPhotosNative } from '../../hooks/useNativeCamera';
@@ -171,7 +170,6 @@ export default function CustomerDashboard() {
   const [emailChangeError, setEmailChangeError] = useState('');
   const [referralCount, setReferralCount] = useState(0);
   const [apiAchievements, setApiAchievements] = useState<AchievementItem[]>([]);
-  const [tgBotUsername, setTgBotUsername] = useState<string | null>(null);
 
   const refreshAchievements = () => {
     achievementsApi.getMy().then(setApiAchievements).catch(() => {});
@@ -485,7 +483,6 @@ export default function CustomerDashboard() {
   useEffect(() => {
     referralsApi.getMyReferral().then((d) => setReferralCount(d.count)).catch(() => {});
     achievementsApi.getMy().then(setApiAchievements).catch(() => {});
-    authApi.botInfo().then((d) => setTgBotUsername(d.username ?? null)).catch(() => {});
     const onUnlock = () => achievementsApi.getMy().then(setApiAchievements).catch(() => {});
     window.addEventListener('sse:achievement_unlocked', onUnlock);
     return () => window.removeEventListener('sse:achievement_unlocked', onUnlock);
@@ -695,16 +692,6 @@ export default function CustomerDashboard() {
         </nav>
 
         <div className="p-4 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
-          {!isNative() && (
-          <button
-            onClick={() => navigate('/download')}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
-            style={{ background: `${ACCENT}12`, color: ACCENT, border: `1px solid ${ACCENT}30`, cursor: 'pointer', fontFamily: 'inherit' }}
-          >
-            <Smartphone className="w-5 h-5" />
-            Скачать приложение
-          </button>
-          )}
           <button
             onClick={() => setShowHowItWorks(true)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
@@ -830,16 +817,6 @@ export default function CustomerDashboard() {
 
             {/* Drawer footer */}
             <div className="p-3 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
-              {!isNative() && (
-              <button
-                onClick={() => { navigate('/download'); setMobileMenuOpen(false); }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
-                style={{ background: `${ACCENT}12`, color: ACCENT, border: `1px solid ${ACCENT}30`, cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                <Smartphone className="w-5 h-5" />
-                Скачать приложение
-              </button>
-              )}
               <button
                 onClick={() => { setShowHowItWorks(true); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
@@ -1545,33 +1522,6 @@ export default function CustomerDashboard() {
                 ))}
               </div>
 
-              {/* Telegram connect */}
-              {tgBotUsername && (
-                <div style={card}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#229ED918' }}>
-                        <span style={{ fontSize: '1.1rem' }}>✈️</span>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium" style={{ color: c.text }}>Telegram-уведомления</div>
-                        <div className="text-xs" style={{ color: c.muted }}>
-                          {user?.telegramLinked ? '✅ Подключён — уведомления приходят в бот' : 'Получайте уведомления даже без push'}
-                        </div>
-                      </div>
-                    </div>
-                    {!user?.telegramLinked ? (
-                      <a
-                        href={`https://t.me/${tgBotUsername}?start=${encodeURIComponent(user?.phone ?? '')}`}
-                        target="_blank" rel="noreferrer"
-                        style={{ flexShrink: 0, padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#229ED9', color: 'white', fontSize: '0.75rem', fontWeight: 600, textDecoration: 'none' }}
-                      >Подключить</a>
-                    ) : (
-                      <span style={{ fontSize: '0.75rem', color: '#4CAF50', fontWeight: 600 }}>Активен</span>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* Theme toggle */}
               <button className="w-full flex items-center justify-between p-4 rounded-2xl" style={{ ...card, cursor: 'pointer' }} onClick={toggleTheme}>
@@ -3037,9 +2987,6 @@ export default function CustomerDashboard() {
           </div>
         </div>
       )}
-
-      {/* Telegram reminder (shown once a week to users without Telegram) */}
-      {!user?.telegramLinked && <TelegramReminder />}
 
       {/* Map Picker Modal */}
       {mapPickerOpen && (

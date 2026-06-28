@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Bell, CheckCheck, Trash2, MessageCircle, Package, Zap, CheckCircle, Settings, Mail, Smartphone, Send, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Bell, CheckCheck, Trash2, MessageCircle, Package, Zap, CheckCircle, Settings, Mail, Smartphone } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNotificationsStore, type AppNotification } from '../../stores/notifications.store';
 import { useAuthStore } from '../../stores/auth.store';
@@ -59,19 +59,7 @@ export default function Notifications() {
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingEmailToggle, setSavingEmailToggle] = useState(false);
   const [savingPushToggle, setSavingPushToggle] = useState(false);
-  const [savingTgToggle, setSavingTgToggle] = useState(false);
-  const [botUsername, setBotUsername] = useState<string | null>(null);
-  const [tgLoading, setTgLoading] = useState(false);
-  const [tgLinkLoading, setTgLinkLoading] = useState(false);
   const emailEnabled = user?.notifEmail ?? settings?.emailEnabled ?? false;
-  const tgNotifEnabled = user?.notifTelegram ?? true;
-
-  useEffect(() => {
-    if (tab === 'settings' && !user?.telegramLinked) {
-      setTgLoading(true);
-      authApi.botInfo().then(({ username }) => setBotUsername(username)).catch(() => {}).finally(() => setTgLoading(false));
-    }
-  }, [tab, user?.telegramLinked]);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
@@ -238,65 +226,6 @@ export default function Notifications() {
                   <div className="text-xs mt-2" style={{ color: c.muted }}>Почта закреплена за аккаунтом — используется для входа и уведомлений</div>
                 </div>
               )}
-            </div>
-            {/* Telegram */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-              <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${c.border}` }}>
-                <div className="flex items-center gap-2">
-                  <Send className="w-4 h-4" style={{ color: '#2196F3' }} />
-                  <span className="text-sm font-semibold" style={{ color: c.text }}>Telegram</span>
-                </div>
-                {user?.telegramLinked
-                  ? <span className="text-xs font-semibold px-2 py-1 rounded-lg" style={{ background: '#d1fae5', color: '#065f46' }}>✓ Привязан</span>
-                  : tgLoading
-                    ? <div className="w-4 h-4 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: ACCENT }} />
-                    : botUsername
-                      ? <button
-                          disabled={tgLinkLoading}
-                          onClick={async () => {
-                            if (!user?.phone) return;
-                            setTgLinkLoading(true);
-                            try {
-                              const { telegramBotLink } = await authApi.requestTelegram(user.phone, true);
-                              window.open(telegramBotLink, '_blank', 'noopener,noreferrer');
-                            } catch {
-                              toast.error('Не удалось получить ссылку для привязки');
-                            } finally {
-                              setTgLinkLoading(false);
-                            }
-                          }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#2196F3', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.25rem 0.75rem', fontSize: '0.8rem', fontWeight: 600, cursor: tgLinkLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: tgLinkLoading ? 0.7 : 1 }}>
-                          {tgLinkLoading ? '...' : <>Привязать <ExternalLink className="w-3 h-3" /></>}
-                        </button>
-                      : <span className="text-xs" style={{ color: c.muted }}>Не привязан</span>}
-              </div>
-              {user?.telegramLinked && (
-                <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${c.border}` }}>
-                  <div>
-                    <div className="text-sm font-medium" style={{ color: c.text }}>Уведомления о заказах</div>
-                    <div className="text-xs" style={{ color: c.muted }}>Статусы, чат, новые заявки</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {savingTgToggle && <div className="w-3.5 h-3.5 border-2 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: ACCENT }} />}
-                    <Toggle value={tgNotifEnabled} onChange={async (v) => {
-                      updateUser({ notifTelegram: v });
-                      setSavingTgToggle(true);
-                      try {
-                        const updated = await authApi.updateProfile({ notifTelegram: v });
-                        updateUser({ notifTelegram: (updated as any).notifTelegram });
-                      } catch { toast.error('Не удалось сохранить настройку'); }
-                      finally { setSavingTgToggle(false); }
-                    }} />
-                  </div>
-                </div>
-              )}
-              <div className="px-4 py-3 text-xs" style={{ color: c.muted }}>
-                {user?.telegramLinked
-                  ? tgNotifEnabled
-                    ? 'Уведомления о заказах и чатах приходят в Telegram. Коды входа — всегда.'
-                    : 'В Telegram приходят только коды входа. Уведомления о заказах отключены.'
-                  : 'Привяжите Telegram-бот, чтобы получать уведомления когда приложение закрыто.'}
-              </div>
             </div>
 
             <div className="rounded-xl px-4 py-3 text-xs" style={{ background: `${ACCENT}10`, color: c.muted }}>

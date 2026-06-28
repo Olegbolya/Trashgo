@@ -1,10 +1,11 @@
 import { Hono } from 'hono';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, gt, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { accessPlans, users, promoCodes } from '../db/schema.js';
 import { authMiddleware, type JwtPayload } from '../middleware/auth.js';
 import { getSubStatus, countActiveReferees, PLAN_PRICE, REFERRAL_DISCOUNT } from '../lib/subscriptionStatus.js';
 import { notifyAdmin } from '../lib/telegram.js';
+import { isYooKassaEnabled, createPayment, getPayment } from '../lib/yookassa.js';
 
 const router = new Hono<{ Variables: { user: JwtPayload } }>();
 router.use('*', authMiddleware);
@@ -31,6 +32,7 @@ router.get('/status', async (c) => {
     discountAmount,
     nextPrice,
     hasPendingRequest: hasPending,
+    yookassaEnabled: isYooKassaEnabled(),
   } });
 });
 
@@ -56,7 +58,7 @@ router.get('/history', async (c) => {
   })) });
 });
 
-// POST /access-plans/request — request manual payment confirmation
+// POST /access-plans/request — create payment (YooKassa if configured, else manual)
 router.post('/request', async (c) => {
   const { userId } = c.get('user');
   const body = await c.req.json().catch(() => ({}));
@@ -81,15 +83,9 @@ router.post('/request', async (c) => {
     const [promo] = await db.select().from(promoCodes)
       .where(eq(promoCodes.code, promoCodeInput))
       .limit(1);
-    if (!promo) {
-      return c.json({ error: { code: 'INVALID_PROMO', message: 'Промокод не найден' } }, 400);
-    }
-    if (promo.expiresAt && promo.expiresAt < new Date()) {
-      return c.json({ error: { code: 'PROMO_EXPIRED', message: 'Промокод истёк' } }, 400);
-    }
-    if (promo.maxUses > 0 && promo.usedCount >= promo.maxUses) {
-      return c.json({ error: { code: 'PROMO_EXHAUSTED', message: 'Промокод исчерпан' } }, 400);
-    }
+    if (!promo) return c.json({ error: { code: 'INVALID_PROMO', message: 'Промокод не найден' } }, 400);
+    if (promo.expiresAt && promo.expiresAt < new Date()) return c.json({ error: { code: 'PROMO_EXPIRED', message: 'Промокод истёк' } }, 400);
+    if (promo.maxUses > 0 && promo.usedCount >= promo.maxUses) return c.json({ error: { code: 'PROMO_EXHAUSTED', message: 'Промокод исчерпан' } }, 400);
     promoDiscount = promo.discountAmount;
     validPromoCode = promo.code;
     priceAtPurchase = Math.max(0, priceAtPurchase - promoDiscount);
@@ -105,15 +101,53 @@ router.post('/request', async (c) => {
     ...(validPromoCode ? { promoCode: validPromoCode } : {}),
   }).returning();
 
-  // Notify admin
+  // If price is 0 (full discount), auto-activate
+  if (priceAtPurchase === 0) {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    await db.update(accessPlans).set({
+      status: 'active',
+      startsAt: now,
+      expiresAt,
+      confirmedAt: now,
+    }).where(eq(accessPlans.id, plan.id));
+    return c.json({ data: { id: plan.id, status: 'active', priceAtPurchase: 0, expiresAt: expiresAt.toISOString() } }, 201);
+  }
+
+  // YooKassa payment
+  if (isYooKassaEnabled()) {
+    try {
+      const returnUrl = `${process.env.FRONTEND_URL ?? 'https://trashgo.pro'}/subscription?payment=success&plan=${plan.id}`;
+      const payment = await createPayment(
+        priceAtPurchase,
+        `Абонемент TrashGo на 30 дней`,
+        returnUrl,
+        { planId: plan.id, userId },
+      );
+      // Store YooKassa payment ID in paymentRef
+      await db.update(accessPlans).set({ paymentRef: payment.id }).where(eq(accessPlans.id, plan.id));
+      return c.json({ data: {
+        id: plan.id,
+        priceAtPurchase: plan.priceAtPurchase,
+        status: 'pending',
+        paymentUrl: payment.confirmation?.confirmation_url ?? null,
+        createdAt: plan.createdAt.toISOString(),
+      } }, 201);
+    } catch (e: any) {
+      console.error('[YooKassa] createPayment error:', e?.message);
+      // Fall through to manual flow
+    }
+  }
+
+  // Manual flow (no YooKassa configured or payment creation failed)
   const [userRow] = await db.select({ name: users.name, phone: users.phone }).from(users).where(eq(users.id, userId)).limit(1);
   notifyAdmin(
-    `💳 *Новый запрос на абонемент*\n\n` +
+    `💳 Новый запрос на абонемент\n` +
     `Пользователь: ${userRow?.name ?? '—'}\n` +
     `Сумма: ${priceAtPurchase}₽\n` +
     (validPromoCode ? `Промокод: ${validPromoCode} (−${promoDiscount}₽)\n` : '') +
     (paymentRef ? `Реквизит: ${paymentRef}\n` : '') +
-    `\nПодтвердите в /admin → Абонементы`
+    `Подтвердите в /admin → Абонементы`
   ).catch(() => {});
 
   return c.json({ data: {
@@ -122,11 +156,12 @@ router.post('/request', async (c) => {
     discountApplied: plan.discountApplied,
     promoCode: plan.promoCode ?? null,
     status: 'pending',
+    paymentUrl: null,
     createdAt: plan.createdAt.toISOString(),
   } }, 201);
 });
 
-// GET /access-plans/promo-check/:code — validate a promo code
+// GET /access-plans/promo-check/:code
 router.get('/promo-check/:code', async (c) => {
   const code = c.req.param('code').toUpperCase().trim();
   const [promo] = await db.select().from(promoCodes).where(eq(promoCodes.code, code)).limit(1);
@@ -134,6 +169,41 @@ router.get('/promo-check/:code', async (c) => {
   if (promo.expiresAt && promo.expiresAt < new Date()) return c.json({ error: { code: 'PROMO_EXPIRED', message: 'Промокод истёк' } }, 400);
   if (promo.maxUses > 0 && promo.usedCount >= promo.maxUses) return c.json({ error: { code: 'PROMO_EXHAUSTED', message: 'Промокод исчерпан' } }, 400);
   return c.json({ data: { code: promo.code, discountAmount: promo.discountAmount } });
+});
+
+// POST /access-plans/verify-payment — verify YooKassa payment and activate plan
+router.post('/verify-payment', async (c) => {
+  const { userId } = c.get('user');
+  const body = await c.req.json().catch(() => ({}));
+  const planId = typeof body.planId === 'string' ? body.planId : null;
+  if (!planId) return c.json({ error: { code: 'VALIDATION', message: 'planId required' } }, 400);
+
+  const [plan] = await db.select().from(accessPlans)
+    .where(and(eq(accessPlans.id, planId), eq(accessPlans.userId, userId)))
+    .limit(1);
+  if (!plan) return c.json({ error: { code: 'NOT_FOUND', message: 'Plan not found' } }, 404);
+  if (plan.status === 'active') return c.json({ data: { status: 'active', expiresAt: plan.expiresAt?.toISOString() } });
+  if (plan.status !== 'pending') return c.json({ error: { code: 'INVALID_STATUS', message: 'Plan not in pending state' } }, 400);
+
+  if (!plan.paymentRef || !isYooKassaEnabled()) {
+    return c.json({ error: { code: 'NO_PAYMENT', message: 'No payment associated' } }, 400);
+  }
+
+  const payment = await getPayment(plan.paymentRef).catch(() => null);
+  if (!payment || payment.status !== 'succeeded') {
+    return c.json({ data: { status: 'pending', paymentStatus: payment?.status ?? 'unknown' } });
+  }
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  await db.update(accessPlans).set({
+    status: 'active',
+    startsAt: now,
+    expiresAt,
+    confirmedAt: now,
+  }).where(eq(accessPlans.id, plan.id));
+
+  return c.json({ data: { status: 'active', expiresAt: expiresAt.toISOString() } });
 });
 
 export default router;

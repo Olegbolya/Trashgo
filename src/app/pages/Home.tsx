@@ -23,8 +23,8 @@ const FEATURES = [
   { icon: '💸', bg: '#fed7aa', name: 'Вы ставите цену', desc: 'Укажите желаемую сумму сами при создании заявки. Оплата — напрямую через СБП, без комиссии платформы.' },
   { icon: '🛡️', bg: '#dbeafe', name: 'Проверенные исполнители', desc: 'Все исполнители проходят верификацию. Рейтинги и отзывы помогают сделать правильный выбор.' },
   { icon: '💬', bg: '#e9d5ff', name: 'Встроенный чат', desc: 'Общайтесь с исполнителем прямо в приложении — без посторонних мессенджеров и лишних контактов.' },
-  { icon: '📱', bg: '#fce7f3', name: 'Мобильное приложение', desc: 'Android APK и PWA для iPhone — всегда под рукой, уведомления о новых заявках приходят мгновенно.' },
-  { icon: '🎁', bg: '#ccfbf1', name: 'Реферальная программа', desc: 'Приглашайте друзей и платите меньше. 5 активных друзей — абонемент бесплатно навсегда.' },
+  { icon: '🔔', bg: '#fce7f3', name: 'Push-уведомления', desc: 'Мгновенные уведомления о новых заявках и статусах прямо в браузере — ничего не пропустите.' },
+  { icon: '🎁', bg: '#ccfbf1', name: 'Реферальная программа', desc: 'Приглашайте исполнителей и платите меньше. 5 активных друзей — абонемент бесплатно навсегда.' },
 ];
 
 const STEPS = [
@@ -48,7 +48,7 @@ const FAQ_ITEMS = [
   { q: 'Что именно можно вывезти?', a: 'Бытовой мусор в пакетах, крупногабаритную мебель и технику, строительный мусор после ремонта, старую одежду и прочее. Уточните детали в описании заявки.' },
   { q: 'Безопасно ли пускать исполнителя домой?', a: 'Все исполнители проходят верификацию. Профиль каждого содержит рейтинг, отзывы и историю заказов — вы видите, кому открываете дверь.' },
   { q: 'Что делать, если исполнитель не приехал?', a: 'Напишите в поддержку через раздел «Помощь» в профиле. Мы оперативно разберём ситуацию и при необходимости найдём другого исполнителя или вернём средства.' },
-  { q: 'Есть ли мобильное приложение?', a: 'Да! TrashGo доступен как Android-приложение — скачайте APK с нашего сайта. Также вы можете добавить сайт на главный экран телефона как PWA — работает без установки.' },
+  { q: 'Работает ли TrashGo на телефоне?', a: 'Да! Сайт полностью адаптирован для мобильных устройств. Добавьте trashgo.pro на главный экран телефона как PWA — работает как приложение, без установки из магазина.' },
 ];
 
 export default function Home() {
@@ -449,11 +449,11 @@ export default function Home() {
 
             <div className="tg-anim tg-card" onClick={() => handleRoleSelect('customer')} style={{ background: surface, borderRadius: 20, padding: '1.75rem', border: `2px solid ${border}`, textAlign: 'center', cursor: 'pointer' }}>
               <div style={{ fontSize: '1.1rem', fontWeight: 700, color: text, marginBottom: 4 }}>Для заказчиков</div>
-              <div style={{ fontSize: '0.82rem', color: textMuted, marginBottom: '1rem' }}>Первый месяц бесплатно</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: text, letterSpacing: '-0.04em', marginBottom: 2 }}>50 <span style={{ fontSize: '1rem', fontWeight: 500, color: textMuted }}>₽</span></div>
-              <div style={{ fontSize: '0.8rem', color: textMuted, marginBottom: '1.375rem' }}>в месяц</div>
+              <div style={{ fontSize: '0.82rem', color: textMuted, marginBottom: '1rem' }}>навсегда бесплатно</div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: text, letterSpacing: '-0.04em', marginBottom: 2 }}>0 <span style={{ fontSize: '1rem', fontWeight: 500, color: textMuted }}>₽</span></div>
+              <div style={{ fontSize: '0.8rem', color: textMuted, marginBottom: '1.375rem' }}>бесплатно</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.375rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {['Создание заявок на вывоз', 'Карта статуса заказа', 'Встроенный чат с исполнителем', 'Отзывы и рейтинги', '30 дней бесплатно при регистрации'].map(item => (
+                {['Создание заявок на вывоз', 'Карта статуса заказа', 'Встроенный чат с исполнителем', 'Отзывы и рейтинги', 'Полностью бесплатно — навсегда'].map(item => (
                   <li key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '0.875rem', color: textSub }}>
                     <span style={{ color: accent, fontWeight: 700, flexShrink: 0, transition: 'color 0.4s' }}>✓</span>{item}
                   </li>

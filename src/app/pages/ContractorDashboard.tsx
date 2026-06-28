@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '../../stores/auth.store';
-import { Home, MapPin, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy, Copy, Smartphone } from 'lucide-react';
+import { Home, MapPin, User, Star, Briefcase, TrendingUp, Package, Clock, CheckCircle, Search, Plus, MessageCircle, Phone, Bell, CreditCard, UserPlus, HelpCircle, Edit, LogOut, Wallet, ArrowRightLeft, Moon, Sun, ChevronRight, Calendar, Menu, X, Trophy, Copy } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { hapticTap, hapticSuccess, hapticError } from '../../lib/haptics';
 import { LevelSystem, getRankLabel, type LevelData } from '../components/LevelSystem';
@@ -21,7 +21,6 @@ import { NotificationBell } from '../components/NotificationBell';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import { uploadPhotoWithFallback } from '../../api/upload';
 import { FrozenBanner } from '../components/FrozenBanner';
-import { TelegramReminder } from '../components/TelegramReminder';
 import { isNative } from '../../lib/platform';
 import { pickPhotosNative } from '../../hooks/useNativeCamera';
 import { useNativeBackClose } from '../../hooks/useNativeBackClose';
@@ -241,7 +240,6 @@ export default function ContractorDashboard() {
   const [paymentDisputedIds, setPaymentDisputedIds] = useState<Set<string>>(new Set());
   const [blockedCustomerIds, setBlockedCustomerIds] = useState<Set<string>>(new Set());
   const [confirmingPaymentId, setConfirmingPaymentId] = useState<string | null>(null);
-  const [tgBotUsername, setTgBotUsername] = useState<string | null>(null);
   const [ratingOrder, setRatingOrder] = useState<{ id: string; customerName: string } | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('trashgo_onboarded'));
   const [editInfoOpen, setEditInfoOpen] = useState(false);
@@ -413,7 +411,6 @@ export default function ContractorDashboard() {
   // Load server achievements + bot info on mount; refresh on achievement_unlocked SSE event
   useEffect(() => {
     achievementsApi.getMy().then(setApiAchievements).catch(() => {});
-    authApi.botInfo().then((d) => setTgBotUsername(d.username ?? null)).catch(() => {});
     const onUnlock = () => achievementsApi.getMy().then(setApiAchievements).catch(() => {});
     window.addEventListener('sse:achievement_unlocked', onUnlock);
     return () => window.removeEventListener('sse:achievement_unlocked', onUnlock);
@@ -640,16 +637,6 @@ export default function ContractorDashboard() {
         </nav>
 
         <div className="p-4 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
-          {!isNative() && (
-          <button
-            onClick={() => navigate('/download')}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
-            style={{ background: `${ACCENT}12`, color: ACCENT, border: `1px solid ${ACCENT}30`, cursor: 'pointer', fontFamily: 'inherit' }}
-          >
-            <Smartphone className="w-5 h-5" />
-            Скачать приложение
-          </button>
-          )}
           <button
             onClick={() => setShowHowItWorks(true)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium"
@@ -762,16 +749,6 @@ export default function ContractorDashboard() {
 
             {/* Drawer footer */}
             <div className="p-3 space-y-1" style={{ borderTop: `1px solid ${c.border}` }}>
-              {!isNative() && (
-              <button
-                onClick={() => { navigate('/download'); setMobileMenuOpen(false); }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
-                style={{ background: `${ACCENT}12`, color: ACCENT, border: `1px solid ${ACCENT}30`, cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                <Smartphone className="w-5 h-5" />
-                Скачать приложение
-              </button>
-              )}
               <button
                 onClick={() => { setShowHowItWorks(true); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
@@ -1634,7 +1611,6 @@ export default function ContractorDashboard() {
               {(!user?.ratingCount || user.ratingCount === 0) && (() => {
                 const steps = [
                   { done: !!(user?.name && user.name.trim()), label: 'Заполни профиль', action: () => { setEditProfileForm({ name: user?.name || '', district: user?.district || '', inn: user?.inn || '', email: user?.email || '', sbpBank: (user as any)?.sbpBank || '' }); setEditProfileOpen(true); } },
-                  { done: !!(user as any)?.telegramLinked, label: 'Привяжи Telegram для уведомлений', action: () => navigate('/notifications') },
                 ];
                 const allDone = steps.every(s => s.done);
                 if (allDone) return null;
@@ -1812,33 +1788,6 @@ export default function ContractorDashboard() {
                 ))}
               </div>
 
-              {/* Telegram connect */}
-              {tgBotUsername && (
-                <div style={card}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#229ED918' }}>
-                        <span style={{ fontSize: '1.1rem' }}>✈️</span>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium" style={{ color: c.text }}>Telegram-уведомления</div>
-                        <div className="text-xs" style={{ color: c.muted }}>
-                          {user?.telegramLinked ? '✅ Подключён — уведомления в боте' : 'Новые заказы прямо в Telegram'}
-                        </div>
-                      </div>
-                    </div>
-                    {!user?.telegramLinked ? (
-                      <a
-                        href={`https://t.me/${tgBotUsername}?start=${encodeURIComponent(user?.phone ?? '')}`}
-                        target="_blank" rel="noreferrer"
-                        style={{ flexShrink: 0, padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: '#229ED9', color: 'white', fontSize: '0.75rem', fontWeight: 600, textDecoration: 'none' }}
-                      >Подключить</a>
-                    ) : (
-                      <span style={{ fontSize: '0.75rem', color: '#4CAF50', fontWeight: 600 }}>Активен</span>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* Switch to Customer */}
               <button className="w-full flex items-center justify-between p-4 rounded-2xl" style={{ ...card, cursor: 'pointer' }} onClick={() => navigate('/customer')}>
@@ -2842,8 +2791,6 @@ export default function ContractorDashboard() {
         />
       )}
 
-      {/* Telegram reminder */}
-      {!user?.telegramLinked && <TelegramReminder />}
     </div>
   );
 }

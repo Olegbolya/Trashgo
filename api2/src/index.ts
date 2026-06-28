@@ -30,9 +30,7 @@ import { addClient, connectedCount, emitToUser, setFcmFallback } from './ws.js';
 import { sendPushNotification } from './lib/firebase-admin.js';
 import { startSubscriptionCron } from './lib/subscriptionCron.js';
 import { startAccessPlanNotifyCron } from './lib/accessPlanNotifyCron.js';
-import { hasTelegram, sendTelegramNotification, getBotUsername } from './lib/telegram.js';
 import { notifyUser } from './lib/notify.js';
-import { normalizePhone } from './lib/phone.js';
 
 const app = new Hono();
 
@@ -45,11 +43,6 @@ const allowedOrigins = [
   'https://trashgo-coral.vercel.app',
   'https://trashgo-gamma.vercel.app',
   'https://web-production-8d2c4.up.railway.app',
-  // Capacitor Android (androidScheme: 'https')
-  'https://localhost',
-  // Capacitor Android fallback and iOS
-  'capacitor://localhost',
-  'http://localhost',
 ];
 
 app.use('*', cors({
@@ -119,11 +112,31 @@ app.route('/api/v1/support', supportRoutes);
 app.route('/api/v1/upload', uploadRoutes);
 app.route('/api/v1/geocode', geocodeRoutes);
 
-// Public version endpoint — lets the Android app check for updates
-app.get('/api/v1/version', (c) => c.json({
-  latestBuild: parseInt(process.env.LATEST_BUILD ?? '1', 10),
-  latestVersion: process.env.LATEST_VERSION ?? '1.0',
-}));
+// YooKassa webhook — activates contractor subscription on successful payment
+app.post('/api/v1/webhooks/yookassa', async (c) => {
+  const body = await c.req.json().catch(() => null);
+  if (!body || body.event !== 'payment.succeeded') return c.json({ ok: true });
+  const paymentId = body.object?.id;
+  if (!paymentId) return c.json({ ok: true });
+
+  const { accessPlans } = await import('./db/schema.js');
+  const { eq, and } = await import('drizzle-orm');
+  const [plan] = await db.select().from(accessPlans)
+    .where(and(eq(accessPlans.paymentRef, paymentId), eq(accessPlans.status, 'pending')))
+    .limit(1);
+  if (!plan) return c.json({ ok: true });
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  await db.update(accessPlans).set({
+    status: 'active',
+    startsAt: now,
+    expiresAt,
+    confirmedAt: now,
+  }).where(eq(accessPlans.id, plan.id));
+  console.log(`[YooKassa] Subscription activated for plan ${plan.id}`);
+  return c.json({ ok: true });
+});
 
 // Geocoding proxy — avoids Nominatim browser User-Agent restrictions
 // ?q=... &limit=N (default 1, max 5)
@@ -154,124 +167,6 @@ app.get('/api/v1/geocode', async (c) => {
   }
 });
 
-// Shared Telegram message processing (used by both webhook and polling)
-async function processTelegramMessage(chatId: string, text: string) {
-  const startPayload = text.startsWith('/start ') ? text.slice(7).trim() : '';
-
-  const { telegramTokens } = await import('./lib/telegramTokens.js');
-  const tokenEntry = startPayload ? telegramTokens.get(startPayload) : undefined;
-  if (tokenEntry && tokenEntry.exp > Date.now()) {
-    telegramTokens.delete(startPayload);
-    const { users: usersTable } = await import('./db/schema.js');
-    const { eq } = await import('drizzle-orm');
-    const rows = await db.select({ id: usersTable.id, telegramChatId: usersTable.telegramChatId }).from(usersTable).where(eq(usersTable.phone, tokenEntry.phone)).limit(1);
-    const isNewLink = rows.length > 0 && !rows[0].telegramChatId;
-    if (rows.length > 0) {
-      await db.update(usersTable).set({ telegramChatId: chatId } as any).where(eq(usersTable.id, rows[0].id));
-    }
-    if (tokenEntry.linkOnly) {
-      await sendTelegramMessage(chatId, '🗑 *TrashGo* — вынос мусора в Казани\n\n✅ Telegram успешно привязан к вашему аккаунту\\!\n\nТеперь уведомления о заказах и важные сообщения будут приходить прямо сюда — даже когда приложение закрыто\\.\n\n🌐 Приложение: https://trashgo\\.pro', true);
-    } else {
-      const { sendTelegramOtp } = await import('./lib/telegram.js');
-      await sendTelegramOtp(chatId, tokenEntry.code);
-      if (isNewLink) {
-        await sendTelegramMessage(chatId, '🗑 *TrashGo* — вынос мусора в Казани\n\n✅ Telegram успешно привязан к вашему аккаунту\\!\n\nТеперь уведомления о заказах, коды подтверждения и важные сообщения будут приходить прямо сюда — даже когда приложение закрыто\\.\n\n🌐 Приложение: https://trashgo\\.pro', true);
-      }
-    }
-    return;
-  }
-
-  const phoneMatch = text.replace('/start ', '').match(/^(\+?[78]?\d{9,15})$/) ||
-    decodeURIComponent(text.replace('/start ', '')).match(/^(\+?[78]?\d{9,15})$/);
-  const phone = phoneMatch ? phoneMatch[1] : null;
-
-  if (!phone) {
-    await sendTelegramMessage(chatId, 'Перейдите по ссылке из приложения TrashGo, чтобы получить код.');
-    return;
-  }
-
-  const normalized = normalizePhone(phone);
-  const digits = normalized.replace('+', '');
-  const phoneForms = [normalized, digits, phone, `+${digits}`, `8${digits.slice(1)}`];
-
-  const { users: usersTable, otpCodes: otpCodesTable } = await import('./db/schema.js');
-  const { eq, and, gt, desc } = await import('drizzle-orm');
-
-  let user = null;
-  for (const p of phoneForms) {
-    const rows = await db.select({ id: usersTable.id, telegramChatId: usersTable.telegramChatId })
-      .from(usersTable).where(eq(usersTable.phone, p)).limit(1);
-    if (rows.length > 0) { user = rows[0]; break; }
-  }
-
-  const alreadyLinked = user?.telegramChatId === chatId;
-  if (user && !alreadyLinked) {
-    await db.update(usersTable).set({ telegramChatId: chatId } as any).where(eq(usersTable.id, user.id));
-  }
-
-  if (alreadyLinked) {
-    await sendTelegramMessage(chatId, '✅ Ваш Telegram аккаунт успешно привязан к TrashGo\\!\n\nУведомления о заказах будут приходить прямо сюда\\.\n\n🌐 https://trashgo\\.pro', true);
-    return;
-  }
-
-  let otp = null;
-  for (const p of phoneForms) {
-    const rows = await db.select()
-      .from(otpCodesTable)
-      .where(and(eq(otpCodesTable.phone, p), eq(otpCodesTable.used, 0), gt(otpCodesTable.expiresAt, new Date())))
-      .orderBy(desc(otpCodesTable.createdAt))
-      .limit(1);
-    if (rows.length > 0) { otp = rows[0]; break; }
-  }
-
-  const { sendTelegramOtp } = await import('./lib/telegram.js');
-  if (otp) {
-    await sendTelegramOtp(chatId, otp.code);
-  } else {
-    await sendTelegramMessage(chatId, `🗑 *TrashGo* — вынос мусора в Казани\n\n✅ Telegram привязан к номеру ${normalized}\\.\n\nТеперь запросите код в приложении и он придёт сюда\\.\n\n🌐 Приложение: https://trashgo\\.pro`, true);
-  }
-}
-
-// Telegram Bot webhook — kept for manual testing; polling is the primary delivery method
-app.post('/api/v1/auth/telegram/webhook', async (c) => {
-  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  if (webhookSecret) {
-    if (c.req.header('X-Telegram-Bot-API-Secret-Token') !== webhookSecret) {
-      return c.json({ ok: false }, 401);
-    }
-  }
-  const body = await c.req.json().catch(() => null);
-  if (!body) return c.json({ ok: true });
-  const message = body.message;
-  if (!message?.text || !message?.chat?.id) return c.json({ ok: true });
-  await processTelegramMessage(String(message.chat.id), message.text.trim()).catch(() => {});
-  return c.json({ ok: true });
-});
-
-async function sendTelegramMessage(chatId: string, text: string, markdownV2 = false) {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  if (!token) return;
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, ...(markdownV2 ? { parse_mode: 'MarkdownV2' } : {}) }),
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      console.error(`[Telegram] sendMessage failed ${res.status}:`, body.slice(0, 200));
-    }
-  } catch (e: any) {
-    console.error('[Telegram] sendMessage error:', e?.message ?? e);
-  }
-}
-
-// GET /api/v1/auth/bot-info — public, returns Telegram bot username for deep-link construction
-app.get('/api/v1/auth/bot-info', async (c) => {
-  const username = await getBotUsername();
-  return c.json({ username });
-});
 
 // 404 handler
 app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: 'Route not found' } }, 404));
@@ -372,19 +267,16 @@ async function runMigrations() {
 
 await runMigrations();
 
-// Fallback: when a user has no SSE connection, push via FCM and/or Telegram
+// Fallback: when a user has no SSE connection, push via FCM
 setFcmFallback(async (userId, event) => {
   try {
-    const userRow = await db.select({ fcmToken: usersTable.fcmToken, telegramChatId: usersTable.telegramChatId })
+    const userRow = await db.select({ fcmToken: usersTable.fcmToken })
       .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-    const { fcmToken, telegramChatId } = userRow[0] ?? {};
+    const { fcmToken } = userRow[0] ?? {};
     const title = String(event.title ?? 'TrashGo');
     const message = String(event.message ?? '');
     if (fcmToken) {
       await sendPushNotification(fcmToken, title, message, event.orderId ? { orderId: String(event.orderId) } : undefined);
-    }
-    if (telegramChatId && hasTelegram()) {
-      await sendTelegramNotification(telegramChatId, title, message);
     }
   } catch { /* non-fatal */ }
 });
@@ -488,48 +380,3 @@ console.log(`
 
 serve({ fetch: app.fetch, port });
 
-// Telegram long-polling — used instead of webhook because timeweb SDN blocks inbound from Telegram servers
-async function startTelegramPolling() {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  if (!token) return;
-  console.log('[Telegram] Polling starting, deleting webhook...');
-  await fetch(`https://api.telegram.org/bot${token}/deleteWebhook?drop_pending_updates=false`, { signal: AbortSignal.timeout(10000) }).catch(() => {});
-  let offset = 0;
-  let failCount = 0;
-  console.log('[Telegram] Polling started');
-  while (true) {
-    try {
-      const res = await fetch(
-        `https://api.telegram.org/bot${token}/getUpdates?timeout=10&offset=${offset}&allowed_updates=%5B%22message%22%5D`,
-        { signal: AbortSignal.timeout(15000) }
-      );
-      const data = await res.json() as { ok: boolean; result: Array<{ update_id: number; message?: { text?: string; chat?: { id: number } } }> };
-      if (failCount > 0) {
-        console.log(`[Telegram] Polling recovered after ${failCount} failures`);
-        failCount = 0;
-      }
-      if (data.ok && data.result.length > 0) {
-        for (const update of data.result) {
-          offset = update.update_id + 1;
-          const message = update.message;
-          if (message?.text && message?.chat?.id) {
-            const chatId = String(message.chat.id);
-            console.log(`[Telegram] Message from ${chatId}: ${message.text.substring(0, 60)}`);
-            await processTelegramMessage(chatId, message.text.trim())
-              .catch((e) => console.error('[Telegram] processTelegramMessage error:', e?.message ?? e));
-          }
-        }
-      }
-    } catch (e: any) {
-      if (!String(e?.message).includes('AbortError')) {
-        failCount++;
-        // Log first failure, then every 100th (~30 min at 20s/cycle) to avoid log spam
-        if (failCount === 1 || failCount % 100 === 0) {
-          console.error(`[Telegram] Poll error (x${failCount}):`, e?.message ?? e);
-        }
-      }
-      await new Promise(r => setTimeout(r, 5000));
-    }
-  }
-}
-startTelegramPolling().catch(() => {});

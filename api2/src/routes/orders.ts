@@ -368,13 +368,9 @@ ordersRouter.patch('/:id', async (c) => {
   return c.json({ data: formatOrder(updated[0]) });
 });
 
-// POST /orders — create an order (any authenticated user)
+// POST /orders — create an order (customers are free; contractors need subscription to accept)
 ordersRouter.post('/', async (c) => {
   const user = c.get('user');
-
-  if (!await hasActiveSubscription(user.userId)) {
-    return c.json({ error: { code: 'SUBSCRIPTION_REQUIRED', message: 'Необходим активный абонемент для создания заказов' } }, 403);
-  }
 
   // Rate limit: max 10 orders per hour per user
   const retryAfter = await rateLimit(`order:${user.userId}`, 10, 60 * 60 * 1000);

@@ -25,9 +25,11 @@ export async function startVkOAuth() {
   const code_verifier = generateRandom(43);
   const code_challenge = await generateCodeChallenge(code_verifier);
   const state = generateRandom(16);
+  const device_id = generateRandom(20);
 
   sessionStorage.setItem('vkid_code_verifier', code_verifier);
   sessionStorage.setItem('vkid_state', state);
+  sessionStorage.setItem('vkid_device_id', device_id);
 
   const redirect_uri = `${window.location.origin}/auth/vk/callback`;
   const params = new URLSearchParams({
@@ -38,6 +40,7 @@ export async function startVkOAuth() {
     scope: 'phone',
     code_challenge,
     code_challenge_method: 'S256',
+    device_id,
   });
 
   window.location.href = `https://id.vk.com/oauth2/authorize?${params}`;

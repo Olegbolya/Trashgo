@@ -9,8 +9,7 @@ import { users, otpCodes, refreshTokens, referrals, orders } from '../db/schema.
 import { checkReferralAchievements } from '../lib/achievements.js';
 import { emitToUser } from '../ws.js';
 import { sendOtp, hasSms } from '../lib/sms.js';
-import { hasTelegram, sendTelegramOtp, getBotUsername, notifyAdmin } from '../lib/telegram.js';
-import { telegramTokens, cleanupTelegramTokens } from '../lib/telegramTokens.js';
+import { notifyAdmin } from '../lib/telegram.js';
 import { verifyFirebaseIdToken, isFirebaseAdminReady } from '../lib/firebase-admin.js';
 import { sendEmailOtp, isEmailEnabled } from '../lib/email.js';
 import { rateLimit } from '../lib/rateLimit.js';
@@ -141,31 +140,12 @@ auth.post('/login', async (c) => {
   // Store OTP keyed by email
   await db.insert(otpCodes).values({ phone: email, code, expiresAt });
 
-  let channel: 'email' | 'telegram' | 'dev' = 'dev';
-  let telegramBotLink: string | undefined;
+  let channel: 'email' | 'dev' = 'dev';
 
   if (useEmailOtp) {
     const emailOk = await sendEmailOtp(email, code);
-    channel = 'email';
-    if (!emailOk && hasTelegram() && existingUser?.telegramChatId) {
-      // Email failed — fall back to Telegram
-      await sendTelegramOtp(existingUser.telegramChatId, code).catch(() => {});
-      channel = 'telegram';
-    }
-  } else if (hasTelegram() && existingUser?.telegramChatId) {
-    await sendTelegramOtp(existingUser.telegramChatId, code);
-    channel = 'telegram';
-  } else if (hasTelegram()) {
-    const botUsername = await getBotUsername();
-    if (botUsername) {
-      cleanupTelegramTokens();
-      const startToken = nanoid(8);
-      telegramTokens.set(startToken, { phone: email, code, exp: Date.now() + 10 * 60 * 1000 });
-      telegramBotLink = `https://t.me/${botUsername}?start=${startToken}`;
-      channel = 'telegram';
-    } else {
-      console.log(`[OTP DEV] ${email}: ${code}`);
-    }
+    if (emailOk) channel = 'email';
+    else console.log(`[OTP DEV] ${email}: ${code}`);
   } else {
     console.log(`[OTP DEV] ${email}: ${code}`);
   }
@@ -177,7 +157,6 @@ auth.post('/login', async (c) => {
       needsPhone: false,
       channel,
       deliveryEmail: email,
-      ...(telegramBotLink ? { telegramBotLink } : {}),
       ...((channel === 'dev' || !!forceCode) ? { devCode: code } : {}),
     },
   });
@@ -710,55 +689,5 @@ auth.post('/register-vkid', async (c) => {
   return c.json({ data: { user: formatUser(user), token: tokens.token, refreshToken: tokens.refreshToken } }, 201);
 });
 
-// POST /auth/request-telegram — generate Telegram bot link as SMS fallback
-// Returns a deep link so the user can get their OTP via the bot instead of SMS
-auth.post('/request-telegram', async (c) => {
-  if (!hasTelegram()) {
-    return c.json({ error: { code: 'NOT_CONFIGURED', message: 'Telegram bot not configured' } }, 503);
-  }
-
-  const body = await c.req.json().catch(() => ({}));
-  const phone = String(body?.phone ?? '').trim();
-  const linkOnly = body?.linkOnly === true;
-  if (!phone) {
-    return c.json({ error: { code: 'VALIDATION', message: 'Phone required' } }, 400);
-  }
-
-  const retryAfter = await rateLimit(`tg:${phone}`, 3, 5 * 60 * 1000);
-  if (retryAfter > 0) {
-    c.header('Retry-After', String(retryAfter));
-    return c.json({ error: { code: 'RATE_LIMITED', message: 'Too many requests' } }, 429);
-  }
-
-  // For link-only flow we don't need an OTP code — use a dummy that won't be sent
-  let code = 'LINK';
-  if (!linkOnly) {
-    // Reuse existing valid OTP or create new one
-    const existing = await db.select()
-      .from(otpCodes)
-      .where(and(eq(otpCodes.phone, phone), eq(otpCodes.used, 0), gt(otpCodes.expiresAt, new Date())))
-      .orderBy(desc(otpCodes.createdAt))
-      .limit(1);
-
-    if (existing.length > 0) {
-      code = existing[0].code;
-    } else {
-      code = String(Math.floor(1000 + Math.random() * 9000));
-      await db.insert(otpCodes).values({ phone, code, expiresAt: new Date(Date.now() + 10 * 60 * 1000) });
-    }
-  }
-
-  const botUsername = await getBotUsername();
-  if (!botUsername) {
-    return c.json({ error: { code: 'BOT_UNAVAILABLE', message: 'Telegram bot unavailable' } }, 503);
-  }
-
-  cleanupTelegramTokens();
-  const startToken = nanoid(8);
-  telegramTokens.set(startToken, { phone, code, exp: Date.now() + 10 * 60 * 1000, linkOnly });
-  const telegramBotLink = `https://t.me/${botUsername}?start=${startToken}`;
-
-  return c.json({ data: { telegramBotLink } });
-});
 
 export default auth;
