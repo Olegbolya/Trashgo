@@ -192,9 +192,12 @@ export default function RegisterVk() {
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
                   {[
-                    { val: 'car', icon: '🚗', label: 'Авто' },
-                    { val: 'bicycle', icon: '🚲', label: 'Велосипед' },
-                    { val: 'on_foot', icon: '🚶', label: 'Пешком' },
+                    { val: 'pedestrian', icon: '🚶', label: 'Пешком' },
+                    { val: 'scooter',    icon: '🛴', label: 'Самокат' },
+                    { val: 'bicycle',    icon: '🚲', label: 'Велосипед' },
+                    { val: 'e-bicycle',  icon: '⚡🚲', label: 'Электровело' },
+                    { val: 'moto',       icon: '🏍️', label: 'Мото' },
+                    { val: 'car',        icon: '🚗', label: 'Авто' },
                   ].map(t => (
                     <button key={t.val} type="button" onClick={() => setTransportMode(t.val)}
                       style={{
