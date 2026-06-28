@@ -193,8 +193,7 @@ export default function Terms() {
           <Section title="14. Контакты" text={muted}>
             <p>По вопросам, связанным с настоящим Соглашением:</p>
             <ul>
-              <li>Email: info@vynosmusora.ru</li>
-              <li>Telegram: @trashgo_support</li>
+              <li>Email: <a href="mailto:support@trashgo.pro">support@trashgo.pro</a></li>
             </ul>
           </Section>
 

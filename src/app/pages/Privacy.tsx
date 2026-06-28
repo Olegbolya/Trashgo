@@ -92,7 +92,7 @@ export default function Privacy() {
           <Divider color={border} />
 
           <Section title="5. Хранение и защита данных" text={muted}>
-            <p>Данные хранятся на серверах Railway (cloud-платформа с дата-центрами в ЕС). Соединение защищено протоколом TLS 1.3. Пароли не хранятся — вход осуществляется через OTP.</p>
+            <p>Данные хранятся на серверах Timeweb (Россия, г. Москва). Соединение защищено протоколом TLS 1.3. Пароли не хранятся — вход осуществляется через VK ID или OTP.</p>
             <p>Срок хранения данных: в течение всего времени использования аккаунта и 1 год после удаления аккаунта (для соблюдения законодательных требований).</p>
           </Section>
 
@@ -128,8 +128,7 @@ export default function Privacy() {
           <Section title="9. Контакты" text={muted}>
             <p>По вопросам, связанным с обработкой персональных данных:</p>
             <ul>
-              <li>Email: info@vynosmusora.ru</li>
-              <li>Telegram: @trashgo_support</li>
+              <li>Email: <a href="mailto:support@trashgo.pro">support@trashgo.pro</a></li>
               <li>Адрес: г. Казань, Республика Татарстан</li>
             </ul>
           </Section>

@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /customer
+Disallow: /contractor
+Disallow: /create-order
+Disallow: /find-orders
+Disallow: /find-contractors
+Disallow: /my-subscriptions
+Disallow: /my-contractors
+Disallow: /notifications
+Disallow: /payment
+
+Sitemap: https://trashgo.pro/sitemap.xml
