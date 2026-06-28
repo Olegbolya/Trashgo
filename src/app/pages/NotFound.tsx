@@ -9,22 +9,23 @@ export default function NotFound() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full text-center">
         <div className="mb-8">
-          <div className="text-8xl font-bold text-purple-600 mb-4">404</div>
+          <div className="text-8xl font-bold mb-4" style={{ color: '#4CAF50' }}>404</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Страница не найдена</h1>
           <p className="text-gray-600">
-            К сожалению, страница, которую вы ищете, не существует
+            К сожалению, такой страницы не существует. Возможно, ссылка устарела.
           </p>
         </div>
 
         <div className="space-y-3">
           <Button
-            onClick={() => navigate('/dashboard')}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+            onClick={() => navigate('/')}
+            className="w-full text-white"
+            style={{ background: '#4CAF50' }}
           >
             <Home className="w-4 h-4 mr-2" />
             На главную
           </Button>
-          
+
           <Button
             onClick={() => navigate(-1)}
             variant="outline"
