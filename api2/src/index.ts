@@ -40,9 +40,7 @@ app.use('*', timing());
 const allowedOrigins = [
   ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : ['http://localhost:5173']),
   'https://trashgo.pro',
-  'https://trashgo-coral.vercel.app',
-  'https://trashgo-gamma.vercel.app',
-  'https://web-production-8d2c4.up.railway.app',
+  'https://www.trashgo.pro',
 ];
 
 app.use('*', cors({
@@ -158,7 +156,7 @@ app.get('/api/v1/geocode', async (c) => {
     });
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?${params}`,
-      { headers: { 'User-Agent': 'TrashGo/1.0 (trashgo-gamma.vercel.app)' } }
+      { headers: { 'User-Agent': 'TrashGo/1.0 (trashgo.pro)' } }
     );
     const data = await res.json();
     return c.json(data);
