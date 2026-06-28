@@ -233,10 +233,10 @@ export default function Home() {
         paddingTop: 'env(safe-area-inset-top)',
       }}>
         <div style={{ height: '3.5rem', maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.5rem' }}>
-          <a href="#" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             <img src="/logo.png" alt="TrashGo" style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0 }} />
             <span style={{ fontSize: '1rem', fontWeight: 800, color: text, letterSpacing: '-0.02em' }}>Trash<span style={{ color: accent, transition: 'color 0.4s' }}>Go</span></span>
-          </a>
+          </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button onClick={toggleTheme} style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
               {isDark ? <Sun size={14} color={textMuted} /> : <Moon size={14} color={textMuted} />}
@@ -623,13 +623,8 @@ export default function Home() {
               ))}
             </div>
           </div>
-          <div style={{ borderTop: '1px solid #1f2937', padding: '1.125rem 0 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div style={{ borderTop: '1px solid #1f2937', padding: '1.125rem 0 1.5rem' }}>
             <span style={{ fontSize: '0.78rem' }}>© 2026 TrashGo · Казань</span>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              {['📱', '💬', '📷'].map((icon, i) => (
-                <a key={i} href="#" style={{ width: 34, height: 34, borderRadius: 9, background: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: 14 }}>{icon}</a>
-              ))}
-            </div>
           </div>
         </div>
       </footer>

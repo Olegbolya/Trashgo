@@ -26,7 +26,7 @@ geocodeRoutes.get('/', async (c) => {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(key)}&format=json&limit=1&countrycodes=ru`;
     const res = await fetch(url, {
       headers: {
-        'User-Agent': 'TrashGo/1.0 (trashgo.ru)',
+        'User-Agent': 'TrashGo/1.0 (trashgo.pro)',
         'Accept-Language': 'ru,en',
       },
       signal: AbortSignal.timeout(5000),
