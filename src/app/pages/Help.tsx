@@ -266,12 +266,12 @@ export default function Help() {
 
   const contacts = [
     { icon: MessageCircle, color: GREEN,     title: 'Написать в чат', sub: 'Ответим в течение 15 минут',  action: () => setChatOpen(true), badge: hasUnread },
-    { icon: Mail,          color: '#FF9800', title: 'trashgo.support@gmail.com', sub: 'Ответ в течение 2 часов',  action: () => { window.location.href = 'mailto:trashgo.support@gmail.com'; }, badge: false },
+    { icon: Mail,          color: '#FF9800', title: 'support@trashgo.pro', sub: 'Ответ в течение 24 часов',  action: () => { window.location.href = 'mailto:support@trashgo.pro'; }, badge: false },
   ];
 
   const quickLinks = [
     { icon: Zap,     color: ACCENT,    title: 'Как это работает?',    action: () => navigate('/how-it-works') },
-    { icon: Package, color: GREEN,     title: 'Создать заказ',         action: () => navigate('/customer?tab=create') },
+    { icon: Package, color: GREEN,     title: 'Создать заказ',         action: () => navigate('/create-order') },
     { icon: Star,    color: '#FF9800', title: 'Реферальная программа', action: () => navigate('/invite-neighbor') },
     { icon: Trash2,  color: GREEN,     title: 'Найти заказы',          action: () => navigate('/find-orders') },
   ];

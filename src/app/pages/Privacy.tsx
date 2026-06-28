@@ -29,7 +29,7 @@ export default function Privacy() {
           Политика конфиденциальности
         </h1>
         <p style={{ color: muted, fontSize: '0.875rem', marginBottom: '2rem' }}>
-          Последнее обновление: 3 мая 2026 г.
+          Последнее обновление: 29 июня 2026 г.
         </p>
 
         <div style={{ background: surface, borderRadius: '1rem', border: `1px solid ${border}`, padding: '2rem', lineHeight: 1.8 }}>

@@ -59,8 +59,8 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-3 text-white/70">
                 <Mail className="w-5 h-5 flex-shrink-0" />
-                <a href="mailto:info@vynosmusora.ru" className="hover:text-white transition-colors">
-                  info@vynosmusora.ru
+                <a href="mailto:support@trashgo.pro" className="hover:text-white transition-colors">
+                  support@trashgo.pro
                 </a>
               </li>
               <li className="flex items-start gap-3 text-white/70">
@@ -79,8 +79,8 @@ export function Footer() {
               { n: '1', t: 'Сбор данных', d: 'Собираем только телефон, имя и адреса вывоза, необходимые для работы сервиса.' },
               { n: '2', t: 'Цель обработки', d: 'Данные используются исключительно для обеспечения заказов и связи между пользователями.' },
               { n: '3', t: 'Передача третьим лицам', d: 'Не продаём данные. Передача возможна только SMS-провайдеру (OTP) и по требованию закона.' },
-              { n: '4', t: 'Хранение и защита', d: 'Серверы Railway (EU), шифрование TLS 1.3. Вход через OTP — пароли не хранятся.' },
-              { n: '5', t: 'Ваши права', d: 'Право на доступ, исправление и удаление данных. Обращайтесь: info@vynosmusora.ru' },
+              { n: '4', t: 'Хранение и защита', d: 'Серверы Timeweb (Россия), шифрование TLS 1.3. Вход через VK ID или OTP — пароли не хранятся.' },
+              { n: '5', t: 'Ваши права', d: 'Право на доступ, исправление и удаление данных. Обращайтесь: support@trashgo.pro' },
               { n: '6', t: 'Cookies', d: 'Используем только localStorage для токена сессии и темы оформления.' },
             ].map(p => (
               <div key={p.n} className="bg-white/5 rounded-xl p-3 flex gap-3">

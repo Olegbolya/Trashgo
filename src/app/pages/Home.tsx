@@ -394,7 +394,7 @@ export default function Home() {
       </section>
 
       {/* ── FEATURES ── */}
-      <section style={{ padding: 'clamp(4rem,8vw,6rem) 1.5rem', background: bgAlt }}>
+      <section id="tg-features" style={{ padding: 'clamp(4rem,8vw,6rem) 1.5rem', background: bgAlt }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div className="tg-anim" style={{ textAlign: 'center', marginBottom: '2.75rem' }}>
             <SectionLabel icon="✨" txt="Преимущества" />
@@ -438,7 +438,7 @@ export default function Home() {
       </section>
 
       {/* ── PRICING ── */}
-      <section style={{ padding: 'clamp(4rem,8vw,6rem) 1.5rem', background: bgAlt }}>
+      <section id="tg-pricing" style={{ padding: 'clamp(4rem,8vw,6rem) 1.5rem', background: bgAlt }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <div className="tg-anim" style={{ textAlign: 'center', marginBottom: '2.75rem' }}>
             <SectionLabel icon="💎" txt="Тарифы" />
@@ -586,21 +586,19 @@ export default function Home() {
             <div>
               <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fff', marginBottom: '0.875rem' }}>Продукт</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {['Возможности', 'Тарифы', 'Как это работает', 'Отзывы'].map(l => <li key={l}><a href="#" style={{ fontSize: '0.84rem', color: '#9ca3af', textDecoration: 'none' }}>{l}</a></li>)}
-              </ul>
-            </div>
-            <div>
-              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fff', marginBottom: '0.875rem' }}>Компания</div>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {['О нас', 'Блог', 'Контакты'].map(l => <li key={l}><a href="#" style={{ fontSize: '0.84rem', color: '#9ca3af', textDecoration: 'none' }}>{l}</a></li>)}
+                <li><button onClick={() => document.getElementById('tg-features')?.scrollIntoView({ behavior: 'smooth' })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.84rem', color: '#9ca3af', fontFamily: 'inherit', padding: 0 }}>Возможности</button></li>
+                <li><button onClick={() => document.getElementById('tg-pricing')?.scrollIntoView({ behavior: 'smooth' })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.84rem', color: '#9ca3af', fontFamily: 'inherit', padding: 0 }}>Тарифы</button></li>
+                <li><button onClick={() => navigate('/how-it-works')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.84rem', color: '#9ca3af', fontFamily: 'inherit', padding: 0 }}>Как это работает?</button></li>
+                <li><button onClick={() => document.getElementById('tg-faq')?.scrollIntoView({ behavior: 'smooth' })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.84rem', color: '#9ca3af', fontFamily: 'inherit', padding: 0 }}>FAQ</button></li>
               </ul>
             </div>
             <div>
               <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fff', marginBottom: '0.875rem' }}>Поддержка</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {['Помощь', 'FAQ'].map(l => <li key={l}><a href="#" style={{ fontSize: '0.84rem', color: '#9ca3af', textDecoration: 'none' }}>{l}</a></li>)}
+                <li><button onClick={() => navigate('/help')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.84rem', color: '#9ca3af', fontFamily: 'inherit', padding: 0 }}>Помощь и поддержка</button></li>
                 <li><button onClick={() => navigate('/privacy')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.84rem', color: '#9ca3af', fontFamily: 'inherit', padding: 0 }}>Конфиденциальность</button></li>
                 <li><button onClick={() => navigate('/terms')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.84rem', color: '#9ca3af', fontFamily: 'inherit', padding: 0 }}>Условия</button></li>
+                <li><a href="mailto:support@trashgo.pro" style={{ fontSize: '0.84rem', color: '#9ca3af', textDecoration: 'none' }}>support@trashgo.pro</a></li>
               </ul>
             </div>
           </div>

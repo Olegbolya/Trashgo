@@ -10,9 +10,11 @@ const DISTRICTS = ['Вахитовский', 'Приволжский', 'Сове
 const SBP_BANKS = ['Сбербанк', 'Т-Банк (Тинькофф)', 'ВТБ', 'Альфа-Банк', 'Газпромбанк', 'Открытие', 'Совкомбанк', 'Росбанк', 'МТС Банк', 'Почта Банк', 'Райффайзен', 'ПСБ'];
 const TRANSPORT = [
   { key: 'pedestrian', emoji: '🚶', label: 'Пешком' },
-  { key: 'bicycle',   emoji: '🚲', label: 'Велосипед' },
-  { key: 'moto',      emoji: '🏍️', label: 'Мото' },
-  { key: 'car',       emoji: '🚗', label: 'Машина' },
+  { key: 'scooter',    emoji: '🛴', label: 'Самокат' },
+  { key: 'bicycle',    emoji: '🚲', label: 'Велосипед' },
+  { key: 'e-bicycle',  emoji: '⚡🚲', label: 'Электровело' },
+  { key: 'moto',       emoji: '🏍️', label: 'Мото' },
+  { key: 'car',        emoji: '🚗', label: 'Машина' },
 ];
 
 export default function RegisterContractor() {
@@ -129,14 +131,14 @@ export default function RegisterContractor() {
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: c.label, marginBottom: '0.75rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                 Транспорт
               </label>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.625rem' }}>
                 {TRANSPORT.map((t) => (
                   <button
                     key={t.key}
                     type="button"
                     onClick={() => setFormData({ ...formData, transport: t.key })}
                     style={{
-                      flex: 1, padding: '0.875rem 0.5rem',
+                      padding: '0.75rem 0.5rem',
                       borderRadius: '0.875rem',
                       border: `2px solid ${formData.transport === t.key ? accent : c.border}`,
                       background: formData.transport === t.key ? `${accent}12` : c.surface,
@@ -144,8 +146,8 @@ export default function RegisterContractor() {
                       transition: 'border-color 0.2s ease, background 0.2s ease',
                     }}
                   >
-                    <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>{t.emoji}</div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: c.text }}>{t.label}</div>
+                    <div style={{ fontSize: '1.4rem', marginBottom: '0.25rem' }}>{t.emoji}</div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: c.text }}>{t.label}</div>
                   </button>
                 ))}
               </div>
