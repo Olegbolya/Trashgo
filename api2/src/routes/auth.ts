@@ -81,7 +81,7 @@ function generateTokens(userId: string, role: 'customer' | 'contractor') {
 
 // POST /auth/login — send OTP (email-primary flow)
 auth.post('/login', async (c) => {
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
   const parsed = loginSchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: { code: 'VALIDATION', message: 'Введите корректный email', details: parsed.error.flatten().fieldErrors } }, 400);
@@ -185,7 +185,7 @@ auth.post('/login', async (c) => {
 
 // POST /auth/verify — verify OTP (supports email-key and legacy phone-key)
 auth.post('/verify', async (c) => {
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
   const parsed = verifySchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: { code: 'VALIDATION', message: 'Invalid input' } }, 400);
@@ -308,7 +308,7 @@ auth.post('/verify', async (c) => {
 
 // POST /auth/register — register new user (after OTP verified)
 auth.post('/register', async (c) => {
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
   const parsed = registerSchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: { code: 'VALIDATION', message: 'Invalid input', details: parsed.error.flatten().fieldErrors } }, 400);
@@ -517,7 +517,7 @@ auth.post('/register-firebase', async (c) => {
 
 // POST /auth/refresh — refresh access token
 auth.post('/refresh', async (c) => {
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
   const { refreshToken: token } = body;
 
   if (!token) {
