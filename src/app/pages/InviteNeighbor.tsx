@@ -68,8 +68,8 @@ export default function InviteNeighbor() {
   const shareLink = () => {
     if (!referralLink) return;
     const text = activeCount >= MAX_FREE
-      ? `Присоединяйся к TrashGo — вывоз мусора рядом с домом. Первый месяц бесплатно!`
-      : `Присоединяйся к TrashGo! Если 5 друзей активны — абонемент бесплатный (сейчас ${nextPrice === 0 ? 'бесплатно' : `${nextPrice}₽/мес`}).`;
+      ? `Пользуюсь TrashGo — удобный сервис вывоза мусора в Казани. Мой абонемент бесплатный, потому что пригласил друзей. Попробуй!`
+      : `Присоединяйся к TrashGo — вывоз мусора рядом с домом. При регистрации первый месяц бесплатно, а если пригласишь 5 друзей — абонемент навсегда бесплатный!`;
     if (navigator.share) {
       navigator.share({ title: 'TrashGo — вывоз мусора', text, url: referralLink });
     } else {

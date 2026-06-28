@@ -6,7 +6,6 @@ import { referralsApi, type ReferralInfo } from '../../api/referrals';
 import { toast } from 'sonner';
 import { Shield, Clock, CheckCircle, AlertCircle, Users, Copy, ChevronLeft, CreditCard, RefreshCw } from 'lucide-react';
 
-const SBP_PHONE = '+7 (999) 999-99-99'; // замените на реальный номер администратора
 const PLAN_PRICE = 50;
 
 export default function SubscriptionPage() {
@@ -489,14 +488,14 @@ export default function SubscriptionPage() {
                 }}>
                   <div style={{ fontSize: '0.875rem', color: c.text, lineHeight: 1.7 }}>
                     <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>
-                      Переведите <strong style={{ color: '#22a849' }}>{Math.max(0, status.nextPrice - (promoChecked?.discountAmount ?? 0))}₽</strong> через СБП:
+                      Ваш запрос на абонемент <strong style={{ color: '#22a849' }}>{Math.max(0, status.nextPrice - (promoChecked?.discountAmount ?? 0))}₽</strong> принят.
                       {promoChecked && <span style={{ fontSize: '0.8rem', color: c.muted, fontWeight: 400 }}> (со скидкой {promoChecked.discountAmount}₽)</span>}
                     </div>
-                    <div style={{ fontFamily: 'monospace', fontSize: '1rem', fontWeight: 700, color: c.text, marginBottom: '0.375rem' }}>
-                      {SBP_PHONE}
+                    <div style={{ fontSize: '0.85rem', color: c.muted, marginBottom: '0.375rem' }}>
+                      Мы свяжемся с вами для уточнения реквизитов оплаты.
                     </div>
                     <div style={{ fontSize: '0.8rem', color: c.muted }}>
-                      В комментарии укажите: «TrashGo абонемент» + ваш телефон или email
+                      Вопросы: <a href="mailto:support@trashgo.pro" style={{ color: '#22a849', textDecoration: 'none' }}>support@trashgo.pro</a>
                     </div>
                   </div>
                 </div>

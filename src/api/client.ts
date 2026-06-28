@@ -1,6 +1,5 @@
-// In native Capacitor builds there is no relative-URL server, so we always need
-// the absolute Railway URL. VITE_API_URL is set in Vercel env for web and in
-// .env.production for Android/iOS builds.
+// VITE_API_URL is set at build time; falls back to trashgo.pro in production
+// and localhost in development.
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.PROD
