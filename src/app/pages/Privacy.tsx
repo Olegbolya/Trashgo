@@ -107,7 +107,7 @@ export default function Privacy() {
               <li><strong>Отзыв согласия:</strong> отозвать согласие на обработку данных</li>
               <li><strong>Жалоба:</strong> обратиться в Роскомнадзор (rkn.gov.ru)</li>
             </ul>
-            <p>Для реализации прав обратитесь по адресу: <strong>info@vynosmusora.ru</strong></p>
+            <p>Для реализации прав обратитесь по адресу: <a href="mailto:support@trashgo.pro"><strong>support@trashgo.pro</strong></a></p>
           </Section>
 
           <Divider color={border} />
