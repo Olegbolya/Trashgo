@@ -495,6 +495,7 @@ async function startTelegramPolling() {
   console.log('[Telegram] Polling starting, deleting webhook...');
   await fetch(`https://api.telegram.org/bot${token}/deleteWebhook?drop_pending_updates=false`, { signal: AbortSignal.timeout(10000) }).catch(() => {});
   let offset = 0;
+  let failCount = 0;
   console.log('[Telegram] Polling started');
   while (true) {
     try {
@@ -503,6 +504,10 @@ async function startTelegramPolling() {
         { signal: AbortSignal.timeout(15000) }
       );
       const data = await res.json() as { ok: boolean; result: Array<{ update_id: number; message?: { text?: string; chat?: { id: number } } }> };
+      if (failCount > 0) {
+        console.log(`[Telegram] Polling recovered after ${failCount} failures`);
+        failCount = 0;
+      }
       if (data.ok && data.result.length > 0) {
         for (const update of data.result) {
           offset = update.update_id + 1;
@@ -517,7 +522,11 @@ async function startTelegramPolling() {
       }
     } catch (e: any) {
       if (!String(e?.message).includes('AbortError')) {
-        console.error('[Telegram] Poll error:', e?.message ?? e);
+        failCount++;
+        // Log first failure, then every 100th (~30 min at 20s/cycle) to avoid log spam
+        if (failCount === 1 || failCount % 100 === 0) {
+          console.error(`[Telegram] Poll error (x${failCount}):`, e?.message ?? e);
+        }
       }
       await new Promise(r => setTimeout(r, 5000));
     }

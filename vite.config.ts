@@ -21,6 +21,11 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: { cacheName: 'google-fonts', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } },
           },
+          // SSE streams must never be cached — workbox would consume the stream
+          {
+            urlPattern: /\/api\/v1\/notifications\/stream/,
+            handler: 'NetworkOnly',
+          },
           {
             urlPattern: /^https:\/\/trashgo\.pro\/api\/v1\//,
             handler: 'NetworkFirst',

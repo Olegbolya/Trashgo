@@ -62,10 +62,15 @@ class ChunkErrorBoundary extends Component<{ children: ReactNode }, { failed: bo
       error?.message?.includes('Loading chunk') ||
       (error as any)?.name === 'ChunkLoadError';
     if (isChunk) {
-      const key = 'chunk_reload_ts';
-      const last = parseInt(sessionStorage.getItem(key) ?? '0', 10);
-      if (Date.now() - last > 15000) {
-        sessionStorage.setItem(key, String(Date.now()));
+      const countKey = 'chunk_reload_count';
+      const tsKey = 'chunk_reload_ts';
+      const count = parseInt(sessionStorage.getItem(countKey) ?? '0', 10);
+      const last = parseInt(sessionStorage.getItem(tsKey) ?? '0', 10);
+      const age = Date.now() - last;
+      // Allow up to 3 reloads, debounced 5s apart; reset counter after 2 min of no errors
+      if (count < 3 && age > 5000) {
+        sessionStorage.setItem(countKey, age > 120000 ? '1' : String(count + 1));
+        sessionStorage.setItem(tsKey, String(Date.now()));
         window.location.reload();
         return { failed: false, error: null, countdown: 5 };
       }

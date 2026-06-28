@@ -25,7 +25,16 @@ export default function VkCallback() {
     sessionStorage.removeItem('vkid_state');
     sessionStorage.removeItem('vkid_code_verifier');
 
+    const vkError = params.get('error');
+    if (vkError) {
+      const desc = params.get('error_description') ?? vkError;
+      toast.error(`Вход через VK отменён: ${desc}`);
+      navigate('/login', { replace: true });
+      return;
+    }
+
     if (!code || !device_id || !code_verifier) {
+      toast.error('Не удалось войти через VK. Попробуйте снова.');
       navigate('/login', { replace: true });
       return;
     }
