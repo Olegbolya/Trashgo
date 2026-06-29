@@ -1,39 +1,60 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Home, ArrowLeft } from 'lucide-react';
-import { Button } from '../components/ui/button';
+import { useTheme } from '../context/ThemeContext';
 
 export default function NotFound() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
+
+  useEffect(() => {
+    document.title = 'Страница не найдена — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
+  const bg      = isDark ? '#0f172a' : '#f9fafb';
+  const surface = isDark ? '#1e293b' : '#ffffff';
+  const border  = isDark ? '#334155' : '#e5e7eb';
+  const text    = isDark ? '#f1f5f9' : '#111827';
+  const muted   = isDark ? '#94a3b8' : '#6b7280';
+  const accent  = '#22a849';
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full text-center">
-        <div className="mb-8">
-          <div className="text-8xl font-bold mb-4" style={{ color: '#4CAF50' }}>404</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Страница не найдена</h1>
-          <p className="text-gray-600">
-            К сожалению, такой страницы не существует. Возможно, ссылка устарела.
-          </p>
+    <div style={{
+      minHeight: '100vh', background: bg, display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+      padding: '2rem', fontFamily: "'Inter', system-ui, sans-serif",
+    }}>
+      <div style={{ maxWidth: 400, width: '100%', textAlign: 'center' }}>
+        <div style={{ fontSize: '5rem', fontWeight: 900, color: accent, letterSpacing: '-0.04em', lineHeight: 1, marginBottom: '1rem' }}>
+          404
         </div>
-
-        <div className="space-y-3">
-          <Button
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: text, marginBottom: '0.5rem' }}>
+          Страница не найдена
+        </h1>
+        <p style={{ fontSize: '0.9rem', color: muted, marginBottom: '2rem', lineHeight: 1.6 }}>
+          К сожалению, такой страницы не существует. Возможно, ссылка устарела или была удалена.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <button
             onClick={() => navigate('/')}
-            className="w-full text-white"
-            style={{ background: '#4CAF50' }}
+            style={{
+              width: '100%', padding: '0.75rem 1.5rem', borderRadius: '0.875rem',
+              background: accent, color: '#fff', fontSize: '0.9375rem', fontWeight: 600,
+              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            }}
           >
-            <Home className="w-4 h-4 mr-2" />
             На главную
-          </Button>
-
-          <Button
+          </button>
+          <button
             onClick={() => navigate(-1)}
-            variant="outline"
-            className="w-full"
+            style={{
+              width: '100%', padding: '0.75rem 1.5rem', borderRadius: '0.875rem',
+              background: surface, color: muted, fontSize: '0.9375rem', fontWeight: 600,
+              border: `1px solid ${border}`, cursor: 'pointer', fontFamily: 'inherit',
+            }}
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
             Назад
-          </Button>
+          </button>
         </div>
       </div>
     </div>

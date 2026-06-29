@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { authApi } from '../../api/auth';
@@ -20,6 +20,11 @@ export default function RegisterCustomer() {
   const [formData, setFormData] = useState({ name: '', address: '', entrance: '', floor: '', apartment: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    document.title = 'Регистрация заказчика — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',

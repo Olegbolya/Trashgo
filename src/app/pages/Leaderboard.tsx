@@ -25,6 +25,11 @@ export default function Leaderboard() {
   const [showFilter, setShowFilter] = useState(false);
 
   useEffect(() => {
+    document.title = 'Рейтинг исполнителей — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     const load = (showLoader = false) => {
       if (showLoader) setLoading(true);

@@ -43,6 +43,11 @@ export default function Login() {
   const [vkLoading, setVkLoading] = useState(false);
 
   useEffect(() => {
+    document.title = 'Вход — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
+  useEffect(() => {
     if (role === 'contractor' || role === 'customer') setRole(role);
   }, [role, setRole]);
 

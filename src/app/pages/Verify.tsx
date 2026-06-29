@@ -29,6 +29,11 @@ export default function Verify() {
   const accent = useRoleStore((s) => s.accentColor);
   const submittingRef = useRef(false);
 
+  useEffect(() => {
+    document.title = 'Введите код — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
   if (!otpKey) {
     navigate('/login', { replace: true });
     return null;

@@ -61,6 +61,11 @@ export default function Notifications() {
   const [savingPushToggle, setSavingPushToggle] = useState(false);
   const emailEnabled = user?.notifEmail ?? settings?.emailEnabled ?? false;
 
+  useEffect(() => {
+    document.title = 'Уведомления — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',
     surface: isDark ? '#1e2433' : '#ffffff',
