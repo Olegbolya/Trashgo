@@ -1,7 +1,7 @@
 {
-  "name": "TrashGo — Вынос мусора",
+  "name": "TrashGo — Вывоз мусора",
   "short_name": "TrashGo",
-  "description": "Закажите вынос мусора в Казани быстро и удобно",
+  "description": "Закажите вывоз мусора в Казани быстро и удобно",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
