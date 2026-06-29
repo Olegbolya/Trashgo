@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useTheme } from '../context/ThemeContext';
 
 export function CookieBanner() {
   const [visible, setVisible] = useState(false);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     if (!localStorage.getItem('cookie_accepted')) {
@@ -16,6 +18,11 @@ export function CookieBanner() {
 
   if (!visible) return null;
 
+  const bg     = isDark ? '#1e2433' : '#ffffff';
+  const border = isDark ? '#374151' : '#e5e7eb';
+  const text   = isDark ? '#d1d5db' : '#374151';
+  const strong = isDark ? '#ffffff' : '#111827';
+
   return (
     <div
       style={{
@@ -24,18 +31,19 @@ export function CookieBanner() {
         left: 0,
         right: 0,
         zIndex: 9999,
-        background: '#1e2433',
-        borderTop: '1px solid #374151',
+        background: bg,
+        borderTop: `1px solid ${border}`,
         padding: '1rem 1.25rem',
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
         gap: '1rem',
         flexWrap: 'wrap',
+        fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
-      <p style={{ color: '#d1d5db', fontSize: '0.85rem', flex: 1, minWidth: 220, margin: 0 }}>
-        Мы используем <strong style={{ color: '#fff' }}>файлы cookie</strong> (localStorage) для хранения токена сессии и настроек темы. Никаких рекламных трекеров.{' '}
+      <p style={{ color: text, fontSize: '0.85rem', flex: 1, minWidth: 220, margin: 0 }}>
+        Мы используем <strong style={{ color: strong }}>файлы cookie</strong> (localStorage) для хранения токена сессии и настроек темы. Никаких рекламных трекеров.{' '}
         <a href="/privacy" style={{ color: '#66BB6A', textDecoration: 'underline' }}>Политика конфиденциальности</a>
       </p>
       <button
