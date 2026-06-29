@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, MapPin, Clock, RefreshCw, Calendar, Pause, Play, Plus, Trash2, User } from 'lucide-react';
-import { Button } from '../components/ui/button';
+
 import { useTheme } from '../context/ThemeContext';
 import { subscriptionsApi, type Subscription } from '../../api/subscriptions';
 import { toast } from 'sonner';
@@ -100,13 +100,13 @@ export default function MySubscriptions() {
             <div className={`text-sm ${muted} mb-6`}>
               Настройте регулярный вывоз мусора по расписанию
             </div>
-            <Button
+            <button
               onClick={() => navigate('/create-subscription')}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', borderRadius: '0.5rem', background: '#16a34a', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500, fontFamily: 'inherit' }}
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Создать расписание
-            </Button>
+            </button>
           </div>
         ) : (
           <div className="space-y-6">
@@ -239,27 +239,23 @@ function SubCard({ sub, isDark, cardClass, text, muted, subtext, toggling, delet
       ) : null}
 
       <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className={`flex-1 ${isDark ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' : ''}`}
+        <button
           onClick={onToggle}
           disabled={toggling}
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.5rem', borderRadius: '0.5rem', border: `1px solid ${isDark ? '#374151' : '#d1d5db'}`, background: isDark ? '#1f2937' : '#f9fafb', color: isDark ? '#e5e7eb' : '#111827', cursor: toggling ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontFamily: 'inherit', opacity: toggling ? 0.7 : 1 }}
         >
           {sub.active
-            ? <><Pause className="w-4 h-4 mr-1.5" />Пауза</>
-            : <><Play className="w-4 h-4 mr-1.5" />Возобновить</>
+            ? <><Pause className="w-4 h-4" />Пауза</>
+            : <><Play className="w-4 h-4" />Возобновить</>
           }
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className={`${isDark ? 'bg-gray-800 border-gray-700 text-red-400 hover:bg-gray-700' : 'text-red-500 hover:text-red-600'}`}
+        </button>
+        <button
           onClick={onDelete}
-          disabled={deleting}
+          disabled={!!deleting}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: `1px solid ${isDark ? '#374151' : '#d1d5db'}`, background: isDark ? '#1f2937' : '#f9fafb', color: isDark ? '#f87171' : '#ef4444', cursor: deleting ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontFamily: 'inherit', opacity: deleting ? 0.7 : 1 }}
         >
-          <Trash2 className="w-4 h-4 mr-1" />{deleting ? 'Удаляем...' : 'Удалить'}
-        </Button>
+          <Trash2 className="w-4 h-4" />{deleting ? 'Удаляем...' : 'Удалить'}
+        </button>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router';
-import { Users, Copy, Share2, CheckCircle, Gift, Zap, ChevronRight, UserCheck } from 'lucide-react';
-import { Button } from '../components/ui/button';
+import { Users, Copy, Share2, CheckCircle, Gift, Zap, ChevronRight } from 'lucide-react';
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useTheme } from '../context/ThemeContext';
@@ -127,12 +127,20 @@ export default function ContractorReferral() {
                 <div className="text-sm font-mono break-all" style={{ color: c.text }}>{link || '...'}</div>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Button onClick={copyLink} variant="outline" className="w-full" disabled={!link}>
-                  {copied ? <><CheckCircle className="w-4 h-4 mr-2 text-green-600" />Скопировано!</> : <><Copy className="w-4 h-4 mr-2" />Копировать</>}
-                </Button>
-                <Button onClick={shareLink} className="w-full text-white" style={{ background: ACCENT }} disabled={!link}>
-                  <Share2 className="w-4 h-4 mr-2" />Поделиться
-                </Button>
+                <button
+                  onClick={copyLink}
+                  disabled={!link}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: `1px solid ${c.border}`, background: 'transparent', color: c.text, cursor: !link ? 'not-allowed' : 'pointer', fontSize: '0.875rem', fontFamily: 'inherit', opacity: !link ? 0.5 : 1 }}
+                >
+                  {copied ? <><CheckCircle className="w-4 h-4" style={{ color: '#4CAF50' }} />Скопировано!</> : <><Copy className="w-4 h-4" />Копировать</>}
+                </button>
+                <button
+                  onClick={shareLink}
+                  disabled={!link}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', background: ACCENT, color: 'white', cursor: !link ? 'not-allowed' : 'pointer', fontSize: '0.875rem', fontFamily: 'inherit', opacity: !link ? 0.5 : 1 }}
+                >
+                  <Share2 className="w-4 h-4" />Поделиться
+                </button>
               </div>
             </div>
           </div>
