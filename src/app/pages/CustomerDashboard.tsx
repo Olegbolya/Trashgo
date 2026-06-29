@@ -336,6 +336,11 @@ export default function CustomerDashboard() {
   };
 
   useEffect(() => {
+    document.title = 'Мои заказы — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
+  useEffect(() => {
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     window.scrollTo(0, 0);
     refreshOrders();

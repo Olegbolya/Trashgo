@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { authApi } from '../../api/auth';
 import { useAuthStore } from '../../stores/auth.store';
@@ -28,6 +28,11 @@ export default function RegisterVk() {
   const [transportMode, setTransportMode] = useState('');
   const [inn, setInn] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    document.title = 'Регистрация через VK — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
 
   if (!tempToken || !phone) {
     navigate('/login', { replace: true });

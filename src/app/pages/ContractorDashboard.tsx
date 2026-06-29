@@ -264,6 +264,11 @@ export default function ContractorDashboard() {
   };
 
   useEffect(() => {
+    document.title = 'Панель исполнителя — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
+  useEffect(() => {
     window.scrollTo(0, 0);
     authApi.getStats().then(setContractorStats).catch(() => {});
     if (!localStorage.getItem('trashgo_welcomed_contractor')) {

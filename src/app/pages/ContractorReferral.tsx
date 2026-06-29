@@ -36,6 +36,11 @@ export default function ContractorReferral() {
   };
 
   useEffect(() => {
+    document.title = 'Приведи напарника — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
+  useEffect(() => {
     referralsApi.getMyContractorReferral()
       .then(setInfo)
       .catch(() => toast.error('Не удалось загрузить данные'))

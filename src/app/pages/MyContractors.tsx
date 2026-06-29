@@ -43,6 +43,11 @@ export default function MyContractors() {
   };
 
   useEffect(() => {
+    document.title = 'Мои исполнители — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
+  useEffect(() => {
     api.get<{ data: MyContractor[] }>('/users/my-contractors')
       .then(r => setContractors(r.data ?? []))
       .catch(() => toast.error('Не удалось загрузить исполнителей'))

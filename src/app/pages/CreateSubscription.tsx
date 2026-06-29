@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Check } from 'lucide-react';
 import { subscriptionsApi } from '../../api/subscriptions';
@@ -21,6 +21,12 @@ const weekDays = [
 export default function CreateSubscription() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
+
+  useEffect(() => {
+    document.title = 'Создать подписку — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 

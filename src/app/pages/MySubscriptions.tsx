@@ -18,6 +18,11 @@ export default function MySubscriptions() {
   const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
+    document.title = 'Мои подписки — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
+  useEffect(() => {
     subscriptionsApi.list()
       .then(res => setSubs(res.data))
       .catch(() => toast.error('Не удалось загрузить подписки'))

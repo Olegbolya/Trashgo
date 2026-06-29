@@ -266,6 +266,11 @@ export default function FindOrders() {
   };
 
   useEffect(() => {
+    document.title = 'Найти заказ — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
+  useEffect(() => {
     fetchOrders();
     intervalRef.current = setInterval(() => fetchOrders(true), 15000);
     return () => clearInterval(intervalRef.current);

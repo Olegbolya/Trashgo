@@ -1,43 +1,63 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { CheckCircle2, Home, Star } from 'lucide-react';
-import { Button } from '../components/ui/button';
+import { useTheme } from '../context/ThemeContext';
 
 export default function OrderConfirmed() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDark } = useTheme();
   const state = (location.state as { xpEarned?: number; address?: string } | null) ?? {};
 
+  useEffect(() => {
+    document.title = 'Заказ создан — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
+  const bg      = isDark ? '#0f172a' : '#f9fafb';
+  const surface = isDark ? '#1e293b' : '#ffffff';
+  const border  = isDark ? '#334155' : '#e5e7eb';
+  const text    = isDark ? '#f1f5f9' : '#111827';
+  const muted   = isDark ? '#94a3b8' : '#6b7280';
+  const green   = '#22c55e';
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full text-center">
-        <div className="mb-8">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-12 h-12 text-green-600" />
+    <div style={{ minHeight: '100vh', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <div style={{ width: '100%', maxWidth: '480px', textAlign: 'center' }}>
+
+        <div style={{ marginBottom: '2rem' }}>
+          <div style={{ width: '5rem', height: '5rem', background: isDark ? '#0f2a1a' : '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+            <CheckCircle2 style={{ width: '3rem', height: '3rem', color: green }} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Заказ создан!</h1>
-          <p className="text-gray-600">
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: text, marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>
+            Заказ создан!
+          </h1>
+          <p style={{ fontSize: '0.9rem', color: muted, lineHeight: 1.6 }}>
             {state.address
               ? `Заказ по адресу «${state.address}» опубликован. Исполнители уже ищут заявку.`
               : 'Ваш заказ опубликован. Исполнители уже начали присылать предложения.'}
           </p>
           {typeof state.xpEarned === 'number' && state.xpEarned > 0 && (
-            <div className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-              <Star className="w-4 h-4 fill-current" />
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', marginTop: '1rem', padding: '0.375rem 1rem', background: isDark ? '#0f2a1a' : '#dcfce7', color: isDark ? '#86efac' : '#15803d', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: 600 }}>
+              <Star style={{ width: '1rem', height: '1rem', fill: 'currentColor' }} />
               +{state.xpEarned} XP за новый заказ
             </div>
           )}
         </div>
 
-        <div className="space-y-3">
-          <Button
-            onClick={() => navigate('/customer')}
-            className="w-full bg-green-600 hover:bg-green-700 text-white"
-          >
-            <Home className="w-4 h-4 mr-2" />
-            На главную
-          </Button>
-        </div>
+        <button
+          onClick={() => navigate('/customer')}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+            width: '100%', height: '3.25rem',
+            borderRadius: '0.875rem', background: green,
+            color: 'white', fontSize: '1rem', fontWeight: 700,
+            border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          <Home style={{ width: '1.125rem', height: '1.125rem' }} />
+          На главную
+        </button>
       </div>
     </div>
   );

@@ -40,6 +40,11 @@ export default function InviteNeighbor() {
   };
 
   useEffect(() => {
+    document.title = 'Пригласи соседей — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
+  useEffect(() => {
     Promise.all([
       referralsApi.getMyReferral(),
       accessPlansApi.getStatus().catch(() => null),

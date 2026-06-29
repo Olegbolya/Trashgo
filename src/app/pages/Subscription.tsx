@@ -52,6 +52,11 @@ export default function SubscriptionPage() {
   };
 
   useEffect(() => {
+    document.title = 'Абонемент — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
+  useEffect(() => {
     loadData().catch(() => {
       toast.error('Не удалось загрузить данные абонемента');
     }).finally(() => setLoading(false));

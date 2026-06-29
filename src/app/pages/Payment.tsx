@@ -61,6 +61,11 @@ export default function Payment() {
       .finally(() => setHistoryLoading(false));
   };
 
+  useEffect(() => {
+    document.title = isContractor ? 'Мои выплаты — TrashGo' : 'История платежей — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, [isContractor]);
+
   useEffect(() => { loadHistory(); }, []);
 
   const totalEarned = history.reduce((s, h) => s + h.amount, 0);

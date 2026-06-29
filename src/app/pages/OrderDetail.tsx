@@ -92,6 +92,11 @@ export default function OrderDetail() {
   };
 
   useEffect(() => {
+    document.title = 'Детали заказа — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
+  useEffect(() => {
     if (!id) return;
     ordersApi.getById(id)
       .then((res) => {

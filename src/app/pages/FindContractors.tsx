@@ -86,6 +86,11 @@ export default function FindContractors() {
   };
 
   useEffect(() => {
+    document.title = 'Найти исполнителя — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
+  useEffect(() => {
     contractorsApi.list()
       .then(res => setContractors(res.data ?? []))
       .catch(() => toast.error('Не удалось загрузить исполнителей'))
