@@ -114,10 +114,11 @@ async function replaySyncQueue() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Firebase Cloud Messaging service worker
-importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
-
 try {
+  // importScripts are inside try/catch so a network block (e.g. RKN) doesn't crash the SW
+  importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js');
+  importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
+
   const params = new URLSearchParams(self.location.search);
   const raw = params.get('firebaseConfig');
   if (!raw) throw new Error('No firebaseConfig param');
