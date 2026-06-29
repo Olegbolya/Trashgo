@@ -20,6 +20,7 @@ export default function Verify() {
   const devCode = location.state?.devCode as string | undefined;
   const channel = location.state?.channel as string | undefined;
   const deliveryEmail = (location.state?.deliveryEmail as string | undefined) || email;
+  const telegramBotLink = location.state?.telegramBotLink as string | undefined;
   const codeLen = 4;
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -100,12 +101,33 @@ export default function Verify() {
         <h1 style={{ fontSize: '1.625rem', fontWeight: 800, letterSpacing: '-0.03em', color: c.text, marginBottom: '0.375rem' }}>
           Введите код
         </h1>
-        <p style={{ fontSize: '0.875rem', color: c.muted, marginBottom: '1.75rem' }}>
+        <p style={{ fontSize: '0.875rem', color: c.muted, marginBottom: channel === 'telegram' && telegramBotLink ? '1rem' : '1.75rem' }}>
           {channel === 'email' && deliveryEmail
             ? <>Отправили код на <span style={{ color: c.text, fontWeight: 600 }}>{deliveryEmail}</span> — проверьте почту</>
-            : <>Отправили SMS на <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
+            : channel === 'telegram'
+              ? <>Откройте Telegram-бот и введите полученный там 4-значный код</>
+              : <>Отправили SMS на <span style={{ color: c.text, fontWeight: 600 }}>{phone}</span></>
           }
         </p>
+        {channel === 'telegram' && telegramBotLink && (
+          <a
+            href={telegramBotLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              width: '100%', padding: '0.7rem', borderRadius: '0.875rem', marginBottom: '1.75rem',
+              background: 'linear-gradient(135deg, #2787F5, #5BABFF)',
+              color: '#fff', fontSize: '0.9rem', fontWeight: 700, textDecoration: 'none',
+              boxShadow: '0 4px 16px rgba(39,135,245,0.35)',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.03 13.617l-2.965-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.823.942z" fill="white"/>
+            </svg>
+            Открыть Telegram-бот
+          </a>
+        )}
 
         {/* Dev hint — never shown in production */}
         {devCode && !import.meta.env.PROD && (
