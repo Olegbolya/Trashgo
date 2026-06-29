@@ -23,7 +23,7 @@ const FEATURES = [
   { icon: '💸', bg: '#fed7aa', name: 'Вы ставите цену', desc: 'Укажите желаемую сумму сами при создании заявки. Оплата — напрямую через СБП, без комиссии платформы.' },
   { icon: '🛡️', bg: '#dbeafe', name: 'Проверенные исполнители', desc: 'Все исполнители проходят верификацию. Рейтинги и отзывы помогают сделать правильный выбор.' },
   { icon: '💬', bg: '#e9d5ff', name: 'Встроенный чат', desc: 'Общайтесь с исполнителем прямо в приложении — без посторонних мессенджеров и лишних контактов.' },
-  { icon: '🔔', bg: '#fce7f3', name: 'Уведомления', desc: 'Мгновенные уведомления о заявках через Telegram-бот или в браузере — работает без установки приложения.' },
+  { icon: '🔔', bg: '#fce7f3', name: 'Push-уведомления', desc: 'Мгновенные уведомления о новых заявках и статусах прямо в браузере — без установки приложения из магазина.' },
   { icon: '🎁', bg: '#ccfbf1', name: 'Реферальная программа', desc: 'Приглашайте исполнителей и платите меньше. 5 активных друзей — абонемент бесплатно навсегда.' },
 ];
 
@@ -475,7 +475,7 @@ export default function Home() {
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: text, letterSpacing: '-0.04em', marginBottom: 2 }}>50 <span style={{ fontSize: '1rem', fontWeight: 500, color: textMuted }}>₽</span></div>
               <div style={{ fontSize: '0.8rem', color: textMuted, marginBottom: '1.375rem' }}>в месяц</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.375rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {['Доступ ко всем заявкам в районе', '30 дней бесплатно при регистрации', 'Принимайте и выполняйте заказы', 'Уведомления в Telegram и браузере', 'Скидки за приглашённых друзей'].map(item => (
+                {['Доступ ко всем заявкам в районе', '30 дней бесплатно при регистрации', 'Принимайте и выполняйте заказы', 'Push-уведомления о новых заявках', 'Скидки за приглашённых друзей'].map(item => (
                   <li key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '0.875rem', color: textSub }}>
                     <span style={{ color: accent, fontWeight: 700, flexShrink: 0, transition: 'color 0.4s' }}>✓</span>{item}
                   </li>
