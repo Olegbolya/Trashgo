@@ -13,7 +13,25 @@ export default function HowItWorks() {
 
   useEffect(() => {
     document.title = 'Как это работает — TrashGo';
-    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: [
+        { '@type': 'Question', name: 'Сколько стоит вывоз мусора?', acceptedAnswer: { '@type': 'Answer', text: 'От 50₽ — цену устанавливает заказчик при создании заказа.' } },
+        { '@type': 'Question', name: 'Когда придут деньги исполнителю?', acceptedAnswer: { '@type': 'Answer', text: 'Сразу после подтверждения заказчиком — деньги зачисляются на баланс.' } },
+        { '@type': 'Question', name: 'Что если исполнитель не пришёл?', acceptedAnswer: { '@type': 'Answer', text: 'Заказ возвращается в очередь и становится доступен другим исполнителям.' } },
+        { '@type': 'Question', name: 'Нужна ли регистрация для заказа вывоза мусора?', acceptedAnswer: { '@type': 'Answer', text: 'Да — войдите через VK ID или email, это занимает 30 секунд.' } },
+      ],
+    };
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'howitworks-faq-schema';
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+    return () => {
+      document.title = 'TrashGo — Вывоз мусора в Казани';
+      document.getElementById('howitworks-faq-schema')?.remove();
+    };
   }, []);
 
   const c = {

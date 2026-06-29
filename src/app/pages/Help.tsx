@@ -150,7 +150,26 @@ export default function Help() {
 
   useEffect(() => {
     document.title = 'Помощь и поддержка — TrashGo';
-    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+    // Inject FAQ schema for Google rich snippets
+    const allFaqs = [...faqCustomer, ...faqContractor];
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: allFaqs.map(({ q, a }) => ({
+        '@type': 'Question',
+        name: q,
+        acceptedAnswer: { '@type': 'Answer', text: a },
+      })),
+    };
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'faq-schema';
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+    return () => {
+      document.title = 'TrashGo — Вывоз мусора в Казани';
+      document.getElementById('faq-schema')?.remove();
+    };
   }, []);
 
   // Track online/offline
