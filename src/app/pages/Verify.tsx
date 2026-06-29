@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { authApi } from '../../api/auth';
@@ -27,6 +27,7 @@ export default function Verify() {
   const [error, setError] = useState('');
   const setAuth = useAuthStore((s) => s.setAuth);
   const accent = useRoleStore((s) => s.accentColor);
+  const submittingRef = useRef(false);
 
   if (!otpKey) {
     navigate('/login', { replace: true });
@@ -43,25 +44,35 @@ export default function Verify() {
     input:   isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const doVerify = async (currentCode: string) => {
+    if (currentCode.length < codeLen || submittingRef.current) return;
+    submittingRef.current = true;
     setError('');
     setLoading(true);
-
     try {
-      const res = await authApi.verify(otpKey, code, role, isEmailFlow);
+      const res = await authApi.verify(otpKey, currentCode, role, isEmailFlow);
       if (res.isNewUser) {
         const target = role === 'contractor' ? '/register-contractor' : '/register-customer';
-        navigate(target, { state: { email, phone, verifiedCode: code, role } });
+        navigate(target, { state: { email, phone, verifiedCode: currentCode, role } });
         return;
       }
       setAuth(res.user, res.token, res.refreshToken);
       navigate(res.user.role === 'contractor' ? '/contractor' : '/customer', { replace: true });
     } catch (err: any) {
       setError(err?.message || 'Неверный или истёкший код');
+      submittingRef.current = false;
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    if (code.length === codeLen) doVerify(code);
+  }, [code]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    doVerify(code);
   };
 
   const handleResend = async () => {
@@ -159,7 +170,7 @@ export default function Verify() {
             placeholder="• • • •"
             maxLength={codeLen}
             value={code}
-            onChange={(e) => { setError(''); setCode(e.target.value.replace(/\D/g, '')); }}
+            onChange={(e) => { setError(''); submittingRef.current = false; setCode(e.target.value.replace(/\D/g, '')); }}
             style={{
               display: 'block', width: '100%', height: '3.75rem',
               padding: '0 1.25rem',

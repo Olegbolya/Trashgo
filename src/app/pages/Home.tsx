@@ -94,6 +94,25 @@ export default function Home() {
   const inputBg = isDark ? 'rgba(255,255,255,0.05)' : '#ffffff';
 
   useEffect(() => {
+    document.title = 'TrashGo — Вывоз мусора в Казани';
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: FAQ_ITEMS.map(({ q, a }) => ({
+        '@type': 'Question',
+        name: q,
+        acceptedAnswer: { '@type': 'Answer', text: a },
+      })),
+    };
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'home-faq-schema';
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+    return () => { document.getElementById('home-faq-schema')?.remove(); };
+  }, []);
+
+  useEffect(() => {
     if (isAuthenticated && user) {
       navigate(user.role === 'customer' ? '/customer' : '/contractor', { replace: true });
     }
@@ -649,7 +668,7 @@ export default function Home() {
               {modalMode === 'login' ? 'Вход в аккаунт' : 'Создать аккаунт'}
             </h2>
             <p style={{ fontSize: '0.88rem', color: textMuted, textAlign: 'center', margin: '0 0 1.75rem', lineHeight: 1.6 }}>
-              Верификация телефона через VK ID
+              Войдите через VK ID или email
             </p>
 
             {/* VK primary */}
