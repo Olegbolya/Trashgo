@@ -18,5 +18,21 @@
   ],
   "screenshots": [
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "form_factor": "narrow" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Создать заказ",
+      "short_name": "Заказ",
+      "description": "Быстро создать заявку на вывоз мусора",
+      "url": "/customer?tab=create",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Найти заказы",
+      "short_name": "Заказы",
+      "description": "Просмотр доступных заявок рядом с вами",
+      "url": "/find-orders",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
   ]
 }
