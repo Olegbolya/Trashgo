@@ -107,7 +107,11 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${this.baseUrl}${path}`, { ...options, headers });
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      ...options,
+      headers,
+      signal: options.signal ?? AbortSignal.timeout(10000),
+    });
 
     // On 401, try to refresh once (but not for auth endpoints to avoid loops)
     if (response.status === 401 && !isRetry && !path.startsWith('/auth/')) {
