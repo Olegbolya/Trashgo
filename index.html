@@ -6,7 +6,7 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
       <title>TrashGo — Вывоз мусора в Казани</title>
       <meta name="description" content="Закажите вывоз мусора в Казани за 15 минут. Надёжные исполнители, честные цены, удобное приложение." />
-      <meta name="keywords" content="вывоз мусора Казань, вывоз мусора, уборка мусора, TrashGo" />
+      <meta name="keywords" content="вывоз мусора Казань, заказать вывоз мусора, вывоз строительного мусора, вывоз крупногабаритного мусора, уборка мусора, вывоз мусора недорого, мусороуборочная служба Казань, Вахитовский, Советский, Ново-Савиновский, Приволжский, Московский, TrashGo" />
       <meta name="robots" content="index, follow" />
 
       <!-- Canonical -->
@@ -40,10 +40,61 @@
 
       <!-- Fonts: self-hosted via @fontsource/inter, no Google Fonts -->
 
+      <!-- Structured data: local business -->
+      <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "LocalBusiness",
+            "@id": "https://trashgo.pro/#business",
+            "name": "TrashGo",
+            "description": "P2P-сервис вывоза мусора в Казани: бытовой, строительный, крупногабаритный. Исполнители рядом с вами, оплата через СБП без комиссии.",
+            "url": "https://trashgo.pro",
+            "email": "support@trashgo.pro",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Казань",
+              "addressRegion": "Республика Татарстан",
+              "postalCode": "420000",
+              "addressCountry": "RU"
+            },
+            "areaServed": [
+              {"@type": "Place", "name": "Вахитовский район, Казань"},
+              {"@type": "Place", "name": "Советский район, Казань"},
+              {"@type": "Place", "name": "Ново-Савиновский район, Казань"},
+              {"@type": "Place", "name": "Приволжский район, Казань"},
+              {"@type": "Place", "name": "Московский район, Казань"}
+            ],
+            "priceRange": "от 50₽",
+            "hasOfferCatalog": {
+              "@type": "OfferCatalog",
+              "name": "Услуги вывоза мусора",
+              "itemListElement": [
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Вывоз бытового мусора"}},
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Вывоз строительного мусора"}},
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Вывоз крупногабаритного мусора"}}
+              ]
+            }
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://trashgo.pro/#app",
+            "name": "TrashGo",
+            "url": "https://trashgo.pro",
+            "description": "Закажите вывоз мусора в Казани за 15 минут или заработайте как исполнитель в своём районе",
+            "applicationCategory": "UtilitiesApplication",
+            "operatingSystem": "Web, Android, iOS",
+            "offers": {"@type": "Offer", "price": "0", "priceCurrency": "RUB", "description": "Бесплатно для заказчиков"}
+          }
+        ]
+      }
+      </script>
+
     </head>
 
     <body>
-      <noscript></noscript>
+      <noscript><div style="font-family:sans-serif;padding:2rem;text-align:center">Для работы TrashGo необходим JavaScript. Пожалуйста, включите его в настройках браузера.</div></noscript>
       <div id="root"></div>
       <script type="module" src="/src/main.tsx"></script>
     </body>
