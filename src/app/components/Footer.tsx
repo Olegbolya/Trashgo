@@ -9,10 +9,10 @@ export function Footer() {
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <img src="/icon-72.png" alt="TrashGo" style={{ width: 48, height: 48, borderRadius: '0.875rem', objectFit: 'cover', flexShrink: 0 }} />
-              <span className="text-lg font-semibold">TrashGo — Вынос Мусора Казань</span>
+              <span className="text-lg font-semibold">TrashGo — Вывоз Мусора Казань</span>
             </div>
             <p className="text-white/70 leading-relaxed">
-              Первый P2P сервис выноса мусора в Татарстане. Быстро, удобно, доступно.
+              Первый P2P сервис вывоза мусора в Татарстане. Быстро, удобно, доступно.
             </p>
             <div className="flex gap-4">
               <a href="#" className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-colors">
@@ -98,7 +98,7 @@ export function Footer() {
         <div className="border-t border-white/10 mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-white/60 text-sm">
-              © 2026 Вынос Мусора Казань. Все права защищены.
+              © 2026 Вывоз Мусора Казань. Все права защищены.
             </div>
             <div className="flex flex-wrap gap-6 text-sm text-white/60">
               <a href="/privacy" className="hover:text-white transition-colors">Политика конфиденциальности</a>

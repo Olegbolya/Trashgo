@@ -5,7 +5,7 @@ const stats = [
     icon: Trophy,
     value: '1-й',
     label: 'в регионе',
-    description: 'Первый P2P сервис выноса мусора в Татарстане',
+    description: 'Первый P2P сервис вывоза мусора в Татарстане',
   },
   {
     icon: TrendingUp,

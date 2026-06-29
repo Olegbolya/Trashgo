@@ -118,8 +118,8 @@ export default function RegisterVk() {
             <div style={{ fontSize: '0.8rem', fontWeight: 600, color: muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>Я хочу</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               {[
-                { val: 'customer' as const, icon: '📦', label: 'Заказывать вынос мусора', accent: customerAccent },
-                { val: 'contractor' as const, icon: '🚛', label: 'Выносить мусор и зарабатывать', accent: contractorAccent },
+                { val: 'customer' as const, icon: '📦', label: 'Заказывать вывоз мусора', accent: customerAccent },
+                { val: 'contractor' as const, icon: '🚛', label: 'Вывозить мусор и зарабатывать', accent: contractorAccent },
               ].map(opt => (
                 <button
                   key={opt.val}

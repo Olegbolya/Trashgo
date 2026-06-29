@@ -37,7 +37,7 @@ export default function SelectRole() {
             </div>
             <h2 className="text-2xl text-gray-900 mb-3">Заказчик</h2>
             <p className="text-gray-600 mb-6">
-              Создавайте заказы на вынос мусора и выбирайте исполнителей
+              Создавайте заказы на вывоз мусора и выбирайте исполнителей
             </p>
             <ul className="space-y-2 text-sm text-gray-600">
               <li>• Создание заказов</li>

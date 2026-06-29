@@ -24,7 +24,7 @@ export function FinalCTA() {
 
           {/* Description */}
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Создайте свой первый заказ прямо сейчас и получите скидку 50% на первый вынос
+            Создайте свой первый заказ прямо сейчас и получите скидку 50% на первый вывоз
           </p>
 
           {/* Promotional badge */}

@@ -19,7 +19,7 @@ const steps = [
     number: '03',
     icon: CheckCircle,
     title: 'Работа выполнена',
-    description: 'Исполнитель приходит вовремя и выносит ваш мусор',
+    description: 'Исполнитель приходит вовремя и вывозит ваш мусор',
     color: 'from-[#2ed573] to-[#7bed9f]',
   },
   {

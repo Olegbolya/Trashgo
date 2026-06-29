@@ -10,7 +10,7 @@ export function Header() {
           <div className="flex items-center gap-3">
             <Trash2 className="w-6 h-6 text-gray-900" />
             <div>
-              <div className="font-semibold text-gray-900">Вынос Мусора</div>
+              <div className="font-semibold text-gray-900">Вывоз Мусора</div>
               <div className="text-xs text-gray-500">Казань</div>
             </div>
           </div>

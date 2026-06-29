@@ -19,13 +19,13 @@ export function Hero() {
               <div className="bg-white/20 backdrop-blur-sm p-3 rounded-2xl">
                 <Trash2 className="w-8 h-8" />
               </div>
-              <span className="text-xl font-semibold">Вынос Мусора Казань</span>
+              <span className="text-xl font-semibold">Вывоз Мусора Казань</span>
             </div>
 
             {/* Main heading */}
             <div className="space-y-4">
               <h1 className="text-4xl lg:text-6xl font-bold leading-tight">
-                Вынос Мусора в Казани
+                Вывоз Мусора в Казани
               </h1>
               <p className="text-xl lg:text-2xl text-white/90">
                 От 40₽ за мешок | Первый P2P сервис в Татарстане
@@ -43,7 +43,7 @@ export function Hero() {
                 size="lg" 
                 className="bg-[#ff4757] hover:bg-[#ff4757]/90 text-white border-0 rounded-full px-8 py-6 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
               >
-                Заказать вынос
+                Заказать вывоз
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
               <Button 

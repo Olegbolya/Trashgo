@@ -140,7 +140,7 @@ export default function Login() {
           </div>
           <h1 style={{ fontSize: '1.35rem', fontWeight: 700, color: text, margin: 0 }}>Вход или регистрация</h1>
           <p style={{ color: muted, fontSize: '0.875rem', margin: '0.5rem 0 0' }}>
-            Войдите, чтобы заказывать или выносить мусор
+            Войдите, чтобы заказывать или вывозить мусор
           </p>
         </div>
 

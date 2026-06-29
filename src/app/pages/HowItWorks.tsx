@@ -39,8 +39,8 @@ export default function HowItWorks() {
       icon: MapPin,
       color: GREEN,
       title: 'Мусор забирают',
-      desc: 'Исполнитель приходит по адресу, забирает и выносит мусор.',
-      tags: ['🗑️ Мусор вынесен'],
+      desc: 'Исполнитель приходит по адресу, забирает и вывозит мусор.',
+      tags: ['🗑️ Мусор вывезен'],
     },
     {
       icon: CheckCircle,
@@ -77,8 +77,8 @@ export default function HowItWorks() {
       icon: MapPin,
       color: GREEN,
       title: 'Выполните заказ',
-      desc: 'Приедьте по адресу, заберите и вынесьте мусор в контейнер.',
-      tags: ['🗑️ Мусор вынесен'],
+      desc: 'Приедьте по адресу, заберите и вывезите мусор в контейнер.',
+      tags: ['🗑️ Мусор вывезен'],
     },
     {
       icon: Star,
@@ -195,7 +195,7 @@ export default function HowItWorks() {
             </div>
             <div>
               <div className="text-base font-bold" style={{ color: c.text }}>Я исполнитель</div>
-              <div className="text-xs" style={{ color: c.muted }}>Хочу зарабатывать на выносе мусора</div>
+              <div className="text-xs" style={{ color: c.muted }}>Хочу зарабатывать на вывозе мусора</div>
             </div>
           </div>
           <div>
@@ -229,7 +229,7 @@ export default function HowItWorks() {
           <h2 className="text-base font-semibold mb-3" style={{ color: c.text }}>Частые вопросы</h2>
           <div className="space-y-2">
             {[
-              { q: 'Сколько стоит вынос?',        a: 'От 50₽ — цену устанавливает заказчик при создании заказа.' },
+              { q: 'Сколько стоит вывоз?',         a: 'От 50₽ — цену устанавливает заказчик при создании заказа.' },
               { q: 'Когда придут деньги?',         a: 'Сразу после подтверждения заказчиком — деньги зачисляются на баланс.' },
               { q: 'Что если исполнитель не пришёл?', a: 'Заказ возвращается в очередь и становится доступен другим исполнителям.' },
               { q: 'Нужна ли регистрация?',        a: 'Да — войдите через VK ID или email, это занимает 30 секунд.' },

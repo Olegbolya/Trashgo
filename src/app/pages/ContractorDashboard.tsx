@@ -571,7 +571,7 @@ export default function ContractorDashboard() {
   };
 
   const handleStartPickup = (order: any) => {
-    toast.success('🚀 Вынос начат!', { description: `Клиентам по адресу ${order.address} отправлены уведомления`, duration: 3000 });
+    toast.success('🚀 Вывоз начат!', { description: `Клиентам по адресу ${order.address} отправлены уведомления`, duration: 3000 });
     setTimeout(() => toast.info('📱 Уведомления доставлены', { description: `${order.addressCount} клиентов получили push-уведомление`, duration: 2500 }), 1000);
   };
 
