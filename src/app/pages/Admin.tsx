@@ -173,6 +173,7 @@ export default function Admin() {
         ...(secret ? { 'Authorization': `Bearer ${secret}` } : {}),
         ...(opts?.headers ?? {}),
       },
+      signal: opts?.signal ?? AbortSignal.timeout(10000),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => null);

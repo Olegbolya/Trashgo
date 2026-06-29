@@ -46,7 +46,7 @@ export function KazanAddressInput({ value, onChange, placeholder = 'ул. Бау
     if (val.length >= 4) {
       timerRef.current = setTimeout(async () => {
         try {
-          const res = await fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(val + ' Казань')}&limit=5`);
+          const res = await fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(val + ' Казань')}&limit=5`, { signal: AbortSignal.timeout(5000) });
           const data: any[] = await res.json();
           const geo: Suggestion[] = data
             .filter(d => d.address)

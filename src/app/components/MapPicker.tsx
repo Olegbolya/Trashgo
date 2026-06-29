@@ -53,7 +53,7 @@ export function MapPicker({ onSelect, onClose }: MapPickerProps) {
       try {
         const res = await fetch(
           `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&accept-language=ru`,
-          { headers: { 'User-Agent': 'TrashGo/1.0 (trashgo.pro)' } }
+          { headers: { 'User-Agent': 'TrashGo/1.0 (trashgo.pro)' }, signal: AbortSignal.timeout(8000) }
         );
         const data = await res.json();
         const addr = data?.address;
