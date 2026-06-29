@@ -180,11 +180,8 @@ export function OrdersMapAll({
     import('leaflet').then(({ default: L }) => {
       if (!containerRef.current || mapRef.current) return;
 
-      const tileUrl =
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-      const attribution =
-        '&copy; <a href="https://carto.com/">CARTO</a> ' +
-        '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>';
+      const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      const attribution = '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>';
 
       const map = L.map(containerRef.current, { zoomControl: true }).setView(
         [55.7965, 49.108],
