@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { ROLE_COLORS } from '../../stores/role.store';
 
 interface Slide {
   emoji: string;
@@ -55,7 +56,7 @@ export function OnboardingSlider({ role, isDark, onFinish }: Props) {
   const isLast = step === slides.length - 1;
   const touchStartX = useRef<number | null>(null);
 
-  const ACCENT = role === 'customer' ? '#4CAF50' : '#2196F3';
+  const ACCENT = ROLE_COLORS[role];
   const bg = isDark ? '#111827' : '#ffffff';
   const overlay = 'rgba(0,0,0,0.6)';
   const text = isDark ? '#f9fafb' : '#111827';

@@ -1,4 +1,5 @@
 import { useTheme } from '../context/ThemeContext';
+import { ROLE_COLORS } from '../../stores/role.store';
 
 export interface LevelData {
   level: number;
@@ -31,7 +32,7 @@ export function LevelSystem({ data, variant = 'customer', compact = false }: Lev
   const { isDark } = useTheme();
   const { level, xp, nextLevelXp, title, achievements, totalOrders } = data;
 
-  const accent = variant === 'contractor' ? '#2196F3' : '#4CAF50';
+  const accent = ROLE_COLORS[variant];
   const trackBg = isDark ? '#374151' : '#e5e7eb';
   const surfaceBg = isDark ? '#1e2433' : '#ffffff';
   const borderColor = isDark ? '#374151' : '#e5e7eb';

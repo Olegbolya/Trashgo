@@ -5,8 +5,9 @@ import { subscriptionsApi } from '../../api/subscriptions';
 import { toast } from 'sonner';
 import { useTheme } from '../context/ThemeContext';
 import { KazanAddressInput } from '../components/KazanAddressInput';
+import { ROLE_COLORS } from '../../stores/role.store';
 
-const ACCENT = '#4CAF50';
+const ACCENT = ROLE_COLORS.customer;
 
 const weekDays = [
   { id: 1, label: 'ПН', full: 'Понедельник' },

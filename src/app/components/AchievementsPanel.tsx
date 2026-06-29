@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Trophy, ChevronDown } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { ROLE_COLORS } from '../../stores/role.store';
 
 export interface Achievement {
   id: string;
@@ -73,7 +74,7 @@ export function AchievementsPanel({ achievements, variant = 'customer', previewC
   const { isDark } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
-  const accent = variant === 'contractor' ? '#4CAF50' : '#2196F3';
+  const accent = ROLE_COLORS[variant];
   const surface = isDark ? '#1e2433' : '#ffffff';
   const border = isDark ? '#374151' : '#e5e7eb';
   const subtle = isDark ? '#1f2937' : '#f3f4f6';
