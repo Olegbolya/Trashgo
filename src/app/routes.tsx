@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router";
 import { lazy, Suspense, Component, type ComponentType, type ReactNode, type ErrorInfo } from "react";
 import Layout from "./components/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { useTheme } from "./context/ThemeContext";
 
 // Lazy-load all pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
@@ -38,11 +39,12 @@ const VkCallback = lazy(() => import("./pages/VkCallback"));
 const RegisterVk = lazy(() => import("./pages/RegisterVk"));
 
 function PageLoader() {
+  const { isDark } = useTheme();
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
-        <span className="text-sm text-gray-500">Загрузка...</span>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? '#111827' : '#f9fafb' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: isDark ? '#374151' : '#d1d5db', borderTopColor: isDark ? '#f9fafb' : '#111827' }} />
+        <span style={{ fontSize: '0.875rem', color: isDark ? '#9ca3af' : '#6b7280' }}>Загрузка...</span>
       </div>
     </div>
   );
@@ -109,11 +111,16 @@ class ChunkErrorBoundary extends Component<{ children: ReactNode }, { failed: bo
 
   render() {
     if (!this.state.failed) return this.props.children;
+    const dark = document.documentElement.classList.contains('dark');
+    const bg   = dark ? '#111827' : '#f9fafb';
+    const text = dark ? '#f9fafb' : '#111827';
+    const sub  = dark ? '#9ca3af' : '#6b7280';
+    const bdr  = dark ? '#374151' : '#d1d5db';
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', fontFamily: 'Inter, system-ui, sans-serif', background: '#f9fafb' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', fontFamily: 'Inter, system-ui, sans-serif', background: bg }}>
         <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>⚠️</div>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', marginBottom: '0.5rem' }}>Что-то пошло не так</h2>
-        <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem', textAlign: 'center' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: text, marginBottom: '0.5rem' }}>Что-то пошло не так</h2>
+        <p style={{ fontSize: '0.875rem', color: sub, marginBottom: '1.5rem', textAlign: 'center' }}>
           Произошла непредвиденная ошибка.<br />
           Переход на главную через {this.state.countdown} с…
         </p>
@@ -126,7 +133,7 @@ class ChunkErrorBoundary extends Component<{ children: ReactNode }, { failed: bo
           </button>
           <button
             onClick={() => { window.location.href = '/'; }}
-            style={{ padding: '0.625rem 1.5rem', borderRadius: '0.75rem', background: 'transparent', color: '#6b7280', border: '1px solid #d1d5db', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}
+            style={{ padding: '0.625rem 1.5rem', borderRadius: '0.75rem', background: 'transparent', color: sub, border: `1px solid ${bdr}`, fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}
           >
             На главную
           </button>
