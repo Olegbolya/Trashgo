@@ -179,7 +179,7 @@ export default function HowItWorks() {
             </div>
             <div>
               <div className="text-base font-bold" style={{ color: c.text }}>Я заказчик</div>
-              <div className="text-xs" style={{ color: c.muted }}>Хочу, чтобы мусор вынесли</div>
+              <div className="text-xs" style={{ color: c.muted }}>Хочу, чтобы мусор вывезли</div>
             </div>
           </div>
           <div>

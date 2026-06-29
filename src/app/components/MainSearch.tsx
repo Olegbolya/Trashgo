@@ -44,7 +44,7 @@ export function MainSearch() {
           {/* Tabs */}
           <Tabs value={orderType} onValueChange={(v) => setOrderType(v as 'create' | 'find')} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="create">Нужно вынести мусор</TabsTrigger>
+              <TabsTrigger value="create">Нужно вывезти мусор</TabsTrigger>
               <TabsTrigger value="find">Хочу заработать</TabsTrigger>
             </TabsList>
 
