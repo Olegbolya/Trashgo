@@ -1796,7 +1796,7 @@ export default function ContractorDashboard() {
                     <ArrowRightLeft className="w-5 h-5" style={{ color: '#66BB6A' }} />
                   </div>
                   <div>
-                    <div className="text-sm font-medium" style={{ color: c.text }}>Нужно вынести мусор?</div>
+                    <div className="text-sm font-medium" style={{ color: c.text }}>Нужно вывезти мусор?</div>
                     <div className="text-xs" style={{ color: c.muted }}>Переключиться в режим заказчика</div>
                   </div>
                 </div>

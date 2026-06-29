@@ -1,4 +1,4 @@
-import { Trash2, Phone, Mail, MapPin, Instagram, MessageCircle } from 'lucide-react';
+import { Trash2, Mail, MapPin, Instagram, MessageCircle } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -29,9 +29,9 @@ export function Footer() {
             <h4 className="font-semibold mb-4">Сервис</h4>
             <ul className="space-y-3">
               <li><a href="/how-it-works" className="text-white/70 hover:text-white transition-colors">Как это работает</a></li>
-              <li><a href="#" className="text-white/70 hover:text-white transition-colors">Районы обслуживания</a></li>
-              <li><a href="#" className="text-white/70 hover:text-white transition-colors">Тарифы</a></li>
-              <li><a href="/" className="text-white/70 hover:text-white transition-colors">Стать исполнителем</a></li>
+              <li><a href="/login" className="text-white/70 hover:text-white transition-colors">Создать заказ</a></li>
+              <li><a href="/login" className="text-white/70 hover:text-white transition-colors">Стать исполнителем</a></li>
+              <li><a href="/terms" className="text-white/70 hover:text-white transition-colors">Условия использования</a></li>
             </ul>
           </div>
 
@@ -39,10 +39,11 @@ export function Footer() {
           <div>
             <h4 className="font-semibold mb-4">Компания</h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-white/70 hover:text-white transition-colors">О нас</a></li>
-              <li><a href="#" className="text-white/70 hover:text-white transition-colors">Блог</a></li>
-              <li><a href="#" className="text-white/70 hover:text-white transition-colors">Вакансии</a></li>
-              <li><a href="#" className="text-white/70 hover:text-white transition-colors">Пресс-центр</a></li>
+              <li><a href="/privacy" className="text-white/70 hover:text-white transition-colors">Политика конфиденциальности</a></li>
+              <li><a href="/how-it-works" className="text-white/70 hover:text-white transition-colors">FAQ</a></li>
+              <li>
+                <span className="text-white/40 text-sm">Казань, Татарстан</span>
+              </li>
             </ul>
           </div>
 
@@ -50,13 +51,6 @@ export function Footer() {
           <div>
             <h4 className="font-semibold mb-4">Контакты</h4>
             <ul className="space-y-3">
-              <li className="flex items-start gap-3 text-white/70">
-                <Phone className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                <div>
-                  <div className="text-white font-semibold">+7 (843) 123-45-67</div>
-                  <div className="text-sm">Пн-Вс 8:00-22:00</div>
-                </div>
-              </li>
               <li className="flex items-center gap-3 text-white/70">
                 <Mail className="w-5 h-5 flex-shrink-0" />
                 <a href="mailto:support@trashgo.pro" className="hover:text-white transition-colors">
