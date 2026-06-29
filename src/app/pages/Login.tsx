@@ -135,7 +135,7 @@ export default function Login() {
             <img src="/icon-192.png" alt="TrashGo" style={{ width: 52, height: 52, borderRadius: 14, objectFit: 'cover' }} />
             <div>
               <div style={{ fontSize: '1.5rem', fontWeight: 700, color: text }}>TrashGo</div>
-              <div style={{ fontSize: '0.8rem', color: muted }}>Вынос мусора, Казань</div>
+              <div style={{ fontSize: '0.8rem', color: muted }}>Вывоз мусора, Казань</div>
             </div>
           </div>
           <h1 style={{ fontSize: '1.35rem', fontWeight: 700, color: text, margin: 0 }}>Вход или регистрация</h1>

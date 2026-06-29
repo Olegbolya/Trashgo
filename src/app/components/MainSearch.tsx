@@ -34,7 +34,7 @@ export function MainSearch() {
           {/* Title */}
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl text-gray-900 mb-2">
-              Вынос мусора по соседски
+              Вывоз мусора по-соседски
             </h1>
             <p className="text-gray-600">
               Создайте заказ или найдите работу рядом с домом

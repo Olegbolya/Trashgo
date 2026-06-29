@@ -42,7 +42,7 @@ export default function Layout({ children }: LayoutProps) {
             <img src="/icon-72.png" alt="TrashGo" style={{ width: 36, height: 36, borderRadius: '0.625rem', objectFit: 'cover', flexShrink: 0 }} />
             <div>
               <div className="font-bold text-sm" style={{ color: c.text }}>TrashGo</div>
-              <div className="text-xs" style={{ color: c.muted }}>Вынос мусора</div>
+              <div className="text-xs" style={{ color: c.muted }}>Вывоз мусора</div>
             </div>
           </div>
         </div>
