@@ -1,5 +1,9 @@
 User-agent: *
 Allow: /
+Allow: /how-it-works
+Allow: /help
+Allow: /privacy
+Allow: /terms
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /customer
@@ -11,5 +15,18 @@ Disallow: /my-subscriptions
 Disallow: /my-contractors
 Disallow: /notifications
 Disallow: /payment
+Disallow: /order/
+Disallow: /subscription
+Disallow: /leaderboard
+Disallow: /invite-neighbor
+Disallow: /contractor-referral
+Disallow: /order-confirmed
+Disallow: /register-customer
+Disallow: /register-contractor
+Disallow: /select-role
+Disallow: /verify
+Disallow: /auth/
+Disallow: /register-vk
+Disallow: /ref/
 
 Sitemap: https://trashgo.pro/sitemap.xml
