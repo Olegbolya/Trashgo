@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Package, User, CheckCircle, DollarSign, MapPin, Trash2, ChevronRight, Star, Zap, Shield } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -9,6 +10,11 @@ const BLUE  = '#2196F3';
 export default function HowItWorks() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
+
+  useEffect(() => {
+    document.title = 'Как это работает — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
 
   const c = {
     bg:      isDark ? '#111827' : '#f9fafb',

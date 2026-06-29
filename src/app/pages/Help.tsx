@@ -148,6 +148,11 @@ export default function Help() {
     subtle:  isDark ? '#1f2937' : '#f3f4f6',
   };
 
+  useEffect(() => {
+    document.title = 'Помощь и поддержка — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
+
   // Track online/offline
   useEffect(() => {
     const onOnline  = () => setIsOffline(false);

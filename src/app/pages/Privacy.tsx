@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -6,6 +7,11 @@ import PrivacyFooter from '../components/PrivacyFooter';
 export default function Privacy() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
+
+  useEffect(() => {
+    document.title = 'Политика конфиденциальности — TrashGo';
+    return () => { document.title = 'TrashGo — Вывоз мусора в Казани'; };
+  }, []);
 
   const bg = isDark ? '#0f172a' : '#f8fafc';
   const surface = isDark ? '#1e293b' : '#ffffff';
