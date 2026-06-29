@@ -1,15 +1,5 @@
 @custom-variant dark (&:is(.dark *));
 
-/* Global button press feedback — works on all <button> elements, not just UI kit buttons */
-button:not([disabled]):active {
-  transform: scale(0.96);
-  opacity: 0.8;
-  transition: transform 0.08s ease, opacity 0.08s ease;
-}
-button:not([disabled]) {
-  transition: transform 0.12s ease, opacity 0.12s ease;
-}
-
 :root {
   --font-size: 16px;
   --background: #ffffff;

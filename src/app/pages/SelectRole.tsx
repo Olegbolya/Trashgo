@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { PackagePlus, Coins } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { ROLE_COLORS } from '../../stores/role.store';
 
 export default function SelectRole() {
   const navigate = useNavigate();
@@ -25,7 +26,8 @@ export default function SelectRole() {
   };
 
   const selectRole = (role: 'customer' | 'contractor') => {
-    const state = { phone, verifiedCode, role };
+    const email = (location.state?.email as string | undefined) || '';
+    const state = { email, phone, verifiedCode, role };
     if (role === 'customer') {
       navigate('/register-customer', { state });
     } else {
@@ -61,12 +63,12 @@ export default function SelectRole() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
 
           {/* Customer */}
-          <button onClick={() => selectRole('customer')} style={cardStyle('#ef4444')}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#ef4444'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 20px rgba(239,68,68,0.15)'; }}
+          <button onClick={() => selectRole('customer')} style={cardStyle(ROLE_COLORS.customer)}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = ROLE_COLORS.customer; (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 4px 20px ${ROLE_COLORS.customer}30`; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = c.border; (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none'; }}
           >
-            <div style={{ width: '4rem', height: '4rem', background: isDark ? '#3f1a1a' : '#fee2e2', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-              <PackagePlus style={{ width: '2rem', height: '2rem', color: '#ef4444' }} />
+            <div style={{ width: '4rem', height: '4rem', background: isDark ? '#1a3024' : '#e8f5e9', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+              <PackagePlus style={{ width: '2rem', height: '2rem', color: ROLE_COLORS.customer }} />
             </div>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, marginBottom: '0.75rem' }}>Заказчик</h2>
             <p style={{ fontSize: '0.9rem', color: c.muted, marginBottom: '1.5rem', lineHeight: 1.5 }}>
@@ -75,19 +77,19 @@ export default function SelectRole() {
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {['Создание заказов', 'Выбор исполнителя', 'Реферальная программа'].map(item => (
                 <li key={item} style={{ fontSize: '0.875rem', color: c.listText, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ color: '#ef4444' }}>•</span> {item}
+                  <span style={{ color: ROLE_COLORS.customer }}>•</span> {item}
                 </li>
               ))}
             </ul>
           </button>
 
           {/* Contractor */}
-          <button onClick={() => selectRole('contractor')} style={cardStyle('#22c55e')}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#22c55e'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 20px rgba(34,197,94,0.15)'; }}
+          <button onClick={() => selectRole('contractor')} style={cardStyle(ROLE_COLORS.contractor)}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = ROLE_COLORS.contractor; (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 4px 20px ${ROLE_COLORS.contractor}30`; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = c.border; (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none'; }}
           >
-            <div style={{ width: '4rem', height: '4rem', background: isDark ? '#0f2a1a' : '#dcfce7', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-              <Coins style={{ width: '2rem', height: '2rem', color: '#22c55e' }} />
+            <div style={{ width: '4rem', height: '4rem', background: isDark ? '#0f1f36' : '#e3f2fd', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+              <Coins style={{ width: '2rem', height: '2rem', color: ROLE_COLORS.contractor }} />
             </div>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, marginBottom: '0.75rem' }}>Исполнитель</h2>
             <p style={{ fontSize: '0.9rem', color: c.muted, marginBottom: '1.5rem', lineHeight: 1.5 }}>
@@ -96,7 +98,7 @@ export default function SelectRole() {
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {['Поиск заказов рядом', 'Гибкий график', 'Подписки на адреса'].map(item => (
                 <li key={item} style={{ fontSize: '0.875rem', color: c.listText, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ color: '#22c55e' }}>•</span> {item}
+                  <span style={{ color: ROLE_COLORS.contractor }}>•</span> {item}
                 </li>
               ))}
             </ul>
