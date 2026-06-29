@@ -21,7 +21,7 @@ export function MapView({ address, isDark }: Props) {
     geocodedRef.current = true;
 
     const searchQuery = /казань|kazan/i.test(address) ? address : `${address}, Казань, Россия`;
-    fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(searchQuery)}`)
+    fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(searchQuery)}`, { signal: AbortSignal.timeout(10000) })
       .then(r => r.json())
       .then((data: any[]) => {
         if (data[0]) {
@@ -83,7 +83,7 @@ export function MapView({ address, isDark }: Props) {
             const bounds = L.latLngBounds([[userLat, userLon], [destLat, destLon]]);
             map.fitBounds(bounds, { padding: [40, 40] });
 
-            fetch(`https://router.project-osrm.org/route/v1/driving/${userLon},${userLat};${destLon},${destLat}?overview=full&geometries=geojson`)
+            fetch(`https://router.project-osrm.org/route/v1/driving/${userLon},${userLat};${destLon},${destLat}?overview=full&geometries=geojson`, { signal: AbortSignal.timeout(8000) })
               .then(r => r.json())
               .then((data: any) => {
                 const coords = data?.routes?.[0]?.geometry?.coordinates;

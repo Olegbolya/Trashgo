@@ -27,7 +27,7 @@ import { useNativeBackClose } from '../../hooks/useNativeBackClose';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { ChatScreen } from '../components/ChatScreen';
 import { OrdersMapAll } from '../components/OrdersMapAll';
-import { API_BASE_URL } from '../../api/client';
+import { api, API_BASE_URL } from '../../api/client';
 
 const ACCENT = '#2196F3';
 
@@ -363,7 +363,7 @@ export default function ContractorDashboard() {
       if (geocodingRef.current.has(order.id)) return;
       geocodingRef.current.add(order.id);
       try {
-        const res = await fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(order.address + ' Казань')}&limit=1`);
+        const res = await fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(order.address + ' Казань')}&limit=1`, { signal: AbortSignal.timeout(5000) });
         const data: any[] = await res.json();
         if (!cancelled && data?.[0]?.lat) {
           setOrderCoords(prev => new Map(prev).set(order.id, { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) }));
@@ -1222,7 +1222,7 @@ export default function ContractorDashboard() {
                     try {
                       const token = (() => { try { const s = localStorage.getItem('auth-storage'); return s ? JSON.parse(s)?.state?.token : null; } catch { return null; } })();
                       const { API_BASE_URL } = await import('../../api/client');
-                      const res = await fetch(`${API_BASE_URL}/orders?mode=contractor&export=csv`, { headers: { Authorization: `Bearer ${token}` } });
+                      const res = await fetch(`${API_BASE_URL}/orders?mode=contractor&export=csv`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30000) });
                       if (!res.ok) return;
                       const blob = await res.blob();
                       const url = URL.createObjectURL(blob);
@@ -1837,10 +1837,7 @@ export default function ContractorDashboard() {
                   const input = prompt('Для подтверждения удаления введите «УДАЛИТЬ»:');
                   if (input !== 'УДАЛИТЬ') return;
                   try {
-                    await fetch(`${import.meta.env.VITE_API_URL ?? ''}/api/v1/users/me`, {
-                      method: 'DELETE',
-                      headers: { Authorization: `Bearer ${useAuthStore.getState().token}` },
-                    });
+                    await api.delete('/users/me');
                     logout();
                     navigate('/');
                   } catch {

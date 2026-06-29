@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Star, MapPin, Package, User } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { authApi } from '../../api/auth';
 import { toast } from 'sonner';
-import { API_BASE_URL } from '../../api/client';
+import { api } from '../../api/client';
 
 const ACCENT = '#66BB6A';
 
@@ -44,10 +43,7 @@ export default function MyContractors() {
   };
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/users/my-contractors`, {
-      headers: { Authorization: `Bearer ${JSON.parse(localStorage.getItem('auth-storage') ?? '{}')?.state?.token ?? ''}` },
-    })
-      .then(r => r.json())
+    api.get<{ data: MyContractor[] }>('/users/my-contractors')
       .then(r => setContractors(r.data ?? []))
       .catch(() => toast.error('Не удалось загрузить исполнителей'))
       .finally(() => setLoading(false));

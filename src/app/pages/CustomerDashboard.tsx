@@ -27,7 +27,7 @@ import { MapPicker } from '../components/MapPicker';
 import { KazanAddressInput } from '../components/KazanAddressInput';
 import { isNative } from '../../lib/platform';
 import { pickPhotosNative } from '../../hooks/useNativeCamera';
-import { API_BASE_URL } from '../../api/client';
+import { api, API_BASE_URL } from '../../api/client';
 import { useNativeBackClose } from '../../hooks/useNativeBackClose';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { subscriptionsApi, type Subscription } from '../../api/subscriptions';
@@ -257,7 +257,7 @@ export default function CustomerDashboard() {
     setGeoLocating(true);
     navigator.geolocation.getCurrentPosition(async (pos) => {
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&accept-language=ru`, { headers: { 'User-Agent': 'TrashGo/1.0' } });
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&accept-language=ru`, { headers: { 'User-Agent': 'TrashGo/1.0' }, signal: AbortSignal.timeout(8000) });
         const data = await res.json();
         const a = data.address ?? {};
         const road = a.road || a.pedestrian || a.footway || '';
@@ -1557,10 +1557,7 @@ export default function CustomerDashboard() {
                   const input = prompt('Для подтверждения удаления введите «УДАЛИТЬ»:');
                   if (input !== 'УДАЛИТЬ') return;
                   try {
-                    await fetch(`${import.meta.env.VITE_API_URL ?? ''}/api/v1/users/me`, {
-                      method: 'DELETE',
-                      headers: { Authorization: `Bearer ${useAuthStore.getState().token}` },
-                    });
+                    await api.delete('/users/me');
                     logout();
                     navigate('/');
                   } catch {
@@ -1747,7 +1744,7 @@ export default function CustomerDashboard() {
                             if (val.length >= 4) {
                               geocodeTimerRef.current = setTimeout(async () => {
                                 try {
-                                  const res = await fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(val + ' Казань')}&limit=5`);
+                                  const res = await fetch(`${API_BASE_URL}/geocode?q=${encodeURIComponent(val + ' Казань')}&limit=5`, { signal: AbortSignal.timeout(5000) });
                                   const data: any[] = await res.json();
                                   const suggestions = data
                                     .filter(d => d.address)
