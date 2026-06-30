@@ -2,6 +2,25 @@
   import { createRoot } from "react-dom/client";
   import App from "./app/App.tsx";
   import "./styles/index.css";
+
+  // Auto-reload when a lazy-loaded JS chunk returns 404 (stale service worker
+  // served old index.html after a deploy that changed asset filenames).
+  // Guard prevents infinite loops: only reloads once per 30 s.
+  window.addEventListener('unhandledrejection', (event) => {
+    const msg = event.reason?.message ?? '';
+    const isChunk =
+      event.reason?.name === 'ChunkLoadError' ||
+      msg.includes('dynamically imported module') ||
+      msg.includes('Importing a module script failed') ||
+      msg.includes('Failed to fetch dynamically imported');
+    if (isChunk) {
+      const last = Number(sessionStorage.getItem('_cre') ?? 0);
+      if (Date.now() - last > 30_000) {
+        sessionStorage.setItem('_cre', String(Date.now()));
+        window.location.reload();
+      }
+    }
+  });
   import * as Sentry from "@sentry/react";
   if (import.meta.env.VITE_SENTRY_DSN) {
     Sentry.init({ dsn: import.meta.env.VITE_SENTRY_DSN, tracesSampleRate: 0.1, integrations: [Sentry.browserTracingIntegration()] });
