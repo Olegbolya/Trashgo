@@ -256,9 +256,9 @@ export default function Home() {
         <div style={{ height: '3.5rem', maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.5rem' }}>
           <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             <img src="/logo.png" alt="TrashGo" style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0 }} />
-            <span style={{ fontSize: '1rem', fontWeight: 800, color: text, letterSpacing: '-0.02em' }}>Trash<span style={{ color: accent, transition: 'color 0.4s' }}>Go</span></span>
+            <span className="tg-logo-text" style={{ fontSize: '1rem', fontWeight: 800, color: text, letterSpacing: '-0.02em' }}>Trash<span style={{ color: accent, transition: 'color 0.4s' }}>Go</span></span>
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div className="tg-hdr-btns" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button onClick={toggleTheme} style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
               {isDark ? <Sun size={14} color={textMuted} /> : <Moon size={14} color={textMuted} />}
             </button>
@@ -746,6 +746,8 @@ export default function Home() {
         .tg-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
         @media (max-width: 900px) { .tg-features { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 580px) { .tg-features { grid-template-columns: 1fr; } }
+        .tg-hdr-btns { flex-shrink: 0; }
+        @media (max-width: 480px) { .tg-logo-text { display: none; } }
         @keyframes tgFloat { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-18px) scale(1.04); } }
         @keyframes tgSpin { to { transform: rotate(360deg); } }
         @keyframes tgFadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
