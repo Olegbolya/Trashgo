@@ -546,26 +546,27 @@ auth.post('/vkid', async (c) => {
   }
 
   const appId = process.env.VKID_APP_ID;
-  const secret = process.env.VKID_CLIENT_SECRET;
-  if (!appId || !secret) {
+  if (!appId) {
     return c.json({ error: { code: 'NOT_CONFIGURED', message: 'VK ID not configured on server' } }, 503);
   }
 
-  // Exchange code for tokens
+  // Exchange code for tokens (PKCE flow — client_secret not required)
   let tokenData: any;
   try {
+    const tokenParams = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      client_id: appId,
+      device_id,
+      redirect_uri: redirect_uri || 'https://trashgo.pro/auth/vk/callback',
+      code_verifier,
+    });
+    const secret = process.env.VKID_CLIENT_SECRET;
+    if (secret) tokenParams.set('client_secret', secret);
     const tokenRes = await fetch('https://id.vk.com/oauth2/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        client_id: appId,
-        client_secret: secret,
-        device_id,
-        redirect_uri: redirect_uri || 'https://trashgo.pro/auth/vk/callback',
-        code_verifier,
-      }),
+      body: tokenParams,
       signal: AbortSignal.timeout(10000),
     });
     tokenData = await tokenRes.json();
