@@ -18,14 +18,10 @@ export default function VkCallback() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const state = params.get('state');
-
     const savedState = sessionStorage.getItem('vkid_state');
-    const code_verifier = sessionStorage.getItem('vkid_code_verifier');
-    // device_id comes back in the callback URL from VK (same as what we sent)
-    // Fall back to sessionStorage if VK omits it in the redirect
-    const device_id = params.get('device_id') || sessionStorage.getItem('vkid_device_id') || '';
     const redirect_uri = `${window.location.origin}/auth/vk/callback`;
 
+    // Clean up all VK session keys
     sessionStorage.removeItem('vkid_state');
     sessionStorage.removeItem('vkid_code_verifier');
     sessionStorage.removeItem('vkid_device_id');
@@ -38,7 +34,7 @@ export default function VkCallback() {
       return;
     }
 
-    if (!code || !code_verifier) {
+    if (!code) {
       toast.error('Не удалось войти через VK. Попробуйте снова.');
       navigate('/login', { replace: true });
       return;
@@ -50,7 +46,7 @@ export default function VkCallback() {
       return;
     }
 
-    authApi.vkidExchange({ code, device_id, code_verifier, redirect_uri })
+    authApi.vkidExchange({ code, redirect_uri })
       .then((res) => {
         if (res.isNewUser) {
           navigate('/register-vk', {
@@ -91,7 +87,7 @@ export default function VkCallback() {
             <path d="M14.5 4.5C9 4.5 4.5 9 4.5 14.5S9 24.5 14.5 24.5 24.5 20 24.5 14.5 20 4.5 14.5 4.5zm6.3 10.2c-.3.4-.9 1-1.7 1.7l-.2.2c-.5.5-.8.9-.8 1.3 0 .2.1.5.4.8l.1.1c.6.5 1.1 1.1 1.4 1.7.1.2.2.4.2.6 0 .4-.2.8-.6.8h-2.1c-.3 0-.6-.1-.9-.3-.3-.2-.5-.5-.5-.8 0-.2.1-.4.2-.6.1-.2.3-.4.5-.6.2-.2.3-.4.3-.6 0-.2-.1-.4-.3-.6-.5-.5-1-.9-1.4-1.1-.2-.1-.4-.2-.6-.2-.3 0-.5.1-.8.3-.3.2-.4.5-.4.8v2.7c0 .3-.1.5-.3.7-.2.2-.5.3-.7.3h-1.6c-.4 0-.8-.1-1.2-.4-.4-.3-.8-.7-1-1.2-.2-.4-.3-.8-.3-1.2 0-.7.2-1.4.7-2 .5-.6 1.2-1 2-1.2.2 0 .3-.1.5-.1.4 0 .6.2.6.5 0 .2-.1.4-.3.5-.5.3-.9.7-1.1 1.2-.2.5-.2.9 0 1.3.1.2.2.3.4.3.1 0 .2 0 .3-.1V14c0-.5.2-.9.5-1.2.3-.3.7-.5 1.2-.5h.5c.4 0 .8.1 1.1.3.3.2.5.5.5.8 0 .2-.1.4-.2.6l-.3.6c-.1.2-.2.4-.2.6 0 .3.1.5.3.7.5.5 1 .8 1.5 1 .2.1.4.1.6.1.3 0 .6-.1.8-.3.2-.2.3-.5.3-.8v-1.5c0-.4.1-.8.4-1.1.3-.3.6-.5 1-.5.3 0 .5.1.7.2.2.1.3.3.3.5 0 .1 0 .2-.1.3z" fill="white"/>
           </svg>
         </div>
-        <div style={{ color: text, fontWeight: 600, marginBottom: '0.5rem' }}>Входим через VK ID</div>
+        <div style={{ color: text, fontWeight: 600, marginBottom: '0.5rem' }}>Входим через VK</div>
         <div style={{ color: muted, fontSize: '0.875rem' }}>Пожалуйста, подождите...</div>
         <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '6px' }}>
           {[0, 1, 2].map(i => (

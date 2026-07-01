@@ -124,7 +124,7 @@ export const authApi = {
     return res.data;
   },
 
-  async vkidExchange(data: { code: string; device_id: string; code_verifier: string; redirect_uri: string }): Promise<VkidResponse> {
+  async vkidExchange(data: { code: string; redirect_uri: string }): Promise<VkidResponse> {
     const res = await api.post<{ data: VkidResponse }>('/auth/vkid', data);
     return res.data;
   },
