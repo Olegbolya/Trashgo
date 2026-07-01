@@ -70,6 +70,10 @@ export default function Home() {
   const [accountFound, setAccountFound] = useState(false);
   const [verifyNavState, setVerifyNavState] = useState<Record<string, unknown> | null>(null);
   const [headerScrolled, setHeaderScrolled] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const statsRef = useRef<HTMLDivElement>(null);
+  const [statsTriggered, setStatsTriggered] = useState(false);
+  const [statCounts, setStatCounts] = useState({ orders: 0, contractors: 0 });
 
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'login' | 'register'>('login');
@@ -125,6 +129,33 @@ export default function Home() {
     window.addEventListener('scroll', h, { passive: true });
     return () => window.removeEventListener('scroll', h);
   }, []);
+
+  useEffect(() => {
+    const h = () => setShowScrollTop(window.scrollY > 500);
+    window.addEventListener('scroll', h, { passive: true });
+    return () => window.removeEventListener('scroll', h);
+  }, []);
+
+  useEffect(() => {
+    if (!statsRef.current || statsTriggered) return;
+    const el = statsRef.current;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      setStatsTriggered(true);
+      obs.disconnect();
+      const duration = 1600;
+      const startTime = performance.now();
+      const tick = (now: number) => {
+        const t = Math.min((now - startTime) / duration, 1);
+        const ease = 1 - Math.pow(1 - t, 3);
+        setStatCounts({ orders: Math.round(6000 * ease), contractors: Math.round(500 * ease) });
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }, { threshold: 0.5 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [statsTriggered]);
 
   useEffect(() => {
     const els = document.querySelectorAll('.tg-anim');
@@ -258,6 +289,15 @@ export default function Home() {
             <img src="/logo.png" alt="TrashGo" style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0 }} />
             <span className="tg-logo-text" style={{ fontSize: '1rem', fontWeight: 800, color: text, letterSpacing: '-0.02em' }}>Trash<span style={{ color: accent, transition: 'color 0.4s' }}>Go</span></span>
           </button>
+          <nav className="tg-nav">
+            {([['tg-features', 'Возможности'], ['tg-pricing', 'Тарифы'], ['tg-faq', 'FAQ']] as const).map(([id, label]) => (
+              <button key={id} onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.84rem', fontWeight: 500, color: textSub, fontFamily: 'inherit', padding: '0.25rem 0', transition: 'color 0.2s' }}
+                onMouseEnter={e => (e.currentTarget.style.color = text)}
+                onMouseLeave={e => (e.currentTarget.style.color = textSub)}
+              >{label}</button>
+            ))}
+          </nav>
           <div className="tg-hdr-btns" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button onClick={toggleTheme} style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
               {isDark ? <Sun size={14} color={textMuted} /> : <Moon size={14} color={textMuted} />}
@@ -282,15 +322,17 @@ export default function Home() {
 
       {/* ── HERO ── */}
       <section style={{ position: 'relative', overflow: 'hidden', paddingTop: '3.5rem' }}>
+        {/* Subtle dot-grid background */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, backgroundImage: `radial-gradient(${accent}18 1px, transparent 1px)`, backgroundSize: '28px 28px', pointerEvents: 'none' }} />
         <div className="tg-blob" style={{ position: 'absolute', top: '-8%', right: '-4%', width: 400, height: 400, borderRadius: '50%', background: `${accent}0d`, pointerEvents: 'none' }} />
         <div className="tg-blob" style={{ position: 'absolute', bottom: '-6%', left: '8%', width: 280, height: 280, borderRadius: '50%', background: `${accent}0a`, animationDelay: '3s', pointerEvents: 'none' }} />
         <div className="tg-blob" style={{ position: 'absolute', top: '35%', left: '48%', width: 180, height: 180, borderRadius: '50%', background: `${accent}08`, animationDelay: '6s', pointerEvents: 'none' }} />
 
-        <div style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto', padding: 'clamp(4rem,8vw,6rem) 1.5rem clamp(3rem,6vw,5rem)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,320px), 1fr))', gap: '3rem', alignItems: 'center' }}>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: '1200px', margin: '0 auto', padding: 'clamp(4rem,8vw,6rem) 1.5rem clamp(3rem,6vw,5rem)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,320px), 1fr))', gap: '3rem', alignItems: 'center' }}>
           {/* Left */}
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', background: `${accent}18`, border: `1px solid ${accent}44`, borderRadius: 999, fontSize: 13, fontWeight: 600, color: accent, marginBottom: '1.25rem', transition: 'all 0.4s' }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: accent, display: 'inline-block', transition: 'background 0.4s' }} />
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: accent, display: 'inline-block', transition: 'background 0.4s', animation: 'tgPulse 2s ease-in-out infinite' }} />
               Уже 3,000+ пользователей
             </div>
             <h1 style={{ fontSize: 'clamp(2.4rem,5.5vw,3.75rem)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.1, color: text, margin: '0 0 1.1rem' }}>
@@ -316,11 +358,15 @@ export default function Home() {
                 </button>
               ))}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
-              {[['6,000+', 'Выполнено заказов'], ['500+', 'Исполнителей'], ['4.9 ★', 'Средний рейтинг']].map(([val, label], i) => (
+            <div ref={statsRef} style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+              {([
+                [statsTriggered ? `${statCounts.orders.toLocaleString('ru-RU')}+` : '6 000+', 'Выполнено заказов'],
+                [statsTriggered ? `${statCounts.contractors}+` : '500+', 'Исполнителей'],
+                ['4.9 ★', 'Средний рейтинг'],
+              ] as const).map(([val, label], i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                   <div>
-                    <div style={{ fontSize: '1.35rem', fontWeight: 800, color: text, letterSpacing: '-0.03em' }}>{val}</div>
+                    <div style={{ fontSize: '1.35rem', fontWeight: 800, color: text, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>{val}</div>
                     <div style={{ fontSize: '0.72rem', color: textMuted }}>{label}</div>
                   </div>
                   {i < 2 && <div style={{ width: 1, height: 30, background: border }} />}
@@ -733,6 +779,27 @@ export default function Home() {
         </div>
       )}
 
+      {/* ── SCROLL TO TOP ── */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Наверх"
+          style={{
+            position: 'fixed', bottom: 24, right: 24, width: 44, height: 44,
+            borderRadius: 12, background: btnGrad, color: '#fff',
+            border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '1.15rem', fontWeight: 700, zIndex: 998,
+            boxShadow: btnShadow,
+            animation: 'tgFadeIn 0.25s ease',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${accent}66`; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = btnShadow; }}
+        >
+          ↑
+        </button>
+      )}
+
       <style>{`
         * { box-sizing: border-box; }
         input, button { -webkit-tap-highlight-color: transparent; }
@@ -747,11 +814,14 @@ export default function Home() {
         @media (max-width: 900px) { .tg-features { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 580px) { .tg-features { grid-template-columns: 1fr; } }
         .tg-hdr-btns { flex-shrink: 0; }
+        .tg-nav { display: flex; align-items: center; gap: 1.5rem; }
+        @media (max-width: 768px) { .tg-nav { display: none; } }
         @media (max-width: 480px) { .tg-logo-text { display: none; } }
         @keyframes tgFloat { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-18px) scale(1.04); } }
         @keyframes tgSpin { to { transform: rotate(360deg); } }
         @keyframes tgFadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes tgModalIn { from { opacity: 0; transform: scale(0.93) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes tgPulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(1.55); } }
         .tg-modal { animation: tgModalIn 0.2s ease; }
       `}</style>
     </div>
