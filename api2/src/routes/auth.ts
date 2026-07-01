@@ -576,22 +576,45 @@ auth.post('/vkid', async (c) => {
   }
 
   if (tokenData.error) {
-    console.error('[VKID] token error:', tokenData.error, tokenData.error_description);
-    return c.json({ error: { code: 'VKID_ERROR', message: 'Ошибка авторизации VK' } }, 400);
+    const desc = tokenData.error_description || tokenData.error;
+    console.error('[VKID] token error:', tokenData.error, desc);
+    return c.json({ error: { code: 'VKID_ERROR', message: `Ошибка авторизации VK: ${desc}` } }, 400);
   }
 
-  // Get user info (phone + name)
+  // Get user info via POST with body (VK ID OAuth 2.0 documented format)
   let vkUser: any;
   try {
     const infoRes = await fetch('https://id.vk.com/oauth2/user_info', {
-      headers: { 'Authorization': `Bearer ${tokenData.access_token}` },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ client_id: appId, access_token: tokenData.access_token }),
       signal: AbortSignal.timeout(10000),
     });
     const infoData = await infoRes.json();
     vkUser = infoData.user;
+    if (!vkUser) console.warn('[VKID] user_info returned no user:', JSON.stringify(infoData).slice(0, 200));
   } catch (e: any) {
     console.error('[VKID] user_info error:', e?.message);
-    return c.json({ error: { code: 'VKID_ERROR', message: 'Не удалось получить данные VK' } }, 503);
+  }
+
+  // Fallback: decode id_token JWT payload (contains phone_number + name in OIDC claims)
+  if (!vkUser && tokenData.id_token) {
+    try {
+      const payload = JSON.parse(Buffer.from(tokenData.id_token.split('.')[1], 'base64url').toString());
+      vkUser = {
+        user_id: payload.sub,
+        first_name: payload.given_name || payload.first_name || '',
+        last_name: payload.family_name || payload.last_name || '',
+        phone: payload.phone_number || payload.phone || '',
+      };
+      console.log('[VKID] Using id_token fallback, user_id:', vkUser.user_id);
+    } catch (e: any) {
+      console.error('[VKID] id_token parse error:', e?.message);
+    }
+  }
+
+  if (!vkUser) {
+    return c.json({ error: { code: 'VKID_ERROR', message: 'Не удалось получить данные пользователя VK' } }, 503);
   }
 
   const rawPhone = vkUser?.phone ?? vkUser?.phone_number ?? '';
