@@ -14,6 +14,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       manifest: false, // use existing public/manifest.json
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           // SSE streams must never be cached — workbox would consume the stream

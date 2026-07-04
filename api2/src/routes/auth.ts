@@ -536,73 +536,119 @@ auth.post('/refresh', async (c) => {
   }
 });
 
-// POST /auth/vkid — exchange VK OAuth code for JWT (classic oauth.vk.com flow)
+// POST /auth/vkid — VK ID login via PKCE authorization code flow
+// Flow: id.vk.com/authorize (PKCE) → callback → frontend sends {code, code_verifier, device_id}
+//       → server exchanges at oauth.vk.com/access_token WITH code_verifier (PKCE validation server-side)
+//       → server calls id.vk.com/oauth2/user_info for phone/name
+// Note: id.vk.com/oauth2/token is CORS-blocked from browser and returns 404 server-side.
+//       oauth.vk.com/access_token accepts VK ID PKCE codes when code_verifier is included.
 auth.post('/vkid', async (c) => {
   const body = await c.req.json().catch(() => ({}));
-  const { code, redirect_uri } = body;
-
-  if (!code) {
-    return c.json({ error: { code: 'VALIDATION', message: 'Missing required params' } }, 400);
-  }
+  const {
+    code: authCode,
+    code_verifier: codeVerifier,
+    device_id: deviceId,
+    access_token: bodyAccessToken,
+    user_id: bodyUserId,
+  } = body;
 
   const appId = process.env.VKID_APP_ID;
-  const appSecret = process.env.VKID_CLIENT_SECRET;
-  if (!appId || !appSecret) {
+  const clientSecret = process.env.VKID_CLIENT_SECRET;
+  if (!appId) {
     return c.json({ error: { code: 'NOT_CONFIGURED', message: 'VK не настроен на сервере' } }, 503);
   }
 
-  // Exchange authorization code for access token (classic VK OAuth with client_secret)
-  let tokenData: any;
-  try {
-    const tokenUrl = new URL('https://oauth.vk.com/access_token');
-    tokenUrl.searchParams.set('client_id', appId);
-    tokenUrl.searchParams.set('client_secret', appSecret);
-    tokenUrl.searchParams.set('redirect_uri', redirect_uri || 'https://trashgo.pro/auth/vk/callback');
-    tokenUrl.searchParams.set('code', code);
-    const tokenRes = await fetch(tokenUrl.toString(), { signal: AbortSignal.timeout(10000) });
-    tokenData = await tokenRes.json();
-  } catch (e: any) {
-    console.error('[VK] token exchange error:', e?.message);
-    return c.json({ error: { code: 'VK_ERROR', message: 'VK недоступен, попробуйте позже' } }, 503);
+  let accessToken: string;
+  let vkUserId = bodyUserId ? String(bodyUserId) : '';
+
+  if (bodyAccessToken) {
+    // Legacy path: browser already exchanged (not used anymore, kept for compat)
+    accessToken = bodyAccessToken as string;
+  } else if (authCode) {
+    // Primary path: exchange code server-side at oauth.vk.com with PKCE code_verifier
+    if (!codeVerifier) {
+      return c.json({ error: { code: 'VALIDATION', message: 'Missing code_verifier' } }, 400);
+    }
+
+    const redirectUri = process.env.VKID_REDIRECT_URI || 'https://trashgo.pro/auth/vk/callback';
+    const tokenParams = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code: authCode,
+      code_verifier: codeVerifier,
+      client_id: appId,
+      redirect_uri: redirectUri,
+    });
+    if (clientSecret) tokenParams.set('client_secret', clientSecret);
+    if (deviceId) tokenParams.set('device_id', deviceId);
+
+    let tokenData: any;
+    try {
+      // id.vk.com/oauth2/token requires POST with form body (not GET to oauth.vk.com)
+      const tokenRes = await fetch('https://id.vk.com/oauth2/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: tokenParams.toString(),
+        signal: AbortSignal.timeout(10000),
+      });
+      tokenData = await tokenRes.json();
+    } catch (e: any) {
+      console.error('[VKID] token exchange error:', e?.message);
+      return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'Ошибка обращения к VK' } }, 502);
+    }
+
+    if (tokenData.error) {
+      console.error('[VKID] token error:', tokenData.error, tokenData.error_description, '| code_verifier:', codeVerifier?.substring(0, 8));
+      return c.json({ error: { code: 'VK_AUTH_ERROR', message: `Ошибка VK: ${tokenData.error_description || tokenData.error}` } }, 400);
+    }
+
+    accessToken = tokenData.access_token;
+    if (tokenData.user_id) vkUserId = String(tokenData.user_id);
+  } else {
+    return c.json({ error: { code: 'VALIDATION', message: 'Missing code or access_token' } }, 400);
   }
 
-  if (tokenData.error) {
-    const desc = tokenData.error_description || tokenData.error;
-    console.error('[VK] token error:', tokenData.error, desc);
-    return c.json({ error: { code: 'VK_ERROR', message: `Ошибка авторизации VK: ${desc}` } }, 400);
-  }
-
-  const accessToken = tokenData.access_token as string;
-  const vkUserId = String(tokenData.user_id ?? '');
-
-  // Get profile info (name + confirmed phone) via VK API
-  let profile: any = {};
+  // Get user info via VK ID user_info endpoint (works server-side)
+  let vkUser: any = {};
   try {
-    const profileRes = await fetch(
-      `https://api.vk.com/method/account.getProfileInfo?access_token=${encodeURIComponent(accessToken)}&v=5.131`,
-      { signal: AbortSignal.timeout(10000) }
-    );
-    const profileData = await profileRes.json();
-    if (profileData.response) {
-      profile = profileData.response;
+    const userRes = await fetch('https://id.vk.com/oauth2/user_info', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: `client_id=${encodeURIComponent(appId)}`,
+      signal: AbortSignal.timeout(10000),
+    });
+    const userInfoData = await userRes.json();
+    if (userInfoData.user) {
+      vkUser = userInfoData.user;
     } else {
-      console.warn('[VK] getProfileInfo unexpected:', JSON.stringify(profileData).slice(0, 200));
+      console.warn('[VKID] user_info unexpected:', JSON.stringify(userInfoData).slice(0, 200));
+      // Fallback: classic VK API
+      const profileRes = await fetch(
+        `https://api.vk.com/method/account.getProfileInfo?access_token=${encodeURIComponent(accessToken)}&v=5.131`,
+        { signal: AbortSignal.timeout(10000) }
+      );
+      const profileData = await profileRes.json();
+      if (profileData.response) {
+        const p = profileData.response;
+        vkUser = { first_name: p.first_name, last_name: p.last_name, phone: p.phone };
+      }
     }
   } catch (e: any) {
-    console.error('[VK] getProfileInfo error:', e?.message);
+    console.error('[VKID] user_info error:', e?.message);
   }
 
-  const rawPhone = (profile.phone as string | undefined) || '';
-  const vkName = [profile.first_name, profile.last_name].filter(Boolean).join(' ');
+  const rawPhone = (vkUser.phone as string | undefined) || '';
+  const vkName = [vkUser.first_name, vkUser.last_name].filter(Boolean).join(' ') || 'VK пользователь';
 
   if (!rawPhone) {
     return c.json({ error: { code: 'NO_PHONE', message: 'Не удалось получить номер телефона из VK. Подтвердите телефон в настройках VK.' } }, 400);
   }
 
   const phone = normalizePhone(rawPhone);
-  // Reject masked/incomplete phone numbers (VK may return "+7 9** *** ** **" if scope not granted)
   if (!/^\+7\d{10}$/.test(phone)) {
-    console.warn('[VK] masked or invalid phone from VK:', rawPhone);
+    console.warn('[VKID] masked or invalid phone:', rawPhone);
     return c.json({ error: { code: 'NO_PHONE', message: 'Не удалось получить подтверждённый номер телефона из VK. Подтвердите телефон в настройках ВКонтакте.' } }, 400);
   }
 
@@ -610,7 +656,6 @@ auth.post('/vkid', async (c) => {
   const existing = await db.select().from(users).where(eq(users.phone, phone)).limit(1);
 
   if (existing.length === 0) {
-    // New user — issue short-lived temp token for registration
     const tempToken = jwt.sign(
       { phone, name: vkName, vkUserId, type: 'vk_verified' },
       process.env.JWT_SECRET!,

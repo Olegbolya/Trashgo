@@ -17,14 +17,15 @@ export default function VkCallback() {
 
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
-    const state = params.get('state');
-    const savedState = sessionStorage.getItem('vkid_state');
-    const redirect_uri = `${window.location.origin}/auth/vk/callback`;
+    // VK ID sends device_id back in callback — prefer URL param, fallback to localStorage
+    const device_id = params.get('device_id') || localStorage.getItem('vkid_device_id') || '';
+    const state = params.get('state') || params.get('redirect_state');
+    const savedState = localStorage.getItem('vkid_state');
+    const code_verifier = localStorage.getItem('vkid_code_verifier') ?? '';
 
-    // Clean up all VK session keys
-    sessionStorage.removeItem('vkid_state');
-    sessionStorage.removeItem('vkid_code_verifier');
-    sessionStorage.removeItem('vkid_device_id');
+    localStorage.removeItem('vkid_state');
+    localStorage.removeItem('vkid_code_verifier');
+    localStorage.removeItem('vkid_device_id');
 
     const vkError = params.get('error');
     if (vkError) {
@@ -46,7 +47,18 @@ export default function VkCallback() {
       return;
     }
 
-    authApi.vkidExchange({ code, redirect_uri })
+    // Send code + PKCE verifier to our backend — server exchanges at oauth.vk.com/access_token
+    // id.vk.com/oauth2/token is CORS-blocked from browser and returns 404 to server requests.
+    // oauth.vk.com/access_token works server-side when code_verifier is included (PKCE validation).
+    const exchangeAndLogin = async () => {
+      if (!code_verifier) {
+        console.error('[VKID] code_verifier missing from localStorage');
+        throw new Error('Ошибка авторизации VK: потеряны данные сессии. Попробуйте снова.');
+      }
+      return authApi.vkidExchange({ code, code_verifier, device_id });
+    };
+
+    exchangeAndLogin()
       .then((res) => {
         if (res.isNewUser) {
           navigate('/register-vk', {
