@@ -55,7 +55,8 @@ export default function VkCallback() {
         console.error('[VKID] code_verifier missing from localStorage');
         throw new Error('Ошибка авторизации VK: потеряны данные сессии. Попробуйте снова.');
       }
-      return authApi.vkidExchange({ code, code_verifier, device_id });
+      const redirect_uri = `${window.location.origin}/auth/vk/callback`;
+      return authApi.vkidExchange({ code, code_verifier, device_id, redirect_uri });
     };
 
     exchangeAndLogin()

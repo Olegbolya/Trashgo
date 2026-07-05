@@ -570,7 +570,15 @@ auth.post('/vkid', async (c) => {
       return c.json({ error: { code: 'VALIDATION', message: 'Missing code_verifier' } }, 400);
     }
 
-    const redirectUri = process.env.VKID_REDIRECT_URI || 'https://trashgo.pro/auth/vk/callback';
+    const ALLOWED_REDIRECT_URIS = [
+      'https://trashgo.pro/auth/vk/callback',
+      'https://trash-go.ru/auth/vk/callback',
+      'http://localhost:5173/auth/vk/callback',
+    ];
+    const requestedUri = body.redirect_uri as string | undefined;
+    const redirectUri = (requestedUri && ALLOWED_REDIRECT_URIS.includes(requestedUri))
+      ? requestedUri
+      : (process.env.VKID_REDIRECT_URI || 'https://trashgo.pro/auth/vk/callback');
     const tokenParams = new URLSearchParams({
       grant_type: 'authorization_code',
       code: authCode,
