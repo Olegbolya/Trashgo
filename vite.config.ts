@@ -24,7 +24,8 @@ export default defineConfig({
             handler: 'NetworkOnly',
           },
           {
-            urlPattern: /^https:\/\/trashgo\.pro\/api\/v1\//,
+            // Match /api/v1/ on any origin — works for both trashgo.pro and trash-go.ru
+            urlPattern: /\/api\/v1\/(?!notifications\/stream)/,
             handler: 'NetworkFirst',
             options: { cacheName: 'api-cache', expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 } },
           },

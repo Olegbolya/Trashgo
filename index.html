@@ -14,23 +14,26 @@
       <link rel="dns-prefetch" href="https://www.gstatic.com" />
       <link rel="dns-prefetch" href="https://fcm.googleapis.com" />
 
-      <!-- Canonical -->
-      <link rel="canonical" href="https://trashgo.pro/" />
+      <!-- Canonical: set dynamically so both trashgo.pro and trash-go.ru are indexed correctly -->
+      <link rel="canonical" id="canonical-url" href="https://trashgo.pro/" />
+      <script>var _c=document.getElementById('canonical-url');if(_c)_c.href=location.origin+'/';</script>
 
       <!-- OpenGraph -->
       <meta property="og:type" content="website" />
       <meta property="og:title" content="TrashGo — Вывоз мусора в Казани" />
       <meta property="og:description" content="Вывезем мусор за 15–60 минут. Проверенные исполнители, оплата напрямую через СБП, без переплат." />
-      <meta property="og:image" content="https://trashgo.pro/icon-512.png" />
-      <meta property="og:url" content="https://trashgo.pro/" />
+      <meta property="og:image" id="og-image" content="https://trashgo.pro/icon-512.png" />
+      <meta property="og:url" id="og-url" content="https://trashgo.pro/" />
       <meta property="og:locale" content="ru_RU" />
       <meta property="og:site_name" content="TrashGo" />
+      <script>var _u=document.getElementById('og-url');if(_u)_u.content=location.origin+'/';var _i=document.getElementById('og-image');if(_i)_i.content=location.origin+'/icon-512.png';</script>
 
       <!-- Twitter Card -->
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content="TrashGo — Вывоз мусора в Казани" />
       <meta name="twitter:description" content="Вывезем мусор за 15–60 минут. Проверенные исполнители, оплата через СБП." />
-      <meta name="twitter:image" content="https://trashgo.pro/icon-512.png" />
+      <meta name="twitter:image" id="tw-image" content="https://trashgo.pro/icon-512.png" />
+      <script>var _t=document.getElementById('tw-image');if(_t)_t.content=location.origin+'/icon-512.png';</script>
 
       <!-- PWA + Icons -->
       <link rel="icon" type="image/png" href="/favicon.png" />
@@ -58,8 +61,8 @@
       <noscript><div><img src="https://mc.yandex.ru/watch/99999999" style="position:absolute;left:-9999px;" alt="" /></div></noscript>
       -->
 
-      <!-- Structured data: local business -->
-      <script type="application/ld+json">
+      <!-- Structured data: local business (domain set dynamically via inline script below) -->
+      <script id="ld-json" type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@graph": [
@@ -107,6 +110,15 @@
           }
         ]
       }
+      </script>
+      <script>
+        // Update JSON-LD and meta tags to current domain (supports both trashgo.pro and trash-go.ru)
+        (function(){
+          var o=location.origin;
+          if(o==='https://trashgo.pro')return; // already correct
+          var s=document.getElementById('ld-json');
+          if(s)s.textContent=s.textContent.replace(/https:\/\/trashgo\.pro/g,o);
+        })();
       </script>
 
     </head>

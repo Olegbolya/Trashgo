@@ -30,3 +30,4 @@ Disallow: /register-vk
 Disallow: /ref/
 
 Sitemap: https://trashgo.pro/sitemap.xml
+Sitemap: https://trash-go.ru/sitemap.xml
