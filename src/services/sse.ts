@@ -1,8 +1,9 @@
 import { useNotificationsStore } from '../stores/notifications.store';
 import { toast } from 'sonner';
 
-// Derive server base (strip /api/v1 suffix if present) for the SSE endpoint which includes its own path
-const RAW_API_URL = import.meta.env.VITE_API_URL ?? 'https://trashgo.pro/api/v1';
+// Derive server base for SSE endpoint. Use relative URL in production so the SSE
+// connection always goes through the current domain (trash-go.ru or trashgo.pro).
+const RAW_API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? '/api/v1' : 'http://localhost:3000/api/v1');
 const SSE_BASE = RAW_API_URL.replace(/\/api\/v1\/?$/, '');
 
 let es: EventSource | null = null;

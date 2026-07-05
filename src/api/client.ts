@@ -1,9 +1,11 @@
-// VITE_API_URL is set at build time; falls back to trashgo.pro in production
-// and localhost in development.
+// VITE_API_URL is set at build time.
+// In production: use relative /api/v1 so requests always go through the current
+// domain (trash-go.ru OR trashgo.pro) — prevents cross-domain blocks by Russian ISPs.
+// In development: hit the local backend directly.
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.PROD
-    ? 'https://trashgo.pro/api/v1'
+    ? '/api/v1'
     : 'http://localhost:3000/api/v1');
 
 const API_URL = API_BASE_URL;
