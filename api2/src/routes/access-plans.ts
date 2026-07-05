@@ -117,7 +117,7 @@ router.post('/request', async (c) => {
   // YooKassa payment
   if (isYooKassaEnabled()) {
     try {
-      const returnUrl = `${process.env.FRONTEND_URL ?? 'https://trashgo.pro'}/subscription?payment=success&plan=${plan.id}`;
+      const returnUrl = `${process.env.FRONTEND_URL ?? 'https://trash-go.ru'}/subscription?payment=success&plan=${plan.id}`;
       const payment = await createPayment(
         priceAtPurchase,
         `Абонемент TrashGo на 30 дней`,

@@ -39,8 +39,6 @@ app.use('*', logger());
 app.use('*', timing());
 const allowedOrigins = [
   ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : ['http://localhost:5173']),
-  'https://trashgo.pro',
-  'https://www.trashgo.pro',
   'https://trash-go.ru',
   'https://www.trash-go.ru',
 ];

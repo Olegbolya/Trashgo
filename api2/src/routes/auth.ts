@@ -571,14 +571,13 @@ auth.post('/vkid', async (c) => {
     }
 
     const ALLOWED_REDIRECT_URIS = [
-      'https://trashgo.pro/auth/vk/callback',
       'https://trash-go.ru/auth/vk/callback',
       'http://localhost:5173/auth/vk/callback',
     ];
     const requestedUri = body.redirect_uri as string | undefined;
     const redirectUri = (requestedUri && ALLOWED_REDIRECT_URIS.includes(requestedUri))
       ? requestedUri
-      : (process.env.VKID_REDIRECT_URI || 'https://trashgo.pro/auth/vk/callback');
+      : (process.env.VKID_REDIRECT_URI || 'https://trash-go.ru/auth/vk/callback');
 
     let tokenData: any;
     try {

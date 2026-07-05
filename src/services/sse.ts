@@ -2,7 +2,7 @@ import { useNotificationsStore } from '../stores/notifications.store';
 import { toast } from 'sonner';
 
 // Derive server base for SSE endpoint. Use relative URL in production so the SSE
-// connection always goes through the current domain (trash-go.ru or trashgo.pro).
+// connection always goes through trash-go.ru.
 const RAW_API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? '/api/v1' : 'http://localhost:3000/api/v1');
 const SSE_BASE = RAW_API_URL.replace(/\/api\/v1\/?$/, '');
 

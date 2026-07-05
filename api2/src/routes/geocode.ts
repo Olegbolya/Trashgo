@@ -40,7 +40,7 @@ geocodeRoutes.get('/', async (c) => {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?${params}`,
       {
-        headers: { 'User-Agent': 'TrashGo/1.0 (trashgo.pro)', 'Accept-Language': 'ru,en' },
+        headers: { 'User-Agent': 'TrashGo/1.0 (trash-go.ru)', 'Accept-Language': 'ru,en' },
         signal: AbortSignal.timeout(5000),
       },
     );

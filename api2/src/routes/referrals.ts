@@ -10,7 +10,7 @@ const referralsRouter = new Hono<{ Variables: { user: JwtPayload } }>();
 
 referralsRouter.use('*', authMiddleware);
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://trashgo.pro';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://trash-go.ru';
 
 // GET /referrals/my
 referralsRouter.get('/my', async (c) => {
