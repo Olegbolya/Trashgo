@@ -579,37 +579,39 @@ auth.post('/vkid', async (c) => {
     const redirectUri = (requestedUri && ALLOWED_REDIRECT_URIS.includes(requestedUri))
       ? requestedUri
       : (process.env.VKID_REDIRECT_URI || 'https://trashgo.pro/auth/vk/callback');
-    const tokenParams = new URLSearchParams({
-      grant_type: 'authorization_code',
-      code: authCode,
-      code_verifier: codeVerifier,
-      client_id: appId,
-      redirect_uri: redirectUri,
-    });
-    if (clientSecret) tokenParams.set('client_secret', clientSecret);
-    if (deviceId) tokenParams.set('device_id', deviceId);
 
     let tokenData: any;
     try {
-      // Try id.vk.com/oauth2/token first (correct VK ID PKCE endpoint)
+      // id.vk.com/oauth2/token — VK ID OAuth 2.1 PKCE public client flow.
+      // client_secret is NOT sent here: PKCE replaces the secret for public clients.
+      // Sending client_secret causes VK to reject the request ("ошибка кода со стороны VK").
+      const idTokenParams = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: authCode,
+        code_verifier: codeVerifier,
+        client_id: appId,
+        redirect_uri: redirectUri,
+      });
+      if (deviceId) idTokenParams.set('device_id', deviceId);
+
       const idRes = await fetch('https://id.vk.com/oauth2/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json',
         },
-        body: tokenParams.toString(),
+        body: idTokenParams.toString(),
         signal: AbortSignal.timeout(10000),
       });
       const idContentType = idRes.headers.get('content-type') || '';
       const idText = await idRes.text();
-      console.log('[VKID] id.vk.com status:', idRes.status, 'ct:', idContentType.substring(0, 40), 'body:', idText.substring(0, 150));
+      console.log('[VKID] id.vk.com/oauth2/token status:', idRes.status, 'ct:', idContentType.substring(0, 60), 'body:', idText.substring(0, 400));
 
-      if (idContentType.includes('json') || (idText.trim().startsWith('{') || idText.trim().startsWith('['))) {
+      if (idContentType.includes('json') || idText.trim().startsWith('{') || idText.trim().startsWith('[')) {
         tokenData = JSON.parse(idText);
       } else {
-        // id.vk.com returned HTML — fall back to oauth.vk.com WITHOUT device_id
-        console.warn('[VKID] id.vk.com returned non-JSON, trying oauth.vk.com (no device_id)');
+        // id.vk.com returned HTML (not yet live or IP-blocked) — fall back to oauth.vk.com
+        console.warn('[VKID] id.vk.com returned non-JSON, falling back to oauth.vk.com');
         const oauthParams = new URLSearchParams({
           grant_type: 'authorization_code',
           code: authCode,
@@ -618,12 +620,13 @@ auth.post('/vkid', async (c) => {
           redirect_uri: redirectUri,
         });
         if (clientSecret) oauthParams.set('client_secret', clientSecret);
-        // device_id deliberately omitted — oauth.vk.com returns invalid_request for it
+        // device_id omitted — oauth.vk.com rejects it
         const oauthRes = await fetch(`https://oauth.vk.com/access_token?${oauthParams}`, {
           signal: AbortSignal.timeout(10000),
         });
-        tokenData = await oauthRes.json();
-        console.log('[VKID] oauth.vk.com response:', JSON.stringify(tokenData).substring(0, 200));
+        const oauthText = await oauthRes.text();
+        console.log('[VKID] oauth.vk.com status:', oauthRes.status, 'body:', oauthText.substring(0, 400));
+        tokenData = JSON.parse(oauthText);
       }
     } catch (e: any) {
       console.error('[VKID] token exchange error:', e?.message);
@@ -631,7 +634,7 @@ auth.post('/vkid', async (c) => {
     }
 
     if (tokenData.error) {
-      console.error('[VKID] token error:', tokenData.error, tokenData.error_description, '| cv_len:', codeVerifier?.length, '| redirect_uri:', redirectUri);
+      console.error('[VKID] token error:', tokenData.error, '|', tokenData.error_description, '| cv_len:', codeVerifier?.length, '| device_id:', deviceId ? 'set' : 'missing', '| redirect_uri:', redirectUri);
       return c.json({ error: { code: 'VK_AUTH_ERROR', message: `Ошибка VK: ${tokenData.error_description || tokenData.error}` } }, 400);
     }
 
