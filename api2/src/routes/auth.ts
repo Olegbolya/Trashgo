@@ -583,21 +583,47 @@ auth.post('/vkid', async (c) => {
 
     let tokenData: any;
     try {
-      // id.vk.com/oauth2/token requires POST with form body (not GET to oauth.vk.com)
-      const tokenRes = await fetch('https://id.vk.com/oauth2/token', {
+      // Try id.vk.com/oauth2/token first (correct VK ID PKCE endpoint)
+      const idRes = await fetch('https://id.vk.com/oauth2/token', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
         body: tokenParams.toString(),
         signal: AbortSignal.timeout(10000),
       });
-      tokenData = await tokenRes.json();
+      const idContentType = idRes.headers.get('content-type') || '';
+      const idText = await idRes.text();
+      console.log('[VKID] id.vk.com status:', idRes.status, 'ct:', idContentType.substring(0, 40), 'body:', idText.substring(0, 150));
+
+      if (idContentType.includes('json') || (idText.trim().startsWith('{') || idText.trim().startsWith('['))) {
+        tokenData = JSON.parse(idText);
+      } else {
+        // id.vk.com returned HTML — fall back to oauth.vk.com WITHOUT device_id
+        console.warn('[VKID] id.vk.com returned non-JSON, trying oauth.vk.com (no device_id)');
+        const oauthParams = new URLSearchParams({
+          grant_type: 'authorization_code',
+          code: authCode,
+          code_verifier: codeVerifier,
+          client_id: appId,
+          redirect_uri: redirectUri,
+        });
+        if (clientSecret) oauthParams.set('client_secret', clientSecret);
+        // device_id deliberately omitted — oauth.vk.com returns invalid_request for it
+        const oauthRes = await fetch(`https://oauth.vk.com/access_token?${oauthParams}`, {
+          signal: AbortSignal.timeout(10000),
+        });
+        tokenData = await oauthRes.json();
+        console.log('[VKID] oauth.vk.com response:', JSON.stringify(tokenData).substring(0, 200));
+      }
     } catch (e: any) {
       console.error('[VKID] token exchange error:', e?.message);
       return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'Ошибка обращения к VK' } }, 502);
     }
 
     if (tokenData.error) {
-      console.error('[VKID] token error:', tokenData.error, tokenData.error_description, '| code_verifier:', codeVerifier?.substring(0, 8));
+      console.error('[VKID] token error:', tokenData.error, tokenData.error_description, '| cv_len:', codeVerifier?.length, '| redirect_uri:', redirectUri);
       return c.json({ error: { code: 'VK_AUTH_ERROR', message: `Ошибка VK: ${tokenData.error_description || tokenData.error}` } }, 400);
     }
 
