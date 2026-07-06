@@ -23,13 +23,12 @@ export async function startVkOAuth(): Promise<void> {
   const state = generateRandom(16);
   const code_verifier = generateRandom(64);
   const code_challenge = await computeCodeChallenge(code_verifier);
-  const device_id = generateRandom(16);
 
-  // Use localStorage for reliability across cross-origin redirects (sessionStorage can be
-  // cleared by iOS Safari and some other browsers during cross-origin redirect flows)
+  // device_id is intentionally omitted: the token exchange falls back to oauth.vk.com/access_token
+  // (id.vk.com/oauth2/token is inaccessible server-side). oauth.vk.com rejects device_id as an
+  // unknown param, so if the code is bound to a device_id the exchange fails with "Code is invalid".
   localStorage.setItem('vkid_state', state);
   localStorage.setItem('vkid_code_verifier', code_verifier);
-  localStorage.setItem('vkid_device_id', device_id);
 
   const redirect_uri = `${window.location.origin}/auth/vk/callback`;
   const params = new URLSearchParams({
@@ -40,7 +39,6 @@ export async function startVkOAuth(): Promise<void> {
     scope: 'phone email',
     code_challenge,
     code_challenge_method: 'S256',
-    device_id,
   });
   window.location.href = `https://id.vk.com/authorize?${params}`;
 }
