@@ -600,36 +600,22 @@ auth.post('/vkid', async (c) => {
     return c.json({ error: { code: 'VALIDATION', message: 'Missing code or access_token' } }, 400);
   }
 
-  // Get user info via VK ID user_info endpoint (works server-side)
+  // Get user info via classic VK API (api.vk.com works from Timeweb; id.vk.com is network-blocked)
   let vkUser: any = {};
   try {
-    const userRes = await fetch('https://id.vk.com/oauth2/user_info', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: `client_id=${encodeURIComponent(appId)}`,
-      signal: AbortSignal.timeout(10000),
-    });
-    const userInfoData = await userRes.json();
-    if (userInfoData.user) {
-      vkUser = userInfoData.user;
+    const profileRes = await fetch(
+      `https://api.vk.com/method/account.getProfileInfo?access_token=${encodeURIComponent(accessToken)}&v=5.131`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+    const profileData = await profileRes.json();
+    if (profileData.response) {
+      const p = profileData.response;
+      vkUser = { first_name: p.first_name, last_name: p.last_name, phone: p.phone };
     } else {
-      console.warn('[VKID] user_info unexpected:', JSON.stringify(userInfoData).slice(0, 200));
-      // Fallback: classic VK API
-      const profileRes = await fetch(
-        `https://api.vk.com/method/account.getProfileInfo?access_token=${encodeURIComponent(accessToken)}&v=5.131`,
-        { signal: AbortSignal.timeout(10000) }
-      );
-      const profileData = await profileRes.json();
-      if (profileData.response) {
-        const p = profileData.response;
-        vkUser = { first_name: p.first_name, last_name: p.last_name, phone: p.phone };
-      }
+      console.warn('[VK] account.getProfileInfo unexpected:', JSON.stringify(profileData).slice(0, 200));
     }
   } catch (e: any) {
-    console.error('[VKID] user_info error:', e?.message);
+    console.error('[VK] user_info error:', e?.message);
   }
 
   const rawPhone = (vkUser.phone as string | undefined) || '';
