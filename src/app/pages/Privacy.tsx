@@ -113,7 +113,7 @@ export default function Privacy() {
               <li><strong>Отзыв согласия:</strong> отозвать согласие на обработку данных</li>
               <li><strong>Жалоба:</strong> обратиться в Роскомнадзор (rkn.gov.ru)</li>
             </ul>
-            <p>Для реализации прав обратитесь по адресу: <a href="mailto:support@trashgo.pro"><strong>support@trashgo.pro</strong></a></p>
+            <p>Для реализации прав обратитесь по адресу: <a href="mailto:support@trash-go.ru"><strong>support@trash-go.ru</strong></a></p>
           </Section>
 
           <Divider color={border} />
@@ -134,7 +134,7 @@ export default function Privacy() {
           <Section title="9. Контакты" text={muted}>
             <p>По вопросам, связанным с обработкой персональных данных:</p>
             <ul>
-              <li>Email: <a href="mailto:support@trashgo.pro">support@trashgo.pro</a></li>
+              <li>Email: <a href="mailto:support@trash-go.ru">support@trash-go.ru</a></li>
               <li>Адрес: г. Казань, Республика Татарстан</li>
             </ul>
           </Section>

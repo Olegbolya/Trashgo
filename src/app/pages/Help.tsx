@@ -291,7 +291,7 @@ export default function Help() {
 
   const contacts = [
     { icon: MessageCircle, color: GREEN,     title: 'Написать в чат', sub: 'Ответим в течение 15 минут',  action: () => setChatOpen(true), badge: hasUnread },
-    { icon: Mail,          color: '#FF9800', title: 'support@trashgo.pro', sub: 'Ответ в течение 24 часов',  action: () => { window.location.href = 'mailto:support@trashgo.pro'; }, badge: false },
+    { icon: Mail,          color: '#FF9800', title: 'support@trash-go.ru', sub: 'Ответ в течение 24 часов',  action: () => { window.location.href = 'mailto:support@trash-go.ru'; }, badge: false },
   ];
 
   const quickLinks = [

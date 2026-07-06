@@ -199,7 +199,7 @@ export default function Terms() {
           <Section title="14. Контакты" text={muted}>
             <p>По вопросам, связанным с настоящим Соглашением:</p>
             <ul>
-              <li>Email: <a href="mailto:support@trashgo.pro">support@trashgo.pro</a></li>
+              <li>Email: <a href="mailto:support@trash-go.ru">support@trash-go.ru</a></li>
             </ul>
           </Section>
 

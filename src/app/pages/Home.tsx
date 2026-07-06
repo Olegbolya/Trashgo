@@ -665,7 +665,7 @@ export default function Home() {
                 <li><button onClick={() => navigate('/help')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.84rem', color: '#9ca3af', fontFamily: 'inherit', padding: 0 }}>Помощь и поддержка</button></li>
                 <li><button onClick={() => navigate('/privacy')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.84rem', color: '#9ca3af', fontFamily: 'inherit', padding: 0 }}>Конфиденциальность</button></li>
                 <li><button onClick={() => navigate('/terms')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.84rem', color: '#9ca3af', fontFamily: 'inherit', padding: 0 }}>Условия</button></li>
-                <li><a href="mailto:support@trashgo.pro" style={{ fontSize: '0.84rem', color: '#9ca3af', textDecoration: 'none' }}>support@trashgo.pro</a></li>
+                <li><a href="mailto:support@trash-go.ru" style={{ fontSize: '0.84rem', color: '#9ca3af', textDecoration: 'none' }}>support@trash-go.ru</a></li>
               </ul>
             </div>
           </div>
@@ -678,7 +678,7 @@ export default function Home() {
                 ['3', 'Не передаём данные', 'Данные не продаются. Партнёры видят только необходимое для выполнения заказа.'],
                 ['4', 'Защита данных', 'Серверы Timeweb (Россия), шифрование TLS 1.3, вход через VK ID или OTP — пароли не хранятся.'],
                 ['5', 'Ваши права', 'Доступ, исправление и удаление данных по запросу (152-ФЗ).'],
-                ['6', 'Контакты', 'support@trashgo.pro — ответим в течение 24 часов.'],
+                ['6', 'Контакты', 'support@trash-go.ru — ответим в течение 24 часов.'],
               ].map(([n, t, d]) => (
                 <div key={n} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
                   <span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: '50%', background: 'rgba(100,187,106,0.15)', color: '#66BB6A', fontSize: '0.62rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n}</span>

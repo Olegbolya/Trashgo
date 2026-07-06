@@ -25,7 +25,7 @@ export default function PrivacyFooter() {
               { n: '3', t: 'Не передаём данные', d: 'Данные не продаются. Партнёры видят только то, что нужно для выполнения заказа.' },
               { n: '4', t: 'Защита данных', d: 'Серверы Timeweb (Россия), шифрование TLS 1.3, вход через VK ID или OTP — пароли не хранятся.' },
               { n: '5', t: 'Ваши права', d: 'Доступ, исправление и удаление данных по запросу в любой момент (152-ФЗ).' },
-              { n: '6', t: 'Контакты', d: 'Вопросы по данным: support@trashgo.pro' },
+              { n: '6', t: 'Контакты', d: 'Вопросы по данным: support@trash-go.ru' },
             ].map(({ n, t, d }) => (
               <div key={n} style={{ display: 'flex', gap: '0.625rem', alignItems: 'flex-start' }}>
                 <span style={{ flexShrink: 0, width: 20, height: 20, borderRadius: '50%', background: '#22a84918', color: '#22a849', fontSize: '0.65rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n}</span>

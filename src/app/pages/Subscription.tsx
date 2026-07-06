@@ -500,7 +500,7 @@ export default function SubscriptionPage() {
                       Мы свяжемся с вами для уточнения реквизитов оплаты.
                     </div>
                     <div style={{ fontSize: '0.8rem', color: c.muted }}>
-                      Вопросы: <a href="mailto:support@trashgo.pro" style={{ color: '#22a849', textDecoration: 'none' }}>support@trashgo.pro</a>
+                      Вопросы: <a href="mailto:support@trash-go.ru" style={{ color: '#22a849', textDecoration: 'none' }}>support@trash-go.ru</a>
                     </div>
                   </div>
                 </div>
