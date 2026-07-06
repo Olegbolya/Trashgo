@@ -4,6 +4,7 @@ import { authApi } from '../../api/auth';
 import { useAuthStore } from '../../stores/auth.store';
 import { useTheme } from '../context/ThemeContext';
 import { toast } from 'sonner';
+import { VKID_APP_ID } from '../../lib/vkid';
 
 export default function VkCallback() {
   const navigate = useNavigate();
@@ -15,16 +16,17 @@ export default function VkCallback() {
     if (processing.current) return;
     processing.current = true;
 
-    // Implicit flow: access_token is in the URL hash fragment (#access_token=...&user_id=...&state=...)
-    // Errors from VK come as query params (?error=...)
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    // PKCE flow: VK ID returns code in query params, errors also in query params.
     const queryParams = new URLSearchParams(window.location.search);
 
-    const access_token = hashParams.get('access_token');
-    const user_id = hashParams.get('user_id');
-    const state = hashParams.get('state') ?? queryParams.get('state');
+    const code = queryParams.get('code');
+    const state = queryParams.get('state');
+    const deviceId = queryParams.get('device_id') ?? undefined;
+
     const savedState = localStorage.getItem('vkid_state');
+    const codeVerifier = localStorage.getItem('vkid_code_verifier');
     localStorage.removeItem('vkid_state');
+    localStorage.removeItem('vkid_code_verifier');
 
     const vkError = queryParams.get('error');
     if (vkError) {
@@ -34,7 +36,7 @@ export default function VkCallback() {
       return;
     }
 
-    if (!access_token) {
+    if (!code || !codeVerifier) {
       toast.error('Не удалось войти через VK. Попробуйте снова.');
       navigate('/login', { replace: true });
       return;
@@ -46,7 +48,36 @@ export default function VkCallback() {
       return;
     }
 
-    authApi.vkidExchange({ access_token, user_id: user_id ?? undefined })
+    // Exchange code for tokens client-side (browser → id.vk.com).
+    // id.vk.com is blocked on Timeweb's server IP but accessible from the user's browser.
+    const redirect_uri = `${window.location.origin}/auth/vk/callback`;
+    const tokenBody = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: VKID_APP_ID,
+      code,
+      code_verifier: codeVerifier,
+      redirect_uri,
+      ...(deviceId ? { device_id: deviceId } : {}),
+    });
+
+    fetch('https://id.vk.com/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: tokenBody,
+    })
+      .then(res => res.json())
+      .then(tokenData => {
+        if (tokenData.error) {
+          throw new Error(tokenData.error_description || tokenData.error);
+        }
+        const { access_token, id_token, user_id } = tokenData;
+        if (!access_token) throw new Error('Нет access_token в ответе VK');
+        return authApi.vkidExchange({
+          access_token,
+          user_id: user_id ? String(user_id) : undefined,
+          id_token: id_token ?? undefined,
+        });
+      })
       .then((res) => {
         if (res.isNewUser) {
           navigate('/register-vk', {

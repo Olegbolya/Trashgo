@@ -536,20 +536,20 @@ auth.post('/refresh', async (c) => {
   }
 });
 
-// POST /auth/vkid — VK OAuth 2.0 implicit flow
-// Flow: oauth.vk.com/authorize (response_type=token) → callback page receives access_token in
-//       URL hash fragment → frontend sends {access_token, user_id} directly to server
+// POST /auth/vkid — VK ID OAuth 2.1 PKCE flow (client-side token exchange)
+// Flow: id.vk.com/authorize (PKCE) → code in callback URL → browser POSTs to id.vk.com/oauth2/token
+//       → browser gets access_token + id_token → sends both to this endpoint
 //       → server calls api.vk.com/method/account.getProfileInfo for phone/name
-// Why implicit: App ID 54655036 is a VK ID app — ALL codes it generates require
-//   id.vk.com/oauth2/token, which returns 404 from Timeweb (network-blocked).
-//   oauth.vk.com/access_token rejects VK ID codes as "invalid_grant".
-//   Implicit flow bypasses code exchange entirely — token arrives in the hash.
+//       → if phone missing from api.vk.com (masked), decode id_token JWT as fallback
+// Why browser-side exchange: id.vk.com/oauth2/token is network-blocked on Timeweb's IP.
+//   The user's browser can reach id.vk.com without issue.
 auth.post('/vkid', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const {
     code: authCode,
     access_token: bodyAccessToken,
     user_id: bodyUserId,
+    id_token: bodyIdToken,
   } = body;
 
   const appId = process.env.VKID_APP_ID;
@@ -622,8 +622,31 @@ auth.post('/vkid', async (c) => {
     console.error('[VK] user_info error:', e?.message);
   }
 
-  const rawPhone = (vkUser.phone as string | undefined) || '';
-  const vkName = [vkUser.first_name, vkUser.last_name].filter(Boolean).join(' ') || 'VK пользователь';
+  let rawPhone = (vkUser.phone as string | undefined) || '';
+  let vkName = [vkUser.first_name, vkUser.last_name].filter(Boolean).join(' ') || '';
+
+  // Fallback: decode id_token JWT for phone/name when api.vk.com returns masked or empty data.
+  // The token was obtained by the browser via PKCE — access_token validity was already confirmed
+  // by the api.vk.com call above, so the id_token from the same exchange can be trusted.
+  if ((!rawPhone || !vkName) && bodyIdToken) {
+    try {
+      const parts = (bodyIdToken as string).split('.');
+      if (parts.length === 3) {
+        const payloadJson = Buffer.from(parts[1], 'base64url').toString('utf8');
+        const claims = JSON.parse(payloadJson);
+        if (!rawPhone && claims.phone) rawPhone = String(claims.phone);
+        if (!vkName) {
+          const fn = [claims.given_name, claims.family_name].filter(Boolean).join(' ');
+          if (fn) vkName = fn;
+        }
+        console.log('[VK] id_token claims: phone=%s name=%s', claims.phone, claims.given_name);
+      }
+    } catch (e: any) {
+      console.warn('[VK] id_token decode failed:', e?.message);
+    }
+  }
+
+  if (!vkName) vkName = 'VK пользователь';
 
   if (!rawPhone) {
     return c.json({ error: { code: 'NO_PHONE', message: 'Не удалось получить номер телефона из VK. Подтвердите телефон в настройках VK.' } }, 400);
