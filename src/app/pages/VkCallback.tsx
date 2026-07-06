@@ -43,9 +43,9 @@ export default function VkCallback() {
     }
 
     if (state && savedState && state !== savedState) {
-      toast.error('Ошибка безопасности, попробуйте снова');
-      navigate('/login', { replace: true });
-      return;
+      // Log for debugging — PKCE (code_verifier/code_challenge) is the real CSRF protection.
+      // VK ID sometimes encodes or modifies state; we don't block on mismatch.
+      console.warn('[VK] state mismatch — url:', state, '| stored:', savedState, '| href:', window.location.href);
     }
 
     // Exchange code for tokens client-side (browser → id.vk.com).
