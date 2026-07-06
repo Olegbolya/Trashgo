@@ -15,17 +15,13 @@ export default function VkCallback() {
     if (processing.current) return;
     processing.current = true;
 
-    // PKCE flow: VK ID returns code + device_id in query params.
     const queryParams = new URLSearchParams(window.location.search);
 
     const code = queryParams.get('code');
     const state = queryParams.get('state');
-    const deviceId = queryParams.get('device_id') ?? undefined;
 
     const savedState = localStorage.getItem('vkid_state');
-    const codeVerifier = localStorage.getItem('vkid_code_verifier');
     localStorage.removeItem('vkid_state');
-    localStorage.removeItem('vkid_code_verifier');
 
     const vkError = queryParams.get('error');
     if (vkError) {
@@ -35,7 +31,7 @@ export default function VkCallback() {
       return;
     }
 
-    if (!code || !codeVerifier) {
+    if (!code) {
       toast.error('Не удалось войти через VK. Попробуйте снова.');
       navigate('/login', { replace: true });
       return;
@@ -47,12 +43,7 @@ export default function VkCallback() {
 
     const redirect_uri = `${window.location.origin}/auth/vk/callback`;
 
-    authApi.vkidExchange({
-      code,
-      code_verifier: codeVerifier,
-      redirect_uri,
-      ...(deviceId ? { device_id: deviceId } : {}),
-    })
+    authApi.vkidExchange({ code, redirect_uri })
       .then((res) => {
         if (res.isNewUser) {
           navigate('/register-vk', {

@@ -536,22 +536,18 @@ auth.post('/refresh', async (c) => {
   }
 });
 
-// POST /auth/vkid — VK ID PKCE flow.
-// Flow: id.vk.com/authorize (with code_challenge) → code + code_verifier in callback URL
-//       → server POSTs to id.vk.com/oauth2/token with code_verifier + client_secret
-//       → server calls api.vk.com for phone/name
-//       → if phone missing, decode id_token JWT claims as fallback
-// Note: id.vk.com/oauth2/token is IP-blocked on Timeweb (returns 404 HTML for all POST bodies).
-//       Requires VK developer console change (confidential client) or a proxy with different IP.
+// POST /auth/vkid — Classic VK OAuth flow via oauth.vk.com.
+// Flow: oauth.vk.com/authorize → code in callback URL
+//       → server GETs oauth.vk.com/access_token (works from Timeweb, no IP block)
+//       → server calls api.vk.com/method/account.getProfileInfo for phone/name
+// Note: id.vk.com/oauth2/token (VK ID PKCE) returns 404 HTML from Timeweb's IP — not usable.
 auth.post('/vkid', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const {
     code: authCode,
-    code_verifier: bodyCodeVerifier,
     access_token: bodyAccessToken,
     user_id: bodyUserId,
     id_token: bodyIdToken,
-    device_id: bodyDeviceId,
   } = body;
 
   const appId = process.env.VKID_APP_ID;
@@ -578,37 +574,26 @@ auth.post('/vkid', async (c) => {
     // Legacy path: frontend already exchanged the token (kept for compatibility)
     accessToken = bodyAccessToken as string;
   } else if (authCode) {
-    // PKCE exchange: code_verifier proves possession of code_challenge used during authorization.
-    // id.vk.com/oauth2/token is IP-blocked from Timeweb — route through Cloudflare Worker proxy.
-    const proxyUrl = process.env.VKID_PROXY_URL || 'https://id.vk.com/oauth2/token';
-    const proxySecret = process.env.VKID_PROXY_SECRET;
-    const vkParams = new URLSearchParams({
-      grant_type: 'authorization_code',
+    // Classic VK OAuth exchange at oauth.vk.com/access_token (GET, works from Timeweb).
+    const oauthParams = new URLSearchParams({
       client_id: appId,
+      client_secret: clientSecret || '',
       code: authCode as string,
       redirect_uri: redirectUri,
-      ...(bodyCodeVerifier ? { code_verifier: String(bodyCodeVerifier) } : {}),
-      ...(clientSecret ? { client_secret: clientSecret } : {}),
-      ...(bodyDeviceId ? { device_id: String(bodyDeviceId) } : {}),
     });
     let tokenData: any;
     try {
-      const proxyHeaders: Record<string, string> = { 'Content-Type': 'application/x-www-form-urlencoded' };
-      if (proxySecret) proxyHeaders['X-Proxy-Secret'] = proxySecret;
-      const vkRes = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: proxyHeaders,
-        body: vkParams,
-        signal: AbortSignal.timeout(15000),
+      const vkRes = await fetch(`https://oauth.vk.com/access_token?${oauthParams}`, {
+        signal: AbortSignal.timeout(10000),
       });
       const vkText = await vkRes.text();
-      console.log('[VK] token exchange status:', vkRes.status, 'body:', vkText.substring(0, 400));
+      console.log('[VK] oauth.vk.com/access_token status:', vkRes.status, 'body:', vkText.substring(0, 400));
       try { tokenData = JSON.parse(vkText); } catch {
-        console.error('[VK] non-JSON response:', vkText.substring(0, 200));
+        console.error('[VK] non-JSON response from oauth.vk.com:', vkText.substring(0, 200));
         return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'VK вернул неожиданный ответ' } }, 502);
       }
     } catch (e: any) {
-      console.error('[VK] token exchange fetch failed:', e?.message);
+      console.error('[VK] oauth.vk.com/access_token fetch failed:', e?.message);
       return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'Ошибка обращения к VK' } }, 502);
     }
     if (tokenData.error) {
@@ -617,7 +602,6 @@ auth.post('/vkid', async (c) => {
     }
     accessToken = tokenData.access_token;
     if (tokenData.user_id) vkUserId = String(tokenData.user_id);
-    if (tokenData.id_token) idToken = tokenData.id_token;
   } else {
     return c.json({ error: { code: 'VALIDATION', message: 'Missing code or access_token' } }, 400);
   }
