@@ -20,9 +20,12 @@ export default function VkCallback() {
 
     const code = queryParams.get('code');
     const state = queryParams.get('state');
+    const deviceId = queryParams.get('device_id') ?? undefined;
 
     const savedState = localStorage.getItem('vkid_state');
+    const codeVerifier = localStorage.getItem('vkid_code_verifier');
     localStorage.removeItem('vkid_state');
+    localStorage.removeItem('vkid_code_verifier');
 
     const vkError = queryParams.get('error');
     if (vkError) {
@@ -32,7 +35,7 @@ export default function VkCallback() {
       return;
     }
 
-    if (!code) {
+    if (!code || !codeVerifier) {
       toast.error('Не удалось войти через VK. Попробуйте снова.');
       navigate('/login', { replace: true });
       return;
@@ -46,7 +49,9 @@ export default function VkCallback() {
 
     authApi.vkidExchange({
       code,
+      code_verifier: codeVerifier,
       redirect_uri,
+      ...(deviceId ? { device_id: deviceId } : {}),
     })
       .then((res) => {
         if (res.isNewUser) {
