@@ -579,6 +579,9 @@ auth.post('/vkid', async (c) => {
     accessToken = bodyAccessToken as string;
   } else if (authCode) {
     // PKCE exchange: code_verifier proves possession of code_challenge used during authorization.
+    // id.vk.com/oauth2/token is IP-blocked from Timeweb — route through Cloudflare Worker proxy.
+    const proxyUrl = process.env.VKID_PROXY_URL || 'https://id.vk.com/oauth2/token';
+    const proxySecret = process.env.VKID_PROXY_SECRET;
     const vkParams = new URLSearchParams({
       grant_type: 'authorization_code',
       client_id: appId,
@@ -590,20 +593,22 @@ auth.post('/vkid', async (c) => {
     });
     let tokenData: any;
     try {
-      const vkRes = await fetch('https://id.vk.com/oauth2/token', {
+      const proxyHeaders: Record<string, string> = { 'Content-Type': 'application/x-www-form-urlencoded' };
+      if (proxySecret) proxyHeaders['X-Proxy-Secret'] = proxySecret;
+      const vkRes = await fetch(proxyUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: proxyHeaders,
         body: vkParams,
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(15000),
       });
       const vkText = await vkRes.text();
-      console.log('[VK] id.vk.com/oauth2/token status:', vkRes.status, 'body:', vkText.substring(0, 400));
+      console.log('[VK] token exchange status:', vkRes.status, 'body:', vkText.substring(0, 400));
       try { tokenData = JSON.parse(vkText); } catch {
-        console.error('[VK] non-JSON response from id.vk.com:', vkText.substring(0, 200));
+        console.error('[VK] non-JSON response:', vkText.substring(0, 200));
         return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'VK вернул неожиданный ответ' } }, 502);
       }
     } catch (e: any) {
-      console.error('[VK] id.vk.com/oauth2/token fetch failed:', e?.message);
+      console.error('[VK] token exchange fetch failed:', e?.message);
       return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'Ошибка обращения к VK' } }, 502);
     }
     if (tokenData.error) {
