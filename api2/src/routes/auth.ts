@@ -536,21 +536,21 @@ auth.post('/refresh', async (c) => {
   }
 });
 
-// POST /auth/vkid — VK ID OAuth 2.1 PKCE flow (client-side token exchange)
-// Flow: id.vk.com/authorize (PKCE) → code in callback URL → browser POSTs to id.vk.com/oauth2/token
-//       → browser gets access_token + id_token → sends both to this endpoint
-//       → server calls api.vk.com/method/account.getProfileInfo for phone/name
-//       → if phone missing from api.vk.com (masked), decode id_token JWT as fallback
-// Why browser-side exchange: id.vk.com/oauth2/token is network-blocked on Timeweb's IP.
-//   The user's browser can reach id.vk.com without issue.
+// POST /auth/vkid — VK ID PKCE flow.
+// Flow: id.vk.com/authorize (with code_challenge) → code + code_verifier in callback URL
+//       → server POSTs to id.vk.com/oauth2/token with code_verifier + client_secret
+//       → server calls api.vk.com for phone/name
+//       → if phone missing, decode id_token JWT claims as fallback
+// Note: id.vk.com/oauth2/token is IP-blocked on Timeweb (returns 404 HTML for all POST bodies).
+//       Requires VK developer console change (confidential client) or a proxy with different IP.
 auth.post('/vkid', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const {
     code: authCode,
+    code_verifier: bodyCodeVerifier,
     access_token: bodyAccessToken,
     user_id: bodyUserId,
     id_token: bodyIdToken,
-    code_verifier: bodyCodeVerifier,
     device_id: bodyDeviceId,
   } = body;
 
@@ -578,77 +578,41 @@ auth.post('/vkid', async (c) => {
     // Legacy path: frontend already exchanged the token (kept for compatibility)
     accessToken = bodyAccessToken as string;
   } else if (authCode) {
-    // Unified token exchange: try PKCE first (if code_verifier supplied), then classic OAuth.
-    // VK ID confidential apps require client_secret even in PKCE token requests.
-    // If id.vk.com returns non-JSON (HTML 404) or fails, fall through to oauth.vk.com.
-    let tokenData: any = null;
-
-    if (bodyCodeVerifier) {
-      try {
-        const pkceParams = new URLSearchParams({
-          grant_type: 'authorization_code',
-          client_id: appId,
-          code: authCode as string,
-          code_verifier: bodyCodeVerifier as string,
-          redirect_uri: redirectUri,
-          ...(clientSecret ? { client_secret: clientSecret } : {}),
-          ...(bodyDeviceId ? { device_id: String(bodyDeviceId) } : {}),
-        });
-        const pkceRes = await fetch('https://id.vk.com/oauth2/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: pkceParams,
-          signal: AbortSignal.timeout(10000),
-        });
-        const pkceText = await pkceRes.text();
-        console.log('[VK] id.vk.com/oauth2/token status:', pkceRes.status, 'body:', pkceText.substring(0, 400));
-        try {
-          tokenData = JSON.parse(pkceText);
-          if (tokenData.error) {
-            console.warn('[VK] PKCE returned error:', tokenData.error, tokenData.error_description, '— falling through to classic OAuth');
-            tokenData = null; // fall through to classic
-          } else {
-            console.log('[VK] PKCE exchange succeeded');
-            if (tokenData.user_id) vkUserId = String(tokenData.user_id);
-            if (tokenData.id_token) idToken = tokenData.id_token;
-          }
-        } catch {
-          console.warn('[VK] id.vk.com/oauth2/token returned non-JSON (HTML?) — falling through to classic OAuth');
-          tokenData = null;
-        }
-      } catch (e: any) {
-        console.warn('[VK] id.vk.com/oauth2/token fetch failed — falling through to classic OAuth:', e?.message);
-        tokenData = null;
+    // PKCE exchange: code_verifier proves possession of code_challenge used during authorization.
+    const vkParams = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: appId,
+      code: authCode as string,
+      redirect_uri: redirectUri,
+      ...(bodyCodeVerifier ? { code_verifier: String(bodyCodeVerifier) } : {}),
+      ...(clientSecret ? { client_secret: clientSecret } : {}),
+      ...(bodyDeviceId ? { device_id: String(bodyDeviceId) } : {}),
+    });
+    let tokenData: any;
+    try {
+      const vkRes = await fetch('https://id.vk.com/oauth2/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: vkParams,
+        signal: AbortSignal.timeout(10000),
+      });
+      const vkText = await vkRes.text();
+      console.log('[VK] id.vk.com/oauth2/token status:', vkRes.status, 'body:', vkText.substring(0, 400));
+      try { tokenData = JSON.parse(vkText); } catch {
+        console.error('[VK] non-JSON response from id.vk.com:', vkText.substring(0, 200));
+        return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'VK вернул неожиданный ответ' } }, 502);
       }
+    } catch (e: any) {
+      console.error('[VK] id.vk.com/oauth2/token fetch failed:', e?.message);
+      return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'Ошибка обращения к VK' } }, 502);
     }
-
-    // Classic OAuth 2.0 via oauth.vk.com (used when no code_verifier, or PKCE failed)
-    if (!tokenData) {
-      try {
-        const oauthParams = new URLSearchParams({
-          client_id: appId,
-          client_secret: clientSecret || '',
-          code: authCode as string,
-          redirect_uri: redirectUri,
-        });
-        const oauthRes = await fetch(`https://oauth.vk.com/access_token?${oauthParams}`, {
-          signal: AbortSignal.timeout(10000),
-        });
-        const oauthText = await oauthRes.text();
-        console.log('[VK] oauth.vk.com status:', oauthRes.status, 'body:', oauthText.substring(0, 400));
-        tokenData = JSON.parse(oauthText);
-      } catch (e: any) {
-        console.error('[VK] classic OAuth failed:', e?.message);
-        return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'Ошибка обращения к VK' } }, 502);
-      }
-      if (tokenData.error) {
-        console.error('[VK] classic OAuth error:', tokenData.error, tokenData.error_description, '| redirect_uri:', redirectUri);
-        return c.json({ error: { code: 'VK_AUTH_ERROR', message: `Ошибка VK: ${tokenData.error_description || tokenData.error}` } }, 400);
-      }
+    if (tokenData.error) {
+      console.error('[VK] token exchange error:', tokenData.error, tokenData.error_description);
+      return c.json({ error: { code: 'VK_AUTH_ERROR', message: `Ошибка VK: ${tokenData.error_description || tokenData.error}` } }, 400);
     }
-
     accessToken = tokenData.access_token;
     if (tokenData.user_id) vkUserId = String(tokenData.user_id);
+    if (tokenData.id_token) idToken = tokenData.id_token;
   } else {
     return c.json({ error: { code: 'VALIDATION', message: 'Missing code or access_token' } }, 400);
   }
