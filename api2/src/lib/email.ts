@@ -5,6 +5,7 @@ let smtpTransport: any = null;
 const SMTP_FROM = process.env.SMTP_FROM ?? '';
 if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   try {
+    // @ts-ignore — nodemailer is optional; only used when SMTP_HOST is set and package is installed
     const nodemailer = await import('nodemailer');
     smtpTransport = nodemailer.default.createTransport({
       host: process.env.SMTP_HOST,
