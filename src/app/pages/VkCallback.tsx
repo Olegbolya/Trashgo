@@ -15,22 +15,26 @@ export default function VkCallback() {
     if (processing.current) return;
     processing.current = true;
 
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    const state = params.get('state') || params.get('redirect_state');
-    const savedState = localStorage.getItem('vkid_state');
+    // Implicit flow: access_token is in the URL hash fragment (#access_token=...&user_id=...&state=...)
+    // Errors from VK come as query params (?error=...)
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const queryParams = new URLSearchParams(window.location.search);
 
+    const access_token = hashParams.get('access_token');
+    const user_id = hashParams.get('user_id');
+    const state = hashParams.get('state') ?? queryParams.get('state');
+    const savedState = localStorage.getItem('vkid_state');
     localStorage.removeItem('vkid_state');
 
-    const vkError = params.get('error');
+    const vkError = queryParams.get('error');
     if (vkError) {
-      const desc = params.get('error_description') ?? vkError;
+      const desc = queryParams.get('error_description') ?? vkError;
       toast.error(`Вход через VK отменён: ${desc}`);
       navigate('/login', { replace: true });
       return;
     }
 
-    if (!code) {
+    if (!access_token) {
       toast.error('Не удалось войти через VK. Попробуйте снова.');
       navigate('/login', { replace: true });
       return;
@@ -42,12 +46,7 @@ export default function VkCallback() {
       return;
     }
 
-    const exchangeAndLogin = async () => {
-      const redirect_uri = `${window.location.origin}/auth/vk/callback`;
-      return authApi.vkidExchange({ code, redirect_uri });
-    };
-
-    exchangeAndLogin()
+    authApi.vkidExchange({ access_token, user_id: user_id ?? undefined })
       .then((res) => {
         if (res.isNewUser) {
           navigate('/register-vk', {

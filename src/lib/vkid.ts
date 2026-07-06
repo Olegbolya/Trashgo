@@ -6,8 +6,10 @@ function generateRandom(length = 16): string {
 }
 
 export const VKID_APP_ID = import.meta.env.VITE_VKID_APP_ID ?? '';
-export const VKID_CLIENT_SECRET = import.meta.env.VITE_VKID_CLIENT_SECRET ?? '';
 
+// Implicit flow: VK returns access_token in hash fragment — no server-side code exchange needed.
+// Code exchange (both id.vk.com and oauth.vk.com) fails from Timeweb because id.vk.com is
+// network-blocked (404) and oauth.vk.com rejects VK ID codes as "invalid_grant".
 export async function startVkOAuth(): Promise<void> {
   if (!VKID_APP_ID) {
     throw new Error('VK не настроен. Добавьте VITE_VKID_APP_ID в переменные окружения.');
@@ -20,7 +22,7 @@ export async function startVkOAuth(): Promise<void> {
   const params = new URLSearchParams({
     client_id: VKID_APP_ID,
     redirect_uri,
-    response_type: 'code',
+    response_type: 'token',
     state,
     scope: 'phone email',
     display: 'page',

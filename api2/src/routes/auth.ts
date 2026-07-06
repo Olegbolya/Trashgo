@@ -536,10 +536,14 @@ auth.post('/refresh', async (c) => {
   }
 });
 
-// POST /auth/vkid — VK OAuth 2.0 (classic) authorization code exchange
-// Flow: oauth.vk.com/authorize → callback → frontend sends {code, redirect_uri}
-//       → server exchanges at oauth.vk.com/access_token with client_secret
+// POST /auth/vkid — VK OAuth 2.0 implicit flow
+// Flow: oauth.vk.com/authorize (response_type=token) → callback page receives access_token in
+//       URL hash fragment → frontend sends {access_token, user_id} directly to server
 //       → server calls api.vk.com/method/account.getProfileInfo for phone/name
+// Why implicit: App ID 54655036 is a VK ID app — ALL codes it generates require
+//   id.vk.com/oauth2/token, which returns 404 from Timeweb (network-blocked).
+//   oauth.vk.com/access_token rejects VK ID codes as "invalid_grant".
+//   Implicit flow bypasses code exchange entirely — token arrives in the hash.
 auth.post('/vkid', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const {
@@ -558,7 +562,7 @@ auth.post('/vkid', async (c) => {
   let vkUserId = bodyUserId ? String(bodyUserId) : '';
 
   if (bodyAccessToken) {
-    // Legacy path: browser already exchanged (not used anymore, kept for compat)
+    // Primary path: implicit flow — frontend sends access_token received from VK hash fragment
     accessToken = bodyAccessToken as string;
   } else if (authCode) {
     const ALLOWED_REDIRECT_URIS = [
