@@ -577,63 +577,76 @@ auth.post('/vkid', async (c) => {
   if (bodyAccessToken) {
     // Legacy path: frontend already exchanged the token (kept for compatibility)
     accessToken = bodyAccessToken as string;
-  } else if (authCode && bodyCodeVerifier) {
-    // Primary path: PKCE — browser sends code+code_verifier, server exchanges server-side.
-    // id.vk.com is accessible from Timeweb; browser fetch to id.vk.com fails due to CORS.
-    let tokenData: any;
-    try {
-      const pkceParams = new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: appId,
-        code: authCode as string,
-        code_verifier: bodyCodeVerifier as string,
-        redirect_uri: redirectUri,
-        ...(bodyDeviceId ? { device_id: String(bodyDeviceId) } : {}),
-      });
-      const pkceRes = await fetch('https://id.vk.com/oauth2/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: pkceParams,
-        signal: AbortSignal.timeout(10000),
-      });
-      const pkceText = await pkceRes.text();
-      console.log('[VK] id.vk.com/oauth2/token status:', pkceRes.status, 'body:', pkceText.substring(0, 400));
-      tokenData = JSON.parse(pkceText);
-    } catch (e: any) {
-      console.error('[VK] PKCE token exchange error:', e?.message);
-      return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'Ошибка обмена токена VK' } }, 502);
-    }
-    if (tokenData.error) {
-      console.error('[VK] PKCE error:', tokenData.error, tokenData.error_description);
-      return c.json({ error: { code: 'VK_AUTH_ERROR', message: `Ошибка VK: ${tokenData.error_description || tokenData.error}` } }, 400);
-    }
-    accessToken = tokenData.access_token;
-    if (tokenData.user_id) vkUserId = String(tokenData.user_id);
-    if (tokenData.id_token) idToken = tokenData.id_token;
   } else if (authCode) {
-    // Fallback: classic OAuth 2.0 exchange via oauth.vk.com (requires client_secret, no PKCE)
-    let tokenData: any;
-    try {
-      const oauthParams = new URLSearchParams({
-        client_id: appId,
-        client_secret: clientSecret || '',
-        code: authCode as string,
-        redirect_uri: redirectUri,
-      });
-      const oauthRes = await fetch(`https://oauth.vk.com/access_token?${oauthParams}`, {
-        signal: AbortSignal.timeout(10000),
-      });
-      const oauthText = await oauthRes.text();
-      console.log('[VK] oauth.vk.com status:', oauthRes.status, 'body:', oauthText.substring(0, 400));
-      tokenData = JSON.parse(oauthText);
-    } catch (e: any) {
-      console.error('[VK] token exchange error:', e?.message);
-      return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'Ошибка обращения к VK' } }, 502);
+    // Unified token exchange: try PKCE first (if code_verifier supplied), then classic OAuth.
+    // VK ID confidential apps require client_secret even in PKCE token requests.
+    // If id.vk.com returns non-JSON (HTML 404) or fails, fall through to oauth.vk.com.
+    let tokenData: any = null;
+
+    if (bodyCodeVerifier) {
+      try {
+        const pkceParams = new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: appId,
+          code: authCode as string,
+          code_verifier: bodyCodeVerifier as string,
+          redirect_uri: redirectUri,
+          ...(clientSecret ? { client_secret: clientSecret } : {}),
+          ...(bodyDeviceId ? { device_id: String(bodyDeviceId) } : {}),
+        });
+        const pkceRes = await fetch('https://id.vk.com/oauth2/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: pkceParams,
+          signal: AbortSignal.timeout(10000),
+        });
+        const pkceText = await pkceRes.text();
+        console.log('[VK] id.vk.com/oauth2/token status:', pkceRes.status, 'body:', pkceText.substring(0, 400));
+        try {
+          tokenData = JSON.parse(pkceText);
+          if (tokenData.error) {
+            console.warn('[VK] PKCE returned error:', tokenData.error, tokenData.error_description, '— falling through to classic OAuth');
+            tokenData = null; // fall through to classic
+          } else {
+            console.log('[VK] PKCE exchange succeeded');
+            if (tokenData.user_id) vkUserId = String(tokenData.user_id);
+            if (tokenData.id_token) idToken = tokenData.id_token;
+          }
+        } catch {
+          console.warn('[VK] id.vk.com/oauth2/token returned non-JSON (HTML?) — falling through to classic OAuth');
+          tokenData = null;
+        }
+      } catch (e: any) {
+        console.warn('[VK] id.vk.com/oauth2/token fetch failed — falling through to classic OAuth:', e?.message);
+        tokenData = null;
+      }
     }
-    if (tokenData.error) {
-      console.error('[VK] token error:', tokenData.error, tokenData.error_description, '| redirect_uri:', body.redirect_uri);
-      return c.json({ error: { code: 'VK_AUTH_ERROR', message: `Ошибка VK: ${tokenData.error_description || tokenData.error}` } }, 400);
+
+    // Classic OAuth 2.0 via oauth.vk.com (used when no code_verifier, or PKCE failed)
+    if (!tokenData) {
+      try {
+        const oauthParams = new URLSearchParams({
+          client_id: appId,
+          client_secret: clientSecret || '',
+          code: authCode as string,
+          redirect_uri: redirectUri,
+        });
+        const oauthRes = await fetch(`https://oauth.vk.com/access_token?${oauthParams}`, {
+          signal: AbortSignal.timeout(10000),
+        });
+        const oauthText = await oauthRes.text();
+        console.log('[VK] oauth.vk.com status:', oauthRes.status, 'body:', oauthText.substring(0, 400));
+        tokenData = JSON.parse(oauthText);
+      } catch (e: any) {
+        console.error('[VK] classic OAuth failed:', e?.message);
+        return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'Ошибка обращения к VK' } }, 502);
+      }
+      if (tokenData.error) {
+        console.error('[VK] classic OAuth error:', tokenData.error, tokenData.error_description, '| redirect_uri:', redirectUri);
+        return c.json({ error: { code: 'VK_AUTH_ERROR', message: `Ошибка VK: ${tokenData.error_description || tokenData.error}` } }, 400);
+      }
     }
+
     accessToken = tokenData.access_token;
     if (tokenData.user_id) vkUserId = String(tokenData.user_id);
   } else {
