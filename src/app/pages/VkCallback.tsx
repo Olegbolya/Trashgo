@@ -4,7 +4,6 @@ import { authApi } from '../../api/auth';
 import { useAuthStore } from '../../stores/auth.store';
 import { useTheme } from '../context/ThemeContext';
 import { toast } from 'sonner';
-import { VKID_APP_ID } from '../../lib/vkid';
 
 export default function VkCallback() {
   const navigate = useNavigate();
@@ -16,7 +15,7 @@ export default function VkCallback() {
     if (processing.current) return;
     processing.current = true;
 
-    // PKCE flow: VK ID returns code in query params, errors also in query params.
+    // PKCE flow: VK ID returns code + device_id in query params.
     const queryParams = new URLSearchParams(window.location.search);
 
     const code = queryParams.get('code');
@@ -43,41 +42,20 @@ export default function VkCallback() {
     }
 
     if (state && savedState && state !== savedState) {
-      // Log for debugging — PKCE (code_verifier/code_challenge) is the real CSRF protection.
-      // VK ID sometimes encodes or modifies state; we don't block on mismatch.
-      console.warn('[VK] state mismatch — url:', state, '| stored:', savedState, '| href:', window.location.href);
+      // Log only — PKCE (code_verifier/code_challenge) is the primary CSRF protection.
+      console.warn('[VK] state mismatch — url:', state, '| stored:', savedState);
     }
 
-    // Exchange code for tokens client-side (browser → id.vk.com).
-    // id.vk.com is blocked on Timeweb's server IP but accessible from the user's browser.
+    // Send code + code_verifier to our backend.
+    // Backend calls id.vk.com/oauth2/token server-side (avoids browser CORS restrictions).
     const redirect_uri = `${window.location.origin}/auth/vk/callback`;
-    const tokenBody = new URLSearchParams({
-      grant_type: 'authorization_code',
-      client_id: VKID_APP_ID,
+
+    authApi.vkidExchange({
       code,
       code_verifier: codeVerifier,
       redirect_uri,
       ...(deviceId ? { device_id: deviceId } : {}),
-    });
-
-    fetch('https://id.vk.com/oauth2/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: tokenBody,
     })
-      .then(res => res.json())
-      .then(tokenData => {
-        if (tokenData.error) {
-          throw new Error(tokenData.error_description || tokenData.error);
-        }
-        const { access_token, id_token, user_id } = tokenData;
-        if (!access_token) throw new Error('Нет access_token в ответе VK');
-        return authApi.vkidExchange({
-          access_token,
-          user_id: user_id ? String(user_id) : undefined,
-          id_token: id_token ?? undefined,
-        });
-      })
       .then((res) => {
         if (res.isNewUser) {
           navigate('/register-vk', {

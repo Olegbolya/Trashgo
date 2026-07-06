@@ -550,6 +550,8 @@ auth.post('/vkid', async (c) => {
     access_token: bodyAccessToken,
     user_id: bodyUserId,
     id_token: bodyIdToken,
+    code_verifier: bodyCodeVerifier,
+    device_id: bodyDeviceId,
   } = body;
 
   const appId = process.env.VKID_APP_ID;
@@ -560,26 +562,62 @@ auth.post('/vkid', async (c) => {
 
   let accessToken: string;
   let vkUserId = bodyUserId ? String(bodyUserId) : '';
+  // id_token may come from request body OR from the PKCE exchange response
+  let idToken: string | undefined = bodyIdToken as string | undefined;
+
+  const ALLOWED_REDIRECT_URIS = [
+    'https://trash-go.ru/auth/vk/callback',
+    'http://localhost:5173/auth/vk/callback',
+  ];
+  const requestedUri = body.redirect_uri as string | undefined;
+  const redirectUri = (requestedUri && ALLOWED_REDIRECT_URIS.includes(requestedUri))
+    ? requestedUri
+    : (process.env.VKID_REDIRECT_URI || 'https://trash-go.ru/auth/vk/callback');
 
   if (bodyAccessToken) {
-    // Primary path: implicit flow — frontend sends access_token received from VK hash fragment
+    // Legacy path: frontend already exchanged the token (kept for compatibility)
     accessToken = bodyAccessToken as string;
+  } else if (authCode && bodyCodeVerifier) {
+    // Primary path: PKCE — browser sends code+code_verifier, server exchanges server-side.
+    // id.vk.com is accessible from Timeweb; browser fetch to id.vk.com fails due to CORS.
+    let tokenData: any;
+    try {
+      const pkceParams = new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: appId,
+        code: authCode as string,
+        code_verifier: bodyCodeVerifier as string,
+        redirect_uri: redirectUri,
+        ...(bodyDeviceId ? { device_id: String(bodyDeviceId) } : {}),
+      });
+      const pkceRes = await fetch('https://id.vk.com/oauth2/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: pkceParams,
+        signal: AbortSignal.timeout(10000),
+      });
+      const pkceText = await pkceRes.text();
+      console.log('[VK] id.vk.com/oauth2/token status:', pkceRes.status, 'body:', pkceText.substring(0, 400));
+      tokenData = JSON.parse(pkceText);
+    } catch (e: any) {
+      console.error('[VK] PKCE token exchange error:', e?.message);
+      return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'Ошибка обмена токена VK' } }, 502);
+    }
+    if (tokenData.error) {
+      console.error('[VK] PKCE error:', tokenData.error, tokenData.error_description);
+      return c.json({ error: { code: 'VK_AUTH_ERROR', message: `Ошибка VK: ${tokenData.error_description || tokenData.error}` } }, 400);
+    }
+    accessToken = tokenData.access_token;
+    if (tokenData.user_id) vkUserId = String(tokenData.user_id);
+    if (tokenData.id_token) idToken = tokenData.id_token;
   } else if (authCode) {
-    const ALLOWED_REDIRECT_URIS = [
-      'https://trash-go.ru/auth/vk/callback',
-      'http://localhost:5173/auth/vk/callback',
-    ];
-    const requestedUri = body.redirect_uri as string | undefined;
-    const redirectUri = (requestedUri && ALLOWED_REDIRECT_URIS.includes(requestedUri))
-      ? requestedUri
-      : (process.env.VKID_REDIRECT_URI || 'https://trash-go.ru/auth/vk/callback');
-
+    // Fallback: classic OAuth 2.0 exchange via oauth.vk.com (requires client_secret, no PKCE)
     let tokenData: any;
     try {
       const oauthParams = new URLSearchParams({
         client_id: appId,
         client_secret: clientSecret || '',
-        code: authCode,
+        code: authCode as string,
         redirect_uri: redirectUri,
       });
       const oauthRes = await fetch(`https://oauth.vk.com/access_token?${oauthParams}`, {
@@ -592,12 +630,10 @@ auth.post('/vkid', async (c) => {
       console.error('[VK] token exchange error:', e?.message);
       return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'Ошибка обращения к VK' } }, 502);
     }
-
     if (tokenData.error) {
       console.error('[VK] token error:', tokenData.error, tokenData.error_description, '| redirect_uri:', body.redirect_uri);
       return c.json({ error: { code: 'VK_AUTH_ERROR', message: `Ошибка VK: ${tokenData.error_description || tokenData.error}` } }, 400);
     }
-
     accessToken = tokenData.access_token;
     if (tokenData.user_id) vkUserId = String(tokenData.user_id);
   } else {
@@ -628,9 +664,9 @@ auth.post('/vkid', async (c) => {
   // Fallback: decode id_token JWT for phone/name when api.vk.com returns masked or empty data.
   // The token was obtained by the browser via PKCE — access_token validity was already confirmed
   // by the api.vk.com call above, so the id_token from the same exchange can be trusted.
-  if ((!rawPhone || !vkName) && bodyIdToken) {
+  if ((!rawPhone || !vkName) && idToken) {
     try {
-      const parts = (bodyIdToken as string).split('.');
+      const parts = (idToken as string).split('.');
       if (parts.length === 3) {
         const payloadJson = Buffer.from(parts[1], 'base64url').toString('utf8');
         const claims = JSON.parse(payloadJson);
