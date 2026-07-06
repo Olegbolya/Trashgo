@@ -609,11 +609,25 @@ auth.post('/vkid', async (c) => {
       if (idContentType.includes('json') || idText.trim().startsWith('{') || idText.trim().startsWith('[')) {
         tokenData = JSON.parse(idText);
       } else {
-        // id.vk.com returned non-JSON (HTML/404). The oauth.vk.com fallback was removed:
-        // it can't handle VK ID PKCE codes because it rejects device_id, causing
-        // "Code is invalid or expired" even when the code is valid.
-        console.error('[VKID] id.vk.com returned non-JSON:', idRes.status, idText.substring(0, 200));
-        return c.json({ error: { code: 'VK_UNAVAILABLE', message: 'VK авторизация временно недоступна. Попробуйте снова.' } }, 502);
+        // id.vk.com/oauth2/token returned HTML (inaccessible from this server).
+        // Fall back to oauth.vk.com/access_token — accepts VK ID PKCE codes when
+        // code_verifier is included. device_id is intentionally omitted: oauth.vk.com
+        // rejects requests that include device_id as an unknown parameter.
+        console.warn('[VKID] id.vk.com returned non-JSON (status', idRes.status, '), falling back to oauth.vk.com');
+        const oauthParams = new URLSearchParams({
+          grant_type: 'authorization_code',
+          code: authCode,
+          code_verifier: codeVerifier,
+          client_id: appId,
+          redirect_uri: redirectUri,
+        });
+        if (clientSecret) oauthParams.set('client_secret', clientSecret);
+        const oauthRes = await fetch(`https://oauth.vk.com/access_token?${oauthParams}`, {
+          signal: AbortSignal.timeout(10000),
+        });
+        const oauthText = await oauthRes.text();
+        console.log('[VKID] oauth.vk.com status:', oauthRes.status, 'body:', oauthText.substring(0, 400));
+        tokenData = JSON.parse(oauthText);
       }
     } catch (e: any) {
       console.error('[VKID] token exchange error:', e?.message);
