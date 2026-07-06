@@ -536,18 +536,14 @@ auth.post('/refresh', async (c) => {
   }
 });
 
-// POST /auth/vkid — VK ID login via PKCE authorization code flow
-// Flow: id.vk.com/authorize (PKCE) → callback → frontend sends {code, code_verifier, device_id}
-//       → server exchanges at oauth.vk.com/access_token WITH code_verifier (PKCE validation server-side)
-//       → server calls id.vk.com/oauth2/user_info for phone/name
-// Note: id.vk.com/oauth2/token is CORS-blocked from browser and returns 404 server-side.
-//       oauth.vk.com/access_token accepts VK ID PKCE codes when code_verifier is included.
+// POST /auth/vkid — VK OAuth 2.0 (classic) authorization code exchange
+// Flow: oauth.vk.com/authorize → callback → frontend sends {code, redirect_uri}
+//       → server exchanges at oauth.vk.com/access_token with client_secret
+//       → server calls api.vk.com/method/account.getProfileInfo for phone/name
 auth.post('/vkid', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const {
     code: authCode,
-    code_verifier: codeVerifier,
-    device_id: deviceId,
     access_token: bodyAccessToken,
     user_id: bodyUserId,
   } = body;
@@ -565,11 +561,6 @@ auth.post('/vkid', async (c) => {
     // Legacy path: browser already exchanged (not used anymore, kept for compat)
     accessToken = bodyAccessToken as string;
   } else if (authCode) {
-    // Primary path: exchange code server-side at oauth.vk.com with PKCE code_verifier
-    if (!codeVerifier) {
-      return c.json({ error: { code: 'VALIDATION', message: 'Missing code_verifier' } }, 400);
-    }
-
     const ALLOWED_REDIRECT_URIS = [
       'https://trash-go.ru/auth/vk/callback',
       'http://localhost:5173/auth/vk/callback',
@@ -581,61 +572,25 @@ auth.post('/vkid', async (c) => {
 
     let tokenData: any;
     try {
-      // id.vk.com/oauth2/token — VK ID OAuth 2.1 PKCE public client flow.
-      // client_secret is NOT sent here: PKCE replaces the secret for public clients.
-      // Sending client_secret causes VK to reject the request ("ошибка кода со стороны VK").
-      const idTokenParams = new URLSearchParams({
-        grant_type: 'authorization_code',
-        code: authCode,
-        code_verifier: codeVerifier,
+      const oauthParams = new URLSearchParams({
         client_id: appId,
+        client_secret: clientSecret || '',
+        code: authCode,
         redirect_uri: redirectUri,
       });
-      if (deviceId) idTokenParams.set('device_id', deviceId);
-
-      const idRes = await fetch('https://id.vk.com/oauth2/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json',
-        },
-        body: idTokenParams.toString(),
+      const oauthRes = await fetch(`https://oauth.vk.com/access_token?${oauthParams}`, {
         signal: AbortSignal.timeout(10000),
       });
-      const idContentType = idRes.headers.get('content-type') || '';
-      const idText = await idRes.text();
-      console.log('[VKID] id.vk.com/oauth2/token status:', idRes.status, 'ct:', idContentType.substring(0, 60), 'body:', idText.substring(0, 400));
-
-      if (idContentType.includes('json') || idText.trim().startsWith('{') || idText.trim().startsWith('[')) {
-        tokenData = JSON.parse(idText);
-      } else {
-        // id.vk.com/oauth2/token returned HTML (inaccessible from this server).
-        // Fall back to oauth.vk.com/access_token — accepts VK ID PKCE codes when
-        // code_verifier is included. device_id is intentionally omitted: oauth.vk.com
-        // rejects requests that include device_id as an unknown parameter.
-        console.warn('[VKID] id.vk.com returned non-JSON (status', idRes.status, '), falling back to oauth.vk.com');
-        const oauthParams = new URLSearchParams({
-          grant_type: 'authorization_code',
-          code: authCode,
-          code_verifier: codeVerifier,
-          client_id: appId,
-          redirect_uri: redirectUri,
-        });
-        if (clientSecret) oauthParams.set('client_secret', clientSecret);
-        const oauthRes = await fetch(`https://oauth.vk.com/access_token?${oauthParams}`, {
-          signal: AbortSignal.timeout(10000),
-        });
-        const oauthText = await oauthRes.text();
-        console.log('[VKID] oauth.vk.com status:', oauthRes.status, 'body:', oauthText.substring(0, 400));
-        tokenData = JSON.parse(oauthText);
-      }
+      const oauthText = await oauthRes.text();
+      console.log('[VK] oauth.vk.com status:', oauthRes.status, 'body:', oauthText.substring(0, 400));
+      tokenData = JSON.parse(oauthText);
     } catch (e: any) {
-      console.error('[VKID] token exchange error:', e?.message);
+      console.error('[VK] token exchange error:', e?.message);
       return c.json({ error: { code: 'VK_EXCHANGE_FAILED', message: 'Ошибка обращения к VK' } }, 502);
     }
 
     if (tokenData.error) {
-      console.error('[VKID] token error:', tokenData.error, '|', tokenData.error_description, '| cv_len:', codeVerifier?.length, '| device_id:', deviceId ? 'set' : 'missing', '| redirect_uri:', redirectUri);
+      console.error('[VK] token error:', tokenData.error, tokenData.error_description, '| redirect_uri:', body.redirect_uri);
       return c.json({ error: { code: 'VK_AUTH_ERROR', message: `Ошибка VK: ${tokenData.error_description || tokenData.error}` } }, 400);
     }
 
