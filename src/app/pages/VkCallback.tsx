@@ -20,12 +20,9 @@ export default function VkCallback() {
 
     const code = queryParams.get('code');
     const state = queryParams.get('state');
-    const deviceId = queryParams.get('device_id') ?? undefined;
 
     const savedState = localStorage.getItem('vkid_state');
-    const codeVerifier = localStorage.getItem('vkid_code_verifier');
     localStorage.removeItem('vkid_state');
-    localStorage.removeItem('vkid_code_verifier');
 
     const vkError = queryParams.get('error');
     if (vkError) {
@@ -35,26 +32,21 @@ export default function VkCallback() {
       return;
     }
 
-    if (!code || !codeVerifier) {
+    if (!code) {
       toast.error('Не удалось войти через VK. Попробуйте снова.');
       navigate('/login', { replace: true });
       return;
     }
 
     if (state && savedState && state !== savedState) {
-      // Log only — PKCE (code_verifier/code_challenge) is the primary CSRF protection.
       console.warn('[VK] state mismatch — url:', state, '| stored:', savedState);
     }
 
-    // Send code + code_verifier to our backend.
-    // Backend calls id.vk.com/oauth2/token server-side (avoids browser CORS restrictions).
     const redirect_uri = `${window.location.origin}/auth/vk/callback`;
 
     authApi.vkidExchange({
       code,
-      code_verifier: codeVerifier,
       redirect_uri,
-      ...(deviceId ? { device_id: deviceId } : {}),
     })
       .then((res) => {
         if (res.isNewUser) {
