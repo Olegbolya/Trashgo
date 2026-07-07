@@ -7,8 +7,10 @@ function generateRandom(length = 16): string {
 
 export const VKID_APP_ID = import.meta.env.VITE_VKID_APP_ID ?? '';
 
-// Classic VK OAuth via oauth.vk.com — codes exchange at oauth.vk.com/access_token (no IP block).
-// id.vk.com/oauth2/token returns 404 HTML from Timeweb's IP for all POST requests.
+// Implicit VK OAuth via oauth.vk.com — access_token comes back in URL hash fragment,
+// no server-side code exchange needed.
+// response_type=code gives a VK ID code: oauth.vk.com/access_token returns invalid_grant;
+// id.vk.com/oauth2/token is blocked from Timeweb. Implicit flow bypasses both problems.
 export async function startVkOAuth(): Promise<void> {
   if (!VKID_APP_ID) {
     throw new Error('VK не настроен. Добавьте VITE_VKID_APP_ID в переменные окружения.');
@@ -23,7 +25,7 @@ export async function startVkOAuth(): Promise<void> {
     display: 'page',
     redirect_uri,
     scope: 'phone,email',
-    response_type: 'code',
+    response_type: 'token',
     state,
   });
   window.location.href = `https://oauth.vk.com/authorize?${params}`;
