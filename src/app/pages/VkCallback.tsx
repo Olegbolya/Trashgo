@@ -4,6 +4,7 @@ import { authApi } from '../../api/auth';
 import { useAuthStore } from '../../stores/auth.store';
 import { useTheme } from '../context/ThemeContext';
 import { toast } from 'sonner';
+import { VKID_APP_ID } from '../../lib/vkid';
 
 export default function VkCallback() {
   const navigate = useNavigate();
@@ -19,9 +20,13 @@ export default function VkCallback() {
 
     const code = queryParams.get('code');
     const state = queryParams.get('state');
+    // VK ID returns device_id in the callback URL
+    const callbackDeviceId = queryParams.get('device_id');
 
-    const savedState = localStorage.getItem('vkid_state');
-    localStorage.removeItem('vkid_state');
+    const verifier = sessionStorage.getItem('vkid_verifier');
+    sessionStorage.removeItem('vkid_verifier');
+    const savedState = sessionStorage.getItem('vkid_state');
+    sessionStorage.removeItem('vkid_state');
 
     const vkError = queryParams.get('error');
     if (vkError) {
@@ -31,19 +36,46 @@ export default function VkCallback() {
       return;
     }
 
-    if (!code) {
+    if (!code || !verifier) {
       toast.error('Не удалось войти через VK. Попробуйте снова.');
       navigate('/login', { replace: true });
       return;
     }
 
     if (state && savedState && state !== savedState) {
-      console.warn('[VK] state mismatch — url:', state, '| stored:', savedState);
+      console.warn('[VK] state mismatch:', state, savedState);
     }
 
     const redirect_uri = `${window.location.origin}/auth/vk/callback`;
+    // Prefer device_id from callback URL, fall back to stored value
+    const deviceId = callbackDeviceId || localStorage.getItem('vkid_device_id') || '';
 
-    authApi.vkidExchange({ code, redirect_uri })
+    // Exchange code browser-side — browser has no Timeweb IP restriction on id.vk.com.
+    // Public client: only client_id + code_verifier needed, no client_secret.
+    fetch('https://id.vk.com/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: VKID_APP_ID,
+        grant_type: 'authorization_code',
+        code,
+        code_verifier: verifier,
+        redirect_uri,
+        device_id: deviceId,
+        state: state ?? '',
+      }),
+    })
+      .then(r => r.json())
+      .then((tokenData) => {
+        if (tokenData.error) {
+          throw new Error(tokenData.error_description || tokenData.error);
+        }
+        return authApi.vkidExchange({
+          access_token: tokenData.access_token,
+          user_id: tokenData.user_id ? String(tokenData.user_id) : undefined,
+          id_token: tokenData.id_token,
+        });
+      })
       .then((res) => {
         if (res.isNewUser) {
           navigate('/register-vk', {
